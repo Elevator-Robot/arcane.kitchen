@@ -1,7 +1,203 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Raleway:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-input, input:-webkit-autofill {
-  color: #ffffff !important;
+@layer base {
+  html {
+    font-family: 'Raleway', 'Open Sans', sans-serif;
+    color: theme('colors.arcane.text.DEFAULT');
+    background-color: theme('colors.arcane.parchment.DEFAULT');
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', 'Garamond', serif;
+    color: theme('colors.arcane.text.dark');
+    letter-spacing: 0.03em;
+  }
+  
+  h1 {
+    @apply text-4xl font-semibold;
+  }
+  
+  h2 {
+    @apply text-3xl font-medium;
+  }
+  
+  h3 {
+    @apply text-2xl font-medium;
+  }
+  
+  a {
+    @apply text-arcane-purple transition-colors duration-200;
+  }
+  
+  a:hover {
+    @apply text-arcane-purple-light;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-6 py-2 rounded-md transition-all duration-200 font-medium;
+  }
+  
+  .btn-primary {
+    @apply bg-arcane-purple text-white shadow-magical hover:bg-arcane-purple-dark hover:shadow-magical hover:-translate-y-0.5;
+  }
+  
+  .btn-secondary {
+    @apply bg-arcane-amber text-white shadow-magical hover:bg-arcane-amber-dark hover:shadow-magical hover:-translate-y-0.5;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-arcane-purple text-arcane-purple hover:bg-arcane-purple hover:text-white;
+  }
+  
+  .recipe-card {
+    @apply bg-arcane-parchment rounded-lg border border-arcane-amber-light/30 shadow-recipe-card transition-all duration-300 overflow-hidden;
+  }
+  
+  .recipe-card:hover {
+    @apply shadow-recipe-hover -translate-y-1;
+  }
+  
+  .input {
+    @apply bg-white border border-arcane-purple-light/30 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-arcane-purple/20 focus:border-arcane-purple transition-all duration-200;
+  }
+  
+  .magical-divider {
+    @apply relative flex items-center my-8;
+  }
+  
+  .magical-divider::before, .magical-divider::after {
+    @apply content-[''] flex-1 border-t border-arcane-amber-light/30;
+  }
+  
+  .magical-divider::before {
+    @apply mr-4;
+  }
+  
+  .magical-divider::after {
+    @apply ml-4;
+  }
+  
+  .magical-icon {
+    @apply inline-flex items-center justify-center w-8 h-8 rounded-full bg-arcane-purple text-white animate-magical-glow;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: theme('colors.arcane.parchment.dark');
+}
+
+::-webkit-scrollbar-thumb {
+  background: theme('colors.arcane.purple.light');
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.arcane.purple.DEFAULT');
+}
+
+/* Magical particle effect */
+.magical-particles {
+  position: relative;
+  overflow: hidden;
+}
+
+.magical-particles::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(138, 99, 200, 0.1) 10%,
+    transparent 10.5%
+  ) 0 0 / 12px 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  animation: particles-rotate 10s linear infinite;
+  pointer-events: none;
+}
+
+.magical-particles:hover::before {
+  opacity: 1;
+}
+
+@keyframes particles-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Alchemical symbol animations */
+.alchemical-symbol {
+  position: relative;
+  display: inline-block;
+}
+
+.alchemical-symbol::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.alchemical-symbol:hover::after {
+  opacity: 0.8;
+}
+
+/* Cauldron bubble effect */
+.cauldron-bubble {
+  position: relative;
+}
+
+.cauldron-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  background-color: rgba(138, 99, 200, 0.6);
+  border-radius: 50%;
+  opacity: 0;
+  animation: bubble-rise 2s ease-in infinite;
+}
+
+@keyframes bubble-rise {
+  0% {
+    opacity: 0.8;
+    bottom: 0;
+    width: 8px;
+    height: 8px;
+  }
+  
+  100% {
+    opacity: 0;
+    bottom: 100%;
+    width: 4px;
+    height: 4px;
+  }
 }
