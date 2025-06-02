@@ -1,4 +1,4 @@
-import { defineData, a } from "@aws-amplify/backend";
+import { defineData, a, GenAI } from "@aws-amplify/backend";
 import { ClientSchema } from "@aws-amplify/backend";
 
 const schema = a.schema({
@@ -27,13 +27,13 @@ const schema = a.schema({
     dietaryTags: a.string().array(),
     magicalProperties: a.string().array(),
     imageUrl: a.string(),
-
+    
     // Relations
     grimoireId: a.id(),
     grimoire: a.belongsTo("Grimoire", "grimoireId"),
     authorId: a.string(),
     reviews: a.hasMany("Review", "recipeId"),
-
+    
     // Metadata
     createdAt: a.date(),
     updatedAt: a.date(),
@@ -74,19 +74,6 @@ const schema = a.schema({
     allow.groups(["Admins"]).to(['create', 'update', 'delete']),
   ]),
 
-  // For AI recipe generation
-  RecipeRequest: a.model({
-    id: a.id(),
-    prompt: a.string(),
-    parameters: a.json(),
-    status: a.string().default("PENDING"), // PENDING, PROCESSING, COMPLETED, FAILED
-    result: a.json(),
-    createdAt: a.date(),
-  }).authorization(allow => [
-    allow.owner(),
-    allow.groups(["Admins"])
-  ]),
-
   // Community features
   CommunityEvent: a.model({
     id: a.id(),
@@ -119,42 +106,32 @@ const schema = a.schema({
     allow.authenticated().to(['read']),
     allow.groups(["Admins"]).to(['create', 'update', 'delete']),
   ]),
+});
 
-  // Keep conversation functionality for the Sous Chef feature
-  Conversation: a.model({
-    id: a.id(),
-    messages: a.hasMany("Message", "conversationId"),
-    recipeResponses: a.hasMany("RecipeResponse", "conversationId"),
-    createdAt: a.date(),
-    updatedAt: a.date(),
-  }).authorization(allow => [allow.owner(), allow.groups(["Admins"])]),
+// Define GenAI operations
+const genai = new GenAI();
 
-  Message: a.model({
-    id: a.id(),
-    conversationId: a.id(),
-    conversation: a.belongsTo("Conversation", "conversationId"),
-    content: a.string(),
-    timestamp: a.date(),
-    recipeResponse: a.hasOne("RecipeResponse", "messageId")
-  }).authorization(allow => [allow.owner(), allow.groups(["Admins"])]),
+// Recipe generation
+genai.addOperation('generateRecipe', {
+  model: 'amazon.titan-text-express-v1',
+  prompt: a.string(),
+  ingredients: a.string().array().optional(),
+  dietaryRestrictions: a.string().array().optional(),
+  magicalProperties: a.string().array().optional(),
+  difficulty: a.string().optional(),
+  region: a.string().optional(),
+});
 
-  RecipeResponse: a.model({
-    id: a.id(),
-    conversationId: a.id(),
-    conversation: a.belongsTo("Conversation", "conversationId"),
-    messageId: a.id(), // the user message this is responding to
-    message: a.belongsTo("Message", "messageId"),
-    response: a.string(),
-    suggestedRecipes: a.json(), // Can contain recipe suggestions
-    createdAt: a.date(),
-  }).authorization(allow => [
-    allow.owner(),
-    allow.authenticated().to(['read']),
-  ]),
+// Sous Chef conversation
+genai.addOperation('getSousChefResponse', {
+  model: 'amazon.titan-text-express-v1',
+  message: a.string(),
+  conversationHistory: a.json(),
 });
 
 export const data = defineData({
   schema,
+  genai,
   authorizationModes: {
     defaultAuthorizationMode: "userPool",
   },
