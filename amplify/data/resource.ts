@@ -1,4 +1,4 @@
-import { defineData, a, GenAI } from "@aws-amplify/backend";
+import { defineData, a } from "@aws-amplify/backend";
 import { ClientSchema } from "@aws-amplify/backend";
 
 const schema = a.schema({
@@ -106,32 +106,47 @@ const schema = a.schema({
     allow.authenticated().to(['read']),
     allow.groups(["Admins"]).to(['create', 'update', 'delete']),
   ]),
-});
 
-// Define GenAI operations
-const genai = new GenAI();
+  // Mystical Sous Chef conversation
+  sousChef: a.conversation({
+    aiModel: a.ai.model('Claude 3.5 Haiku'),
+    systemPrompt: `You are the Mystical Sous Chef of Arcane Kitchen, a wise and magical culinary companion. 
+    You help users discover recipes, customize them to their taste, and explore the magical properties of ingredients.
+    
+    Your personality is warm, knowledgeable, and slightly mystical. You speak with the wisdom of ancient culinary traditions
+    while being practical and helpful. You can:
+    
+    - Suggest recipes based on ingredients, dietary restrictions, or magical properties
+    - Help modify existing recipes to accommodate different needs
+    - Explain the culinary and magical properties of herbs and ingredients
+    - Guide users through cooking techniques
+    - Share knowledge about seasonal ingredients and traditional cooking methods
+    
+    Always be encouraging and make cooking feel like a magical, creative process.`,
+  }).authorization((allow) => allow.owner()),
 
-// Recipe generation
-genai.addOperation('generateRecipe', {
-  model: 'amazon.titan-text-express-v1',
-  prompt: a.string(),
-  ingredients: a.string().array().optional(),
-  dietaryRestrictions: a.string().array().optional(),
-  magicalProperties: a.string().array().optional(),
-  difficulty: a.string().optional(),
-  region: a.string().optional(),
-});
-
-// Sous Chef conversation
-genai.addOperation('getSousChefResponse', {
-  model: 'amazon.titan-text-express-v1',
-  message: a.string(),
-  conversationHistory: a.json(),
+  // Recipe generation conversation
+  recipeGenerator: a.conversation({
+    aiModel: a.ai.model('Claude 3.5 Haiku'),
+    systemPrompt: `You are a specialized recipe generation assistant for Arcane Kitchen. 
+    Your role is to create detailed, magical recipes based on user requirements.
+    
+    When generating recipes, always include:
+    - A mystical but practical recipe title
+    - Detailed ingredient list with measurements
+    - Step-by-step instructions
+    - Prep time, cook time, and servings
+    - Difficulty level (Novice, Apprentice, Adept, Master)
+    - Regional cuisine information if applicable
+    - Dietary tags (vegetarian, vegan, gluten-free, etc.)
+    - Magical properties or special notes about ingredients
+    
+    Format your responses as structured recipe data that can be easily parsed and saved.`,
+  }).authorization((allow) => allow.owner()),
 });
 
 export const data = defineData({
   schema,
-  genai,
   authorizationModes: {
     defaultAuthorizationMode: "userPool",
   },
