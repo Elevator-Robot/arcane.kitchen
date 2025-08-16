@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { signIn, signUp, confirmSignUp, signOut, getCurrentUser, fetchUserAttributes, updateUserAttributes, updatePassword } from 'aws-amplify/auth';
+import ProfilePictureSelector from './ProfilePictureSelector';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -25,6 +26,8 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
+  const [selectedProfilePicture, setSelectedProfilePicture] = useState('');
+  const [currentProfilePicture, setCurrentProfilePicture] = useState('');
 
   // Fetch user attributes when component mounts or when authenticated
   useEffect(() => {
@@ -42,6 +45,8 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
       
       // Pre-populate form fields
       setNickName(attributes?.nickname || '');
+      setCurrentProfilePicture(attributes?.picture || '');
+      setSelectedProfilePicture(attributes?.picture || '');
       
       console.log('User attributes:', attributes);
     } catch (error) {
@@ -117,6 +122,12 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
       return;
     }
 
+    if (!selectedProfilePicture) {
+      setError('Please choose thy mystical avatar to join the coven.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const result = await signUp({
         username: email,
@@ -125,6 +136,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
           userAttributes: {
             email: email,
             nickname: nickName.trim(),
+            picture: selectedProfilePicture,
           },
         },
       });
@@ -178,16 +190,23 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
     setError('');
 
     try {
+      const updateData: any = {
+        nickname: nickName.trim(),
+      };
+
+      // Only update picture if it has changed
+      if (selectedProfilePicture !== currentProfilePicture) {
+        updateData.picture = selectedProfilePicture;
+      }
+
       await updateUserAttributes({
-        userAttributes: {
-          nickname: nickName.trim(),
-        },
+        userAttributes: updateData,
       });
 
       // Refresh user data
       await fetchUserData();
       setError('');
-      showThemedNotification('Thy mystical name has been updated successfully!', 'success');
+      showThemedNotification('Thy mystical profile has been updated successfully!', 'success');
     } catch (err: any) {
       setError(err.message || 'Failed to update thy profile.');
     } finally {
@@ -247,6 +266,8 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmNewPassword('');
+    setSelectedProfilePicture('');
+    setCurrentProfilePicture('');
     setError('');
     setAuthMode('signin');
   };
@@ -262,33 +283,49 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
         <div className="flex justify-between items-center p-4">
           {/* Left side - Logo */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 brand-logo">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
             <div>
               <h1 className="text-lg font-semibold text-gradient gothic-text">𝔄𝔯𝔠𝔞𝔫𝔢 𝔎𝔦𝔱𝔠𝔥𝔢𝔫</h1>
-              <p className="text-xs text-green-300">Kitchen Witch's Grimoire</p>
+              <p className="text-xs text-green-300">Culinary Magic & Recipes</p>
             </div>
           </div>
           
           {/* Right side - Auth */}
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center border border-yellow-500/40">
-                  <svg className="w-4 h-4 text-yellow-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button 
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-green-800/20"
+                title="Profile"
+              >
+                {currentProfilePicture ? (
+                  <img
+                    src={`/images/profile-pictures/${currentProfilePicture}`}
+                    alt="Profile"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-green-500/40 shadow-lg"
+                    onError={(e) => {
+                      // Fallback to default icon if image fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
+                    <svg className="w-6 h-6 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                )}
+                
+                {/* Fallback icon (hidden by default) */}
+                <div className="hidden w-12 h-12 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
+                  <svg className="w-6 h-6 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                <button 
-                  onClick={() => setShowAuthModal(true)}
-                  className="text-sm text-green-200 hover:text-green-100 transition-colors"
-                >
-                  Grimoire
-                </button>
-              </div>
+                
+                <span className="hidden sm:inline font-medium">Profile</span>
+              </button>
             ) : (
               <button 
                 onClick={() => setShowAuthModal(true)}
@@ -376,12 +413,20 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
                             required
                           />
                         </div>
+                        
+                        {/* Profile Picture Selection */}
+                        <ProfilePictureSelector
+                          selectedProfilePicture={selectedProfilePicture}
+                          onSelect={setSelectedProfilePicture}
+                          className="mb-4"
+                        />
+                        
                         <button 
                           type="submit" 
                           className="btn-primary w-full"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Updating...' : 'Update Mystical Name'}
+                          {isLoading ? 'Updating...' : 'Update Profile'}
                         </button>
                       </form>
 
@@ -574,6 +619,14 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
                           required
                         />
                       </div>
+                      
+                      {/* Profile Picture Selection */}
+                      <ProfilePictureSelector
+                        selectedProfilePicture={selectedProfilePicture}
+                        onSelect={setSelectedProfilePicture}
+                        className="mb-4"
+                      />
+                      
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
                           Witch's Email

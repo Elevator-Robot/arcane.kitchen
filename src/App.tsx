@@ -219,6 +219,18 @@ content: randomResponse,
     await handleSendMessage(userMessage);
   };
 
+  const handleQuickMessage = async (message: string) => {
+    if (isWaitingForResponse) return;
+
+    setMessages(prev => [...prev, { 
+      role: 'user', 
+      content: message,
+      timestamp: new Date()
+    }]);
+
+    await handleSendMessage(message);
+  };
+
   const startNewConversation = () => {
     setMessages([]);
     setConversationId(null);
@@ -262,13 +274,7 @@ content: randomResponse,
             <div className="max-w-4xl w-full text-center space-y-12">
               {/* Mystical Header */}
               <div className="relative">
-                <div className="w-32 h-32 mx-auto mb-8 rounded-3xl brand-logo flex items-center justify-center shadow-2xl">
-                  <svg className="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                </div>
-                
-                {/* Floating botanical elements around logo */}
+                {/* Floating botanical elements */}
                 <div className="absolute -top-4 -right-8 w-6 h-6 botanical-orb"></div>
                 <div className="absolute -bottom-4 -left-8 w-4 h-4 botanical-orb" style={{animationDelay: '2s'}}></div>
                 <div className="absolute top-1/2 -left-12 w-3 h-3 herb-particle" style={{animationDelay: '1s'}}></div>
@@ -285,7 +291,7 @@ content: randomResponse,
                 <p className="text-xl text-stone-200 max-w-3xl mx-auto leading-relaxed">
                   {isAuthenticated 
                     ? "Your family recipes and cooking wisdom await by the warm hearth."
-                    : "Gather 'round the kitchen hearth for time-honored recipes, cooking wisdom, and the comfort of home-cooked meals passed down through generations."
+                    : ""
                   }
                 </p>
               </div>
@@ -350,7 +356,7 @@ content: randomResponse,
                 ].map((example, index) => (
                   <button
                     key={index}
-                    onClick={() => setInputMessage(example.description)}
+                    onClick={() => handleQuickMessage(example.description)}
                     className="welcome-example group p-6 text-left h-full"
                   >
                     <div className="flex flex-col space-y-4 h-full">
