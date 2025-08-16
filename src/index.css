@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Raleway:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=UnifrakturMaguntia&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,198 +6,448 @@
 
 @layer base {
   html {
-    font-family: 'Raleway', 'Open Sans', sans-serif;
-    color: theme('colors.arcane.text.DEFAULT');
-    background-color: theme('colors.arcane.parchment.DEFAULT');
+    font-family: 'Crimson Text', serif;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background: 
+      radial-gradient(circle at 20% 80%, rgba(34, 139, 34, 0.15) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(85, 107, 47, 0.15) 0%, transparent 50%),
+      linear-gradient(135deg, #0a0f0a 0%, #1a2e1a 30%, #2d2d1b 70%, #1a1a0f 100%);
+    min-height: 100vh;
+    color: #e8f5e8;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cormorant Garamond', 'Garamond', serif;
-    color: theme('colors.arcane.text.dark');
-    letter-spacing: 0.03em;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
   }
-  
-  h1 {
-    @apply text-4xl font-semibold;
-  }
-  
-  h2 {
-    @apply text-3xl font-medium;
-  }
-  
-  h3 {
-    @apply text-2xl font-medium;
-  }
-  
-  a {
-    @apply text-arcane-purple transition-colors duration-200;
-  }
-  
-  a:hover {
-    @apply text-arcane-purple-light;
+
+  .gothic-text {
+    font-family: 'UnifrakturMaguntia', cursive;
+    letter-spacing: 0.05em;
   }
 }
 
 @layer components {
-  .btn {
-    @apply px-6 py-2 rounded-md transition-all duration-200 font-medium;
+  /* Mystical Gradient Text */
+  .text-gradient {
+    background: linear-gradient(135deg, #9acd32, #228b22, #6b8e23, #8fbc8f);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: mystical-shimmer 4s ease-in-out infinite;
   }
-  
+
+  .text-enchanted {
+    background: linear-gradient(135deg, #daa520, #cd853f, #d2691e, #b8860b);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: mystical-shimmer 3s ease-in-out infinite;
+  }
+
+  /* Witchy Chat Interface */
+  .chat-bubble-user {
+    @apply rounded-2xl p-4 max-w-[85%] ml-auto relative;
+    background: linear-gradient(135deg, #556b2f, #6b8e23);
+    color: #f0fff0;
+    border: 1px solid rgba(154, 205, 50, 0.3);
+    box-shadow: 0 4px 20px rgba(107, 142, 35, 0.2);
+  }
+
+  .chat-bubble-user::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #9acd32, #228b22, #6b8e23);
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0.3;
+  }
+
+  .chat-bubble-assistant {
+    @apply rounded-2xl p-4 max-w-[85%] relative;
+    background: linear-gradient(135deg, rgba(45, 45, 27, 0.9), rgba(26, 26, 15, 0.95));
+    color: #e8f5e8;
+    border: 1px solid rgba(218, 165, 32, 0.3);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(139, 69, 19, 0.15);
+  }
+
+  .chat-bubble-assistant::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    background: linear-gradient(45deg, #daa520, #cd853f, #d2691e);
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0.2;
+  }
+
+  /* Enchanted Loading Animation */
+  .loading-dots {
+    @apply flex space-x-1;
+  }
+
+  .loading-dots div {
+    @apply w-2 h-2 rounded-full;
+    background: linear-gradient(45deg, #9acd32, #228b22);
+    animation: mystical-pulse 1.4s ease-in-out infinite both;
+  }
+
+  .loading-dots div:nth-child(1) { animation-delay: -0.32s; }
+  .loading-dots div:nth-child(2) { animation-delay: -0.16s; }
+  .loading-dots div:nth-child(3) { animation-delay: 0s; }
+
+  /* Witchy Sidebar */
+  .sidebar-enchanted {
+    background: 
+      linear-gradient(135deg, rgba(26, 26, 15, 0.95), rgba(45, 45, 27, 0.9)),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23228b22' fill-opacity='0.03'%3E%3Cpath d='M30 30c0-11.046-8.954-20-20-20s-20 8.954-20 20 8.954 20 20 20 20-8.954 20-20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    backdrop-filter: blur(15px);
+    border-right: 1px solid rgba(154, 205, 50, 0.2);
+  }
+
+  .sidebar-item {
+    @apply flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-300 cursor-pointer relative;
+    color: #c8e6c8;
+    border: 1px solid transparent;
+  }
+
+  .sidebar-item:hover {
+    background: linear-gradient(135deg, rgba(107, 142, 35, 0.2), rgba(85, 107, 47, 0.2));
+    color: #f0fff0;
+    border-color: rgba(154, 205, 50, 0.3);
+    box-shadow: 0 2px 10px rgba(107, 142, 35, 0.2);
+  }
+
+  .sidebar-item.active {
+    background: linear-gradient(135deg, rgba(107, 142, 35, 0.3), rgba(85, 107, 47, 0.3));
+    color: #9acd32;
+    border-color: rgba(154, 205, 50, 0.5);
+  }
+
+  /* Mystical Input Styles */
+  .chat-input {
+    @apply w-full px-4 py-3 rounded-xl transition-all duration-300 relative;
+    background: linear-gradient(135deg, rgba(45, 45, 27, 0.8), rgba(26, 26, 15, 0.9));
+    border: 1px solid rgba(154, 205, 50, 0.3);
+    color: #e8f5e8;
+    backdrop-filter: blur(10px);
+  }
+
+  .chat-input::placeholder {
+    color: rgba(200, 230, 200, 0.6);
+  }
+
+  .chat-input:focus {
+    outline: none;
+    border-color: rgba(154, 205, 50, 0.6);
+    box-shadow: 0 0 20px rgba(107, 142, 35, 0.3);
+    background: linear-gradient(135deg, rgba(45, 45, 27, 0.9), rgba(26, 26, 15, 0.95));
+  }
+
+  /* Enchanted Button Styles */
   .btn-primary {
-    @apply bg-arcane-purple text-white shadow-magical hover:bg-arcane-purple-dark hover:shadow-magical hover:-translate-y-0.5;
+    @apply px-6 py-3 rounded-xl font-medium transition-all duration-300 relative overflow-hidden;
+    background: linear-gradient(135deg, #556b2f, #6b8e23, #228b22);
+    color: #f0fff0;
+    border: 1px solid rgba(154, 205, 50, 0.4);
+    box-shadow: 0 4px 15px rgba(107, 142, 35, 0.3);
   }
-  
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #6b8e23, #228b22, #9acd32);
+    box-shadow: 0 6px 25px rgba(107, 142, 35, 0.4);
+    transform: translateY(-2px);
+  }
+
   .btn-secondary {
-    @apply bg-arcane-amber text-white shadow-magical hover:bg-arcane-amber-dark hover:shadow-magical hover:-translate-y-0.5;
+    @apply px-6 py-3 rounded-xl font-medium transition-all duration-300;
+    background: linear-gradient(135deg, rgba(45, 45, 27, 0.8), rgba(26, 26, 15, 0.9));
+    border: 1px solid rgba(218, 165, 32, 0.4);
+    color: #daa520;
+    backdrop-filter: blur(10px);
   }
-  
-  .btn-outline {
-    @apply border-2 border-arcane-purple text-arcane-purple hover:bg-arcane-purple hover:text-white;
+
+  .btn-secondary:hover {
+    background: linear-gradient(135deg, rgba(218, 165, 32, 0.2), rgba(205, 133, 63, 0.2));
+    color: #f0e68c;
+    border-color: rgba(218, 165, 32, 0.6);
+    box-shadow: 0 4px 15px rgba(218, 165, 32, 0.2);
   }
-  
-  .recipe-card {
-    @apply bg-arcane-parchment rounded-lg border border-arcane-amber-light/30 shadow-recipe-card transition-all duration-300 overflow-hidden;
+
+  /* Mystical Welcome Screen */
+  .welcome-example {
+    @apply p-4 text-left rounded-xl transition-all duration-300 cursor-pointer relative;
+    background: linear-gradient(135deg, rgba(45, 27, 45, 0.6), rgba(26, 26, 15, 0.9));
+    border: 1px solid rgba(154, 205, 50, 0.2);
+    color: #c8e6c8;
+    backdrop-filter: blur(8px);
   }
-  
-  .recipe-card:hover {
-    @apply shadow-recipe-hover -translate-y-1;
+
+  .welcome-example:hover {
+    background: linear-gradient(135deg, rgba(107, 142, 35, 0.2), rgba(85, 107, 47, 0.2));
+    border-color: rgba(154, 205, 50, 0.4);
+    color: #f0fff0;
+    box-shadow: 0 4px 20px rgba(107, 142, 35, 0.2);
+    transform: translateY(-2px);
   }
-  
-  .input {
-    @apply bg-white border border-arcane-purple-light/30 rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-arcane-purple/20 focus:border-arcane-purple transition-all duration-200;
+
+  /* Botanical Avatar Styles */
+  .avatar-user {
+    @apply w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #556b2f, #6b8e23);
+    border: 2px solid rgba(154, 205, 50, 0.4);
+    box-shadow: 0 2px 10px rgba(107, 142, 35, 0.3);
   }
-  
-  .magical-divider {
-    @apply relative flex items-center my-8;
+
+  .avatar-assistant {
+    @apply w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #8b4513, #a0522d);
+    border: 2px solid rgba(218, 165, 32, 0.4);
+    box-shadow: 0 2px 10px rgba(139, 69, 19, 0.3);
   }
-  
-  .magical-divider::before, .magical-divider::after {
-    @apply content-[''] flex-1 border-t border-arcane-amber-light/30;
+
+  /* Enchanted Header */
+  .header-mystical {
+    background: 
+      linear-gradient(135deg, rgba(26, 26, 15, 0.95), rgba(45, 45, 27, 0.9)),
+      url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23228b22' fill-opacity='0.05'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/svg%3E");
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(154, 205, 50, 0.2);
   }
-  
-  .magical-divider::before {
-    @apply mr-4;
+
+  /* Mystical Brand Logo */
+  .brand-logo {
+    @apply rounded-lg flex items-center justify-center;
+    background: linear-gradient(135deg, #556b2f, #6b8e23);
+    border: 1px solid rgba(154, 205, 50, 0.4);
+    box-shadow: 0 2px 10px rgba(107, 142, 35, 0.3);
   }
-  
-  .magical-divider::after {
-    @apply ml-4;
+
+  /* Floating Botanical Elements */
+  .botanical-orb {
+    @apply absolute rounded-full opacity-20;
+    background: radial-gradient(circle, rgba(154, 205, 50, 0.4) 0%, rgba(107, 142, 35, 0.2) 70%, transparent 100%);
+    animation: mystical-float 8s ease-in-out infinite;
   }
-  
-  .magical-icon {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-full bg-arcane-purple text-white animate-magical-glow;
+
+  .herb-particle {
+    @apply absolute opacity-30;
+    background: linear-gradient(45deg, #9acd32, #228b22);
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    animation: herb-drift 12s linear infinite;
+  }
+
+  /* Mystical Modal */
+  .modal-enchanted {
+    background: 
+      linear-gradient(135deg, rgba(26, 26, 15, 0.95), rgba(45, 45, 27, 0.9)),
+      url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23daa520' fill-opacity='0.05'%3E%3Cpath d='M30 30c0-11.046-8.954-20-20-20s-20 8.954-20 20 8.954 20 20 20 20-8.954 20-20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(218, 165, 32, 0.3);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Custom Auth Form Styling */
+  .auth-input {
+    @apply w-full px-4 py-3 rounded-xl transition-all duration-300 relative;
+    background: linear-gradient(135deg, rgba(45, 45, 27, 0.6), rgba(26, 26, 15, 0.8));
+    border: 1px solid rgba(154, 205, 50, 0.3);
+    color: #e8f5e8;
+    backdrop-filter: blur(8px);
+  }
+
+  .auth-input::placeholder {
+    color: rgba(200, 230, 200, 0.5);
+    font-style: italic;
+  }
+
+  .auth-input:focus {
+    outline: none;
+    border-color: rgba(218, 165, 32, 0.6);
+    box-shadow: 0 0 15px rgba(218, 165, 32, 0.2);
+    background: linear-gradient(135deg, rgba(45, 45, 27, 0.8), rgba(26, 26, 15, 0.9));
+  }
+
+  /* Mystical Divider */
+  .mystical-divider {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+  }
+
+  .mystical-divider::before,
+  .mystical-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(154, 205, 50, 0.3), transparent);
+  }
+
+  .mystical-divider span {
+    padding: 0 1rem;
+    color: rgba(154, 205, 50, 0.7);
+    font-size: 0.875rem;
+    font-weight: 500;
   }
 }
 
-/* Custom scrollbar */
+/* Mystical Animations */
+@keyframes mystical-shimmer {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes mystical-pulse {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes mystical-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.2;
+  }
+  33% {
+    transform: translateY(-20px) rotate(120deg);
+    opacity: 0.4;
+  }
+  66% {
+    transform: translateY(-10px) rotate(240deg);
+    opacity: 0.3;
+  }
+}
+
+@keyframes herb-drift {
+  0% {
+    transform: translateX(-100vw) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.3;
+  }
+  90% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateX(100vw) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes enchanted-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(154, 205, 50, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(154, 205, 50, 0.6), 0 0 30px rgba(107, 142, 35, 0.4);
+  }
+}
+
+/* Mystical Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: theme('colors.arcane.parchment.dark');
-}
-
-::-webkit-scrollbar-thumb {
-  background: theme('colors.arcane.purple.light');
+  background: linear-gradient(180deg, rgba(26, 15, 26, 0.5), rgba(45, 27, 45, 0.5));
   border-radius: 4px;
 }
 
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #556b2f, #6b8e23);
+  border-radius: 4px;
+  border: 1px solid rgba(154, 205, 50, 0.3);
+}
+
 ::-webkit-scrollbar-thumb:hover {
-  background: theme('colors.arcane.purple.DEFAULT');
+  background: linear-gradient(180deg, #6b8e23, #9acd32);
 }
 
-/* Magical particle effect */
-.magical-particles {
-  position: relative;
-  overflow: hidden;
-}
-
-.magical-particles::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(
-    circle,
-    rgba(138, 99, 200, 0.1) 10%,
-    transparent 10.5%
-  ) 0 0 / 12px 12px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  animation: particles-rotate 10s linear infinite;
-  pointer-events: none;
-}
-
-.magical-particles:hover::before {
-  opacity: 1;
-}
-
-@keyframes particles-rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Alchemical symbol animations */
-.alchemical-symbol {
-  position: relative;
-  display: inline-block;
-}
-
-.alchemical-symbol::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.alchemical-symbol:hover::after {
-  opacity: 0.8;
-}
-
-/* Cauldron bubble effect */
-.cauldron-bubble {
-  position: relative;
-}
-
-.cauldron-bubble::before {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 10px;
-  background-color: rgba(138, 99, 200, 0.6);
-  border-radius: 50%;
-  opacity: 0;
-  animation: bubble-rise 2s ease-in infinite;
-}
-
-@keyframes bubble-rise {
-  0% {
-    opacity: 0.8;
-    bottom: 0;
-    width: 8px;
-    height: 8px;
+/* Responsive Design for Mystical Theme */
+@media (max-width: 768px) {
+  .chat-bubble-user,
+  .chat-bubble-assistant {
+    @apply max-w-[90%];
   }
   
-  100% {
-    opacity: 0;
-    bottom: 100%;
-    width: 4px;
-    height: 4px;
+  .welcome-example {
+    @apply p-3 text-sm;
   }
+
+  .gothic-text {
+    font-size: 0.9em;
+  }
+}
+
+/* Dark mode optimizations for witchy theme */
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* Enhanced focus styles for mystical accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  @apply outline-none;
+  box-shadow: 0 0 0 2px rgba(154, 205, 50, 0.5), 0 0 20px rgba(107, 142, 35, 0.3);
+}
+
+/* Mystical text selection */
+::selection {
+  background: rgba(154, 205, 50, 0.3);
+  color: #f0fff0;
+}
+
+/* Botanical patterns and textures */
+.pattern-leaves {
+  background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23228b22' fill-opacity='0.1'%3E%3Cpath d='M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10 10-4.477 10-10S15.523 0 10 0zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Smooth mystical transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
 }
