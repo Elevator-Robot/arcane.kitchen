@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { signIn, signUp, confirmSignUp, signOut, getCurrentUser, fetchUserAttributes, updateUserAttributes, updatePassword } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, signOut, getCurrentUser, fetchUserAttributes, updateUserAttributes, updatePassword, deleteUser } from 'aws-amplify/auth';
 import ProfilePictureSelector from './ProfilePictureSelector';
 
 interface HeaderProps {
@@ -30,6 +30,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
   const [selectedProfilePicture, setSelectedProfilePicture] = useState('');
   const [currentProfilePicture, setCurrentProfilePicture] = useState('');
   const [profilePictureLoaded, setProfilePictureLoaded] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
 
   // Fetch user attributes when component mounts or when authenticated
   useEffect(() => {
@@ -257,6 +258,32 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
     }
   };
 
+  const handleDeleteAccount = async () => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      await deleteUser();
+      
+      // Clear all user data
+      setCurrentUser(null);
+      setUserAttributes(null);
+      setCurrentProfilePicture('');
+      setSelectedProfilePicture('');
+      setProfilePictureLoaded(false);
+      onAuthChange(false);
+      setShowAuthModal(false);
+      setShowDeleteConfirmation(false);
+      resetForm();
+      
+      showThemedNotification('Thy account has been permanently removed from the coven.', 'success');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete thy account. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -288,7 +315,21 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
 
   const closeModal = () => {
     setShowAuthModal(false);
-    resetForm();
+    // Only reset form data, not profile data for authenticated users
+    if (!isAuthenticated) {
+      resetForm();
+    } else {
+      // Just reset form fields, keep profile data
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setConfirmationCode('');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setError('');
+      setAuthMode('account'); // Reset to account view for authenticated users
+    }
   };
 
   return (
@@ -363,11 +404,6 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
           <div className="modal-enchanted rounded-2xl shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div className="text-center flex-1">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center shadow-lg border border-yellow-500/40">
-                  <svg className="w-8 h-8 text-yellow-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
                 <h2 className="text-2xl font-bold text-enchanted gothic-text mb-2">
                   {isAuthenticated ? '𝔊𝔯𝔦𝔪𝔬𝔦𝔯𝔢 𝔄𝔠𝔠𝔢𝔰𝔰' : 
                    authMode === 'signin' ? '𝔈𝔫𝔱𝔢𝔯 𝔱𝔥𝔢 ℭ𝔦𝔯𝔠𝔩𝔢' :
@@ -401,75 +437,184 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                 // Authenticated State - Account Management
                 <div className="space-y-6">
                   {authMode === 'account' ? (
-                    // Account Settings View
-                    <div className="space-y-6">
-                      <div className="text-center">
-                        <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center shadow-lg border border-green-500/40 mb-4">
-                          <svg className="w-10 h-10 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
+                    // Account Settings View - Enhanced Design
+                    <div className="space-y-8">
+                      {/* Enhanced Profile Header */}
+                      <div className="relative">
+                        {/* Background Pattern */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-green-600/10 to-green-800/20 rounded-2xl"></div>
+                        <div className="relative p-6 text-center">
+                          {/* Profile Picture Display */}
+                          <div className="relative inline-block mb-4">
+                            {currentProfilePicture ? (
+                              <img
+                                src={`/images/profile-pictures/${currentProfilePicture}`}
+                                alt="Profile"
+                                className="w-24 h-24 rounded-2xl object-cover border-2 border-green-500/60 shadow-xl mx-auto"
+                              />
+                            ) : (
+                              <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center shadow-xl border-2 border-green-500/60">
+                                <svg className="w-12 h-12 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                            )}
+                            {/* Mystical Glow Effect */}
+                            <div className="absolute -inset-2 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-2xl blur-lg animate-pulse"></div>
+                          </div>
+                          
+                          {/* Enhanced Name Display */}
+                          <h3 className="text-2xl font-bold text-gradient gothic-text mb-2">
+                            {getDisplayName()}
+                          </h3>
+                          <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-800/30 border border-green-600/40 mb-4">
+                            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                            <span className="text-green-300 text-sm font-medium">Kitchen Witch</span>
+                          </div>
+                          <p className="text-green-300/80 text-sm">
+                            {userAttributes?.email || 'Mystical practitioner'}
+                          </p>
                         </div>
-                        <h3 className="text-xl font-bold text-gradient gothic-text mb-2">
-                          {getDisplayName()}'s Profile
-                        </h3>
-                        <p className="text-green-300 text-sm mb-6">
-                          Email: {userAttributes?.email || 'Not available'}
-                        </p>
                       </div>
 
-                      {/* Profile Update Form */}
-                      <form onSubmit={handleUpdateProfile} className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-green-300 mb-2">
-                            Mystical Name
-                          </label>
-                          <input
-                            type="text"
-                            value={nickName}
-                            onChange={(e) => setNickName(e.target.value)}
-                            className="chat-input w-full"
-                            placeholder={userAttributes?.nickname || "Enter thy mystical name"}
-                            required
-                          />
+                      {/* Enhanced Profile Update Form */}
+                      <form onSubmit={handleUpdateProfile} className="space-y-6">
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-green-300 mb-3 flex items-center">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                              </svg>
+                              Mystical Name
+                            </label>
+                            <input
+                              type="text"
+                              value={nickName}
+                              onChange={(e) => setNickName(e.target.value)}
+                              className="chat-input w-full"
+                              placeholder={userAttributes?.nickname || "Enter thy mystical name"}
+                              required
+                            />
+                          </div>
+                          
+                          {/* Enhanced Profile Picture Selection */}
+                          <div>
+                            <label className="block text-sm font-medium text-green-300 mb-3 flex items-center">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              Choose Thy Avatar
+                            </label>
+                            <ProfilePictureSelector
+                              selectedProfilePicture={selectedProfilePicture}
+                              onSelect={setSelectedProfilePicture}
+                              className="mb-4"
+                            />
+                          </div>
                         </div>
-                        
-                        {/* Profile Picture Selection */}
-                        <ProfilePictureSelector
-                          selectedProfilePicture={selectedProfilePicture}
-                          onSelect={setSelectedProfilePicture}
-                          className="mb-4"
-                        />
                         
                         <button 
                           type="submit" 
-                          className="btn-primary w-full"
+                          className="btn-primary w-full py-3 text-base font-medium"
                           disabled={isLoading}
                         >
-                          {isLoading ? 'Updating...' : 'Update Profile'}
+                          {isLoading ? (
+                            <div className="flex items-center justify-center">
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                              Updating Profile...
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-center">
+                              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Update Profile
+                            </div>
+                          )}
                         </button>
                       </form>
 
-                      {/* Account Actions */}
-                      <div className="space-y-3 pt-4 border-t border-green-700/30">
-                        <button 
-                          onClick={() => setAuthMode('updatePassword')}
-                          className="btn-secondary w-full"
-                        >
-                          Change Sacred Password
-                        </button>
-                        <div className="flex flex-col sm:flex-row gap-3">
+                      {/* Enhanced Account Actions */}
+                      <div className="space-y-4 pt-6 border-t border-green-700/30">
+                        <div className="grid grid-cols-1 gap-3">
                           <button 
-                            onClick={handleSignOut}
-                            className="btn-secondary flex-1"
+                            onClick={() => setAuthMode('updatePassword')}
+                            className="btn-secondary w-full py-3 flex items-center justify-center"
                           >
-                            Leave Coven
+                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            Change Sacred Password
                           </button>
-                          <button 
-                            onClick={closeModal}
-                            className="btn-primary flex-1"
-                          >
-                            Return to Kitchen
-                          </button>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <button 
+                              onClick={handleSignOut}
+                              className="btn-secondary py-3 flex items-center justify-center text-red-300 hover:text-red-200 border-red-600/30 hover:border-red-500/50"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                              </svg>
+                              Leave Coven
+                            </button>
+                            <button 
+                              onClick={closeModal}
+                              className="btn-primary py-3 flex items-center justify-center"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                              Return to Kitchen
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dangerous Actions Section */}
+                      <div className="pt-6 border-t border-red-700/30">
+                        <div className="bg-red-900/20 border border-red-700/30 rounded-xl p-4">
+                          <div className="flex items-center mb-3">
+                            <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <h4 className="text-red-300 font-medium">Danger Zone</h4>
+                          </div>
+                          <p className="text-red-300/80 text-sm mb-4">
+                            Once thy account is deleted, there is no going back. This action cannot be undone.
+                          </p>
+                          
+                          {!showDeleteConfirmation ? (
+                            <button 
+                              onClick={() => setShowDeleteConfirmation(true)}
+                              className="w-full py-2 px-4 bg-red-900/30 border border-red-600/50 rounded-lg text-red-300 hover:text-red-200 hover:bg-red-900/50 hover:border-red-500/70 transition-all duration-200 flex items-center justify-center text-sm"
+                            >
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete Account
+                            </button>
+                          ) : (
+                            <div className="space-y-3">
+                              <p className="text-red-200 text-sm font-medium">
+                                Are you absolutely sure? This will permanently delete thy account and all associated data.
+                              </p>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => setShowDeleteConfirmation(false)}
+                                  className="flex-1 py-2 px-4 bg-stone-700/50 border border-stone-600/50 rounded-lg text-stone-300 hover:text-stone-200 hover:bg-stone-700/70 transition-all duration-200 text-sm"
+                                >
+                                  Cancel
+                                </button>
+                                <button 
+                                  onClick={handleDeleteAccount}
+                                  disabled={isLoading}
+                                  className="flex-1 py-2 px-4 bg-red-900/50 border border-red-600/70 rounded-lg text-red-200 hover:text-red-100 hover:bg-red-900/70 hover:border-red-500/80 transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isLoading ? 'Deleting...' : 'Yes, Delete Forever'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -477,11 +622,6 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                     // Password Update Form
                     <form onSubmit={handleUpdatePassword} className="space-y-4">
                       <div className="text-center mb-6">
-                        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-600 to-orange-700 flex items-center justify-center shadow-lg border border-yellow-500/40 mb-4">
-                          <svg className="w-8 h-8 text-yellow-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                          </svg>
-                        </div>
                         <p className="text-green-300 text-sm">
                           Update thy sacred incantation to protect thy grimoire
                         </p>
