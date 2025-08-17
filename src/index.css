@@ -437,6 +437,56 @@
   }
 }
 
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.2; transform: scale(0.5) rotate(0deg); }
+  25% { opacity: 0.8; transform: scale(1.1) rotate(90deg); }
+  50% { opacity: 1; transform: scale(1.3) rotate(180deg); }
+  75% { opacity: 0.6; transform: scale(0.9) rotate(270deg); }
+  100% { opacity: 0.2; transform: scale(0.5) rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  25% { transform: translateY(-3px) translateX(2px); }
+  50% { transform: translateY(-6px) translateX(-1px); }
+  75% { transform: translateY(-2px) translateX(-3px); }
+}
+
+@keyframes sparkle {
+  0% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.5) rotate(180deg); }
+  100% { opacity: 0; transform: scale(0) rotate(360deg); }
+}
+
+@keyframes expandFromProfile {
+  0% {
+    transform: scale(0.2) translate(50px, -20px);
+    opacity: 0;
+    transform-origin: top right;
+    border-radius: 50%;
+  }
+  30% {
+    transform: scale(0.4) translate(30px, -10px);
+    opacity: 0.6;
+    border-radius: 30%;
+  }
+  70% {
+    transform: scale(0.8) translate(10px, -5px);
+    opacity: 0.9;
+    border-radius: 15%;
+  }
+  100% {
+    transform: scale(1) translate(0, 0);
+    opacity: 1;
+    border-radius: 0%;
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

@@ -351,7 +351,9 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   setShowAuthModal(true);
                   setAuthMode('account'); // Go directly to account settings
                 }}
-                className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-green-800/20"
+                className={`flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-all duration-300 p-2 rounded-lg hover:bg-green-800/20 ${
+                  showAuthModal ? 'opacity-0 scale-110' : 'opacity-100 scale-100'
+                }`}
                 title="Profile"
               >
                 {isAuthenticated && profilePictureLoaded && currentProfilePicture ? (
@@ -401,17 +403,60 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
       {/* Custom Authentication Modal */}
       {showAuthModal && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
           onClick={closeModal}
         >
           <div
-            className="modal-enchanted rounded-2xl shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
+            className={`fixed top-4 right-4 bottom-4 w-96 bg-gradient-to-br from-stone-900/40 via-green-900/30 to-amber-900/40 backdrop-blur-lg border border-green-400/60 rounded-2xl shadow-2xl overflow-y-auto transform transition-all duration-300 ease-out ${
+              showAuthModal ? 'translate-x-0 scale-100 opacity-100' : 'translate-x-full scale-95 opacity-0'
+            }`}
+            style={{
+              transformOrigin: 'top right',
+              animation: showAuthModal ? 'expandFromProfile 0.3s ease-out forwards' : undefined,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(34, 197, 94, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gradient rustic-text">
-                Profile
-              </h2>
+            {/* Dynamic twinkling stars background */}
+            <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+              {/* Bright dynamic stars */}
+              <div className="absolute top-8 left-12 w-2 h-2 bg-white rounded-full" style={{animation: 'twinkle 1.5s ease-in-out infinite, float 4s ease-in-out infinite'}}></div>
+              <div className="absolute top-16 right-20 w-3 h-3 bg-yellow-200 rounded-full" style={{animation: 'shimmer 2.5s ease-in-out infinite', animationDelay: '0.5s'}}></div>
+              <div className="absolute top-24 left-8 w-1.5 h-1.5 bg-blue-200 rounded-full" style={{animation: 'sparkle 2s ease-in-out infinite', animationDelay: '1s'}}></div>
+              <div className="absolute top-32 right-12 w-2.5 h-2.5 bg-white rounded-full" style={{animation: 'twinkle 1.8s ease-in-out infinite, float 3.5s ease-in-out infinite', animationDelay: '1.5s'}}></div>
+              <div className="absolute top-40 left-16 w-2 h-2 bg-yellow-100 rounded-full" style={{animation: 'shimmer 3s ease-in-out infinite', animationDelay: '2s'}}></div>
+              
+              {/* Medium floating stars */}
+              <div className="absolute top-48 right-8 w-1.5 h-1.5 bg-blue-100 rounded-full" style={{animation: 'float 3s ease-in-out infinite, twinkle 2.2s ease-in-out infinite', animationDelay: '0.8s'}}></div>
+              <div className="absolute top-56 left-20 w-2 h-2 bg-white rounded-full" style={{animation: 'sparkle 1.8s ease-in-out infinite', animationDelay: '1.2s'}}></div>
+              <div className="absolute top-64 right-16 w-2.5 h-2.5 bg-yellow-200 rounded-full" style={{animation: 'shimmer 2.8s ease-in-out infinite, float 4.5s ease-in-out infinite', animationDelay: '1.8s'}}></div>
+              <div className="absolute top-72 left-10 w-1.5 h-1.5 bg-blue-200 rounded-full" style={{animation: 'twinkle 2.5s ease-in-out infinite', animationDelay: '2.5s'}}></div>
+              
+              {/* Small dancing stars */}
+              <div className="absolute bottom-32 left-14 w-1 h-1 bg-white rounded-full" style={{animation: 'sparkle 1.5s ease-in-out infinite, float 2.5s ease-in-out infinite', animationDelay: '0.3s'}}></div>
+              <div className="absolute bottom-24 right-10 w-1.5 h-1.5 bg-yellow-100 rounded-full" style={{animation: 'twinkle 2s ease-in-out infinite', animationDelay: '1.7s'}}></div>
+              <div className="absolute bottom-16 left-18 w-2 h-2 bg-blue-100 rounded-full" style={{animation: 'shimmer 2.2s ease-in-out infinite, float 3.8s ease-in-out infinite', animationDelay: '2.2s'}}></div>
+              <div className="absolute bottom-8 right-14 w-1 h-1 bg-white rounded-full" style={{animation: 'sparkle 1.8s ease-in-out infinite', animationDelay: '2.8s'}}></div>
+              
+              {/* Extra magical stars */}
+              <div className="absolute top-20 left-24 w-1 h-1 bg-purple-200 rounded-full" style={{animation: 'twinkle 1.2s ease-in-out infinite, float 2.8s ease-in-out infinite', animationDelay: '0.7s'}}></div>
+              <div className="absolute top-44 right-24 w-1.5 h-1.5 bg-pink-200 rounded-full" style={{animation: 'shimmer 2.3s ease-in-out infinite', animationDelay: '1.3s'}}></div>
+              <div className="absolute bottom-40 left-6 w-1 h-1 bg-green-200 rounded-full" style={{animation: 'sparkle 2.1s ease-in-out infinite, float 3.2s ease-in-out infinite', animationDelay: '1.9s'}}></div>
+              <div className="absolute bottom-48 right-6 w-2 h-2 bg-indigo-200 rounded-full" style={{animation: 'twinkle 1.7s ease-in-out infinite', animationDelay: '2.4s'}}></div>
+              
+              {/* Shooting star effect */}
+              <div className="absolute top-12 left-0 w-1 h-1 bg-white rounded-full opacity-0" style={{animation: 'sparkle 3s ease-in-out infinite', animationDelay: '4s'}}></div>
+            </div>
+            
+            <div className="relative p-6">
+            <div className="mb-8 text-center">
+              <div className="relative inline-block">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-300 via-yellow-300 to-green-300 bg-clip-text text-transparent gothic-text drop-shadow-lg">
+                  ✨ Profile ✨
+                </h2>
+                <div className="absolute -inset-1 bg-gradient-to-r from-amber-400/20 to-green-400/20 rounded-lg blur opacity-30"></div>
+              </div>
+              <div className="mt-2 h-px bg-gradient-to-r from-transparent via-green-400/50 to-transparent"></div>
             </div>
 
             {/* Authentication Forms */}
@@ -883,6 +928,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   </div>
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>
