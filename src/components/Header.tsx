@@ -55,13 +55,13 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
       const attributes = await fetchUserAttributes();
       setCurrentUser(user);
       setUserAttributes(attributes);
-      
+
       // Pre-populate form fields
       setNickName(attributes?.nickname || '');
       setCurrentProfilePicture(attributes?.picture || '');
       setSelectedProfilePicture(attributes?.picture || '');
       setProfilePictureLoaded(true);
-      
+
       console.log('User attributes:', attributes);
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -73,7 +73,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
     setNotificationMessage(message);
     setNotificationType(type);
     setShowNotification(true);
-    
+
     // Auto-hide after 4 seconds
     setTimeout(() => {
       setShowNotification(false);
@@ -113,7 +113,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
         resetForm();
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check thy credentials.');
+      setError(err.message || 'Failed to sign in. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -125,19 +125,19 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Thy passwords do not match, wise one.');
+      setError('Passwords do not match.');
       setIsLoading(false);
       return;
     }
 
     if (!nickName.trim()) {
-      setError('Thy mystical name is required to join the coven.');
+      setError('Name is required.');
       setIsLoading(false);
       return;
     }
 
     if (!selectedProfilePicture) {
-      setError('Please choose thy mystical avatar to join the coven.');
+      setError('Please choose an avatar.');
       setIsLoading(false);
       return;
     }
@@ -159,7 +159,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
         setAuthMode('confirm');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create thy grimoire. Please try again.');
+      setError(err.message || 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +192,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
         resetForm();
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to confirm thy account. Please check the sacred code.');
+      setError(err.message || 'Failed to confirm account. Please check the code.');
     } finally {
       setIsLoading(false);
     }
@@ -220,9 +220,9 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
       // Refresh user data
       await fetchUserData();
       setError('');
-      showThemedNotification('Thy mystical profile has been updated successfully!', 'success');
+      showThemedNotification('Profile updated successfully!', 'success');
     } catch (err: any) {
-      setError(err.message || 'Failed to update thy profile.');
+      setError(err.message || 'Failed to update profile.');
     } finally {
       setIsLoading(false);
     }
@@ -234,7 +234,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
     setError('');
 
     if (newPassword !== confirmNewPassword) {
-      setError('Thy new passwords do not match, wise one.');
+      setError('New passwords do not match.');
       setIsLoading(false);
       return;
     }
@@ -249,10 +249,10 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
       setNewPassword('');
       setConfirmNewPassword('');
       setError('');
-      showThemedNotification('Thy sacred password has been updated successfully!', 'success');
+      showThemedNotification('Your password has been updated successfully!', 'success');
       setAuthMode('account');
     } catch (err: any) {
-      setError(err.message || 'Failed to update thy password.');
+      setError(err.message || 'Failed to update your password.');
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +264,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
 
     try {
       await deleteUser();
-      
+
       // Clear all user data
       setCurrentUser(null);
       setUserAttributes(null);
@@ -275,10 +275,10 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
       setShowAuthModal(false);
       setShowDeleteConfirmation(false);
       resetForm();
-      
-      showThemedNotification('Thy account has been permanently removed from the coven.', 'success');
+
+      showThemedNotification('Your account has been permanently deleted.', 'success');
     } catch (err: any) {
-      setError(err.message || 'Failed to delete thy account. Please try again.');
+      setError(err.message || 'Failed to delete your account. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -335,20 +335,22 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
   return (
     <>
       <header className="header-mystical fixed top-0 w-full z-50">
-        <div className="flex justify-between items-center p-4">
+        <div className="flex justify-between items-center px-4 py-2">
           {/* Left side - Logo */}
           <div className="flex items-center space-x-3">
             <div>
-              <h1 className="text-lg font-semibold text-gradient gothic-text">𝔄𝔯𝔠𝔞𝔫𝔢 𝔎𝔦𝔱𝔠𝔥𝔢𝔫</h1>
-              <p className="text-xs text-green-300">Culinary Magic & Recipes</p>
+              <h1 className="text-2xl font-semibold text-gradient gothic-text">𝔄𝔯𝔠𝔞𝔫𝔢 𝔎𝔦𝔱𝔠𝔥𝔢𝔫</h1>
             </div>
           </div>
-          
+
           {/* Right side - Auth */}
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <button 
-                onClick={() => setShowAuthModal(true)}
+              <button
+                onClick={() => {
+                  setShowAuthModal(true);
+                  setAuthMode('account'); // Go directly to account settings
+                }}
                 className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-green-800/20"
                 title="Profile"
               >
@@ -356,7 +358,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   <img
                     src={`/images/profile-pictures/${currentProfilePicture}`}
                     alt="Profile"
-                    className="w-12 h-12 rounded-full object-cover border-2 border-green-500/40 shadow-lg"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-green-500/60 shadow-lg hover:border-green-400/80 transition-all duration-200"
                     onError={(e) => {
                       // Fallback to default icon if image fails to load
                       const target = e.target as HTMLImageElement;
@@ -366,28 +368,26 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   />
                 ) : isAuthenticated ? (
                   // Loading state - show nothing or a subtle placeholder
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-stone-600/20 to-stone-700/20 flex items-center justify-center border border-stone-500/20 shadow-lg">
-                    <div className="w-3 h-3 bg-stone-400/50 rounded-full animate-pulse"></div>
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-stone-600/20 to-stone-700/20 flex items-center justify-center border border-stone-500/20 shadow-lg">
+                    <div className="w-4 h-4 bg-stone-400/50 rounded-full animate-pulse"></div>
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
-                    <svg className="w-6 h-6 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
+                    <svg className="w-8 h-8 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
                 )}
-                
+
                 {/* Fallback icon (hidden by default) */}
                 <div className="hidden w-12 h-12 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
                   <svg className="w-6 h-6 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
-                
-                <span className="hidden sm:inline font-medium">Profile</span>
               </button>
             ) : (
-              <button 
+              <button
                 onClick={() => setShowAuthModal(true)}
                 className="btn-secondary text-sm"
               >
@@ -400,37 +400,20 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
 
       {/* Custom Authentication Modal */}
       {showAuthModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="modal-enchanted rounded-2xl shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div className="text-center flex-1">
-                <h2 className="text-2xl font-bold text-enchanted gothic-text mb-2">
-                  {isAuthenticated ? '𝔊𝔯𝔦𝔪𝔬𝔦𝔯𝔢 𝔄𝔠𝔠𝔢𝔰𝔰' : 
-                   authMode === 'signin' ? '𝔈𝔫𝔱𝔢𝔯 𝔱𝔥𝔢 ℭ𝔦𝔯𝔠𝔩𝔢' :
-                   authMode === 'signup' ? 'ℌ𝔞𝔦𝔩 𝔞𝔫𝔡 𝔚𝔢𝔩𝔠𝔬𝔪𝔢' :
-                   authMode === 'confirm' ? '𝔄𝔴𝔞𝔦𝔱 ℭ𝔬𝔫𝔣𝔦𝔯𝔪𝔞𝔱𝔦𝔬𝔫' :
-                   authMode === 'account' ? '𝔄𝔠𝔠𝔬𝔲𝔫𝔱 𝔖𝔢𝔱𝔱𝔦𝔫𝔤𝔰' :
-                   '𝔘𝔭𝔡𝔞𝔱𝔢 𝔓𝔞𝔰𝔰𝔴𝔬𝔯𝔡'}
-                </h2>
-                <p className="text-green-300">
-                  {isAuthenticated ? 'Manage thy sacred recipes' : 
-                   authMode === 'signin' ? 'Sign in to thy sacred grimoire' :
-                   authMode === 'signup' ? 'Create thy mystical grimoire' :
-                   authMode === 'confirm' ? 'Confirm thy place in the coven' :
-                   authMode === 'account' ? 'Update thy mystical profile' :
-                   'Change thy sacred incantation'}
-                </p>
-              </div>
-              <button 
-                onClick={closeModal}
-                className="text-green-300 hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-green-800/20"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="modal-enchanted rounded-2xl shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gradient rustic-text">
+                Profile
+              </h2>
             </div>
-            
+
             {/* Authentication Forms */}
             <div className="space-y-6">
               {isAuthenticated ? (
@@ -462,7 +445,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                             {/* Mystical Glow Effect */}
                             <div className="absolute -inset-2 bg-gradient-to-r from-green-400/20 to-emerald-400/20 rounded-2xl blur-lg animate-pulse"></div>
                           </div>
-                          
+
                           {/* Enhanced Name Display */}
                           <h3 className="text-2xl font-bold text-gradient gothic-text mb-2">
                             {getDisplayName()}
@@ -485,25 +468,25 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                               </svg>
-                              Mystical Name
+                              Name
                             </label>
                             <input
                               type="text"
                               value={nickName}
                               onChange={(e) => setNickName(e.target.value)}
                               className="chat-input w-full"
-                              placeholder={userAttributes?.nickname || "Enter thy mystical name"}
+                              placeholder={userAttributes?.nickname || "Enter your name"}
                               required
                             />
                           </div>
-                          
+
                           {/* Enhanced Profile Picture Selection */}
                           <div>
                             <label className="block text-sm font-medium text-green-300 mb-3 flex items-center">
                               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              Choose Thy Avatar
+                              Avatar
                             </label>
                             <ProfilePictureSelector
                               selectedProfilePicture={selectedProfilePicture}
@@ -512,9 +495,9 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                             />
                           </div>
                         </div>
-                        
-                        <button 
-                          type="submit" 
+
+                        <button
+                          type="submit"
                           className="btn-primary w-full py-3 text-base font-medium"
                           disabled={isLoading}
                         >
@@ -537,7 +520,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                       {/* Enhanced Account Actions */}
                       <div className="space-y-4 pt-6 border-t border-green-700/30">
                         <div className="grid grid-cols-1 gap-3">
-                          <button 
+                          <button
                             onClick={() => setAuthMode('updatePassword')}
                             className="btn-secondary w-full py-3 flex items-center justify-center"
                           >
@@ -546,9 +529,9 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                             </svg>
                             Change Sacred Password
                           </button>
-                          
+
                           <div className="grid grid-cols-2 gap-3">
-                            <button 
+                            <button
                               onClick={handleSignOut}
                               className="btn-secondary py-3 flex items-center justify-center text-red-300 hover:text-red-200 border-red-600/30 hover:border-red-500/50"
                             >
@@ -557,7 +540,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                               </svg>
                               Leave Coven
                             </button>
-                            <button 
+                            <button
                               onClick={closeModal}
                               className="btn-primary py-3 flex items-center justify-center"
                             >
@@ -580,11 +563,11 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                             <h4 className="text-red-300 font-medium">Danger Zone</h4>
                           </div>
                           <p className="text-red-300/80 text-sm mb-4">
-                            Once thy account is deleted, there is no going back. This action cannot be undone.
+                            Once your account is deleted, there is no going back. This action cannot be undone.
                           </p>
-                          
+
                           {!showDeleteConfirmation ? (
-                            <button 
+                            <button
                               onClick={() => setShowDeleteConfirmation(true)}
                               className="w-full py-2 px-4 bg-red-900/30 border border-red-600/50 rounded-lg text-red-300 hover:text-red-200 hover:bg-red-900/50 hover:border-red-500/70 transition-all duration-200 flex items-center justify-center text-sm"
                             >
@@ -596,16 +579,16 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           ) : (
                             <div className="space-y-3">
                               <p className="text-red-200 text-sm font-medium">
-                                Are you absolutely sure? This will permanently delete thy account and all associated data.
+                                Are you absolutely sure? This will permanently delete your account and all associated data.
                               </p>
                               <div className="flex gap-2">
-                                <button 
+                                <button
                                   onClick={() => setShowDeleteConfirmation(false)}
                                   className="flex-1 py-2 px-4 bg-stone-700/50 border border-stone-600/50 rounded-lg text-stone-300 hover:text-stone-200 hover:bg-stone-700/70 transition-all duration-200 text-sm"
                                 >
                                   Cancel
                                 </button>
-                                <button 
+                                <button
                                   onClick={handleDeleteAccount}
                                   disabled={isLoading}
                                   className="flex-1 py-2 px-4 bg-red-900/50 border border-red-600/70 rounded-lg text-red-200 hover:text-red-100 hover:bg-red-900/70 hover:border-red-500/80 transition-all duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -623,7 +606,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                     <form onSubmit={handleUpdatePassword} className="space-y-4">
                       <div className="text-center mb-6">
                         <p className="text-green-300 text-sm">
-                          Update thy sacred incantation to protect thy grimoire
+                          Update your password to keep your account secure
                         </p>
                       </div>
 
@@ -636,7 +619,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Enter thy current incantation"
+                          placeholder="Enter current password"
                           required
                         />
                       </div>
@@ -649,7 +632,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Create thy new incantation"
+                          placeholder="Enter new password"
                           required
                         />
                       </div>
@@ -662,21 +645,21 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           value={confirmNewPassword}
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Repeat thy new incantation"
+                          placeholder="Confirm new password"
                           required
                         />
                       </div>
-                      
+
                       <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => setAuthMode('account')}
                           className="btn-secondary flex-1"
                         >
                           Cancel
                         </button>
-                        <button 
-                          type="submit" 
+                        <button
+                          type="submit"
                           className="btn-primary flex-1"
                           disabled={isLoading}
                         >
@@ -699,13 +682,13 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                         <p className="text-green-300">Thy grimoire awaits thy wisdom</p>
                       </div>
                       <div className="flex flex-col sm:flex-row gap-4">
-                        <button 
+                        <button
                           onClick={() => setAuthMode('account')}
                           className="btn-secondary flex-1"
                         >
                           Account Settings
                         </button>
-                        <button 
+                        <button
                           onClick={closeModal}
                           className="btn-primary flex-1"
                         >
@@ -749,12 +732,12 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Enter thy secret incantation"
+                          placeholder="Enter your password"
                           required
                         />
                       </div>
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         className="btn-primary w-full"
                         disabled={isLoading}
                       >
@@ -767,25 +750,25 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                     <form onSubmit={handleSignUp} className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Mystical Name
+                          Name
                         </label>
                         <input
                           type="text"
                           value={nickName}
                           onChange={(e) => setNickName(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Thy chosen witch name"
+                          placeholder="Your name"
                           required
                         />
                       </div>
-                      
+
                       {/* Profile Picture Selection */}
                       <ProfilePictureSelector
                         selectedProfilePicture={selectedProfilePicture}
                         onSelect={setSelectedProfilePicture}
                         className="mb-4"
                       />
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
                           Witch's Email
@@ -808,7 +791,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Create thy secret incantation"
+                          placeholder="Create password"
                           required
                         />
                       </div>
@@ -821,12 +804,12 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           className="chat-input w-full"
-                          placeholder="Repeat thy incantation"
+                          placeholder="Confirm password"
                           required
                         />
                       </div>
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         className="btn-primary w-full"
                         disabled={isLoading}
                       >
@@ -839,7 +822,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                     <form onSubmit={handleConfirmSignUp} className="space-y-4">
                       <div className="text-center mb-4">
                         <p className="text-green-300 text-sm">
-                          A sacred scroll has been sent to thy email. Enter the mystical code to complete thy initiation.
+                          A confirmation code has been sent to your email. Enter the code to complete registration.
                         </p>
                       </div>
                       <div>
@@ -855,8 +838,8 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                           required
                         />
                       </div>
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         className="btn-primary w-full"
                         disabled={isLoading}
                       >
@@ -873,16 +856,16 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                         <span className="text-green-400 text-sm">or</span>
                         <div className="h-px bg-green-700 flex-1"></div>
                       </div>
-                      
+
                       {authMode === 'signin' ? (
-                        <button 
+                        <button
                           onClick={() => setAuthMode('signup')}
                           className="btn-secondary w-full"
                         >
                           Create New Grimoire
                         </button>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => setAuthMode('signin')}
                           className="btn-secondary w-full"
                         >
@@ -894,7 +877,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
 
                   <div className="text-center">
                     <p className="text-xs text-green-400">
-                      By joining our coven, you agree to share in the ancient wisdom 
+                      By joining our coven, you agree to share in the ancient wisdom
                       and protect the sacred recipes of kitchen witchcraft.
                     </p>
                   </div>
@@ -908,17 +891,15 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
       {/* Custom Themed Notification */}
       {showNotification && (
         <div className="fixed top-4 right-4 z-[60] animate-slideIn">
-          <div className={`p-4 rounded-xl shadow-2xl backdrop-blur-xl border max-w-sm ${
-            notificationType === 'success' 
-              ? 'bg-green-900/90 border-green-500/40 text-green-100' 
-              : 'bg-red-900/90 border-red-500/40 text-red-100'
-          }`}>
+          <div className={`p-4 rounded-xl shadow-2xl backdrop-blur-xl border max-w-sm ${notificationType === 'success'
+            ? 'bg-green-900/90 border-green-500/40 text-green-100'
+            : 'bg-red-900/90 border-red-500/40 text-red-100'
+            }`}>
             <div className="flex items-start space-x-3">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                notificationType === 'success' 
-                  ? 'bg-green-600' 
-                  : 'bg-red-600'
-              }`}>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${notificationType === 'success'
+                ? 'bg-green-600'
+                : 'bg-red-600'
+                }`}>
                 {notificationType === 'success' ? (
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -934,11 +915,10 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   {notificationMessage}
                 </p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowNotification(false)}
-                className={`text-sm opacity-70 hover:opacity-100 transition-opacity ${
-                  notificationType === 'success' ? 'text-green-300' : 'text-red-300'
-                }`}
+                className={`text-sm opacity-70 hover:opacity-100 transition-opacity ${notificationType === 'success' ? 'text-green-300' : 'text-red-300'
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
