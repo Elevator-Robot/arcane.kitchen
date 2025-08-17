@@ -290,7 +290,7 @@ content: randomResponse,
                 </h2>
                 <p className="text-xl text-stone-200 max-w-3xl mx-auto leading-relaxed">
                   {isAuthenticated 
-                    ? "Your family recipes and cooking wisdom await by the warm hearth."
+                    ? ""
                     : ""
                   }
                 </p>
