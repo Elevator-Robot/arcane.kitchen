@@ -6,9 +6,10 @@ interface HeaderProps {
   onMenuClick: () => void;
   isAuthenticated: boolean;
   onAuthChange: (authenticated: boolean) => void;
+  userAttributes?: any;
 }
 
-function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
+function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: passedUserAttributes }: HeaderProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'confirm' | 'account' | 'updatePassword'>('signin');
   const [email, setEmail] = useState('');
@@ -28,13 +29,24 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
   const [notificationType, setNotificationType] = useState<'success' | 'error'>('success');
   const [selectedProfilePicture, setSelectedProfilePicture] = useState('');
   const [currentProfilePicture, setCurrentProfilePicture] = useState('');
+  const [profilePictureLoaded, setProfilePictureLoaded] = useState(false);
 
   // Fetch user attributes when component mounts or when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      fetchUserData();
+      if (passedUserAttributes) {
+        // Use passed attributes immediately
+        setUserAttributes(passedUserAttributes);
+        setNickName(passedUserAttributes?.nickname || '');
+        setCurrentProfilePicture(passedUserAttributes?.picture || '');
+        setSelectedProfilePicture(passedUserAttributes?.picture || '');
+        setProfilePictureLoaded(true);
+      } else {
+        // Fallback to fetching if not passed
+        fetchUserData();
+      }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, passedUserAttributes]);
 
   const fetchUserData = async () => {
     try {
@@ -47,6 +59,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
       setNickName(attributes?.nickname || '');
       setCurrentProfilePicture(attributes?.picture || '');
       setSelectedProfilePicture(attributes?.picture || '');
+      setProfilePictureLoaded(true);
       
       console.log('User attributes:', attributes);
     } catch (error) {
@@ -268,6 +281,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
     setConfirmNewPassword('');
     setSelectedProfilePicture('');
     setCurrentProfilePicture('');
+    setProfilePictureLoaded(false);
     setError('');
     setAuthMode('signin');
   };
@@ -297,7 +311,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
                 className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-green-800/20"
                 title="Profile"
               >
-                {currentProfilePicture ? (
+                {isAuthenticated && profilePictureLoaded && currentProfilePicture ? (
                   <img
                     src={`/images/profile-pictures/${currentProfilePicture}`}
                     alt="Profile"
@@ -309,6 +323,11 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange }: HeaderProps) {
                       target.nextElementSibling?.classList.remove('hidden');
                     }}
                   />
+                ) : isAuthenticated ? (
+                  // Loading state - show nothing or a subtle placeholder
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-stone-600/20 to-stone-700/20 flex items-center justify-center border border-stone-500/20 shadow-lg">
+                    <div className="w-3 h-3 bg-stone-400/50 rounded-full animate-pulse"></div>
+                  </div>
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
                     <svg className="w-6 h-6 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">

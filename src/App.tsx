@@ -15,6 +15,7 @@ interface Message {
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
@@ -53,6 +54,8 @@ function App() {
         setIsAuthenticated(false);
         setCurrentUser(null);
         setUserAttributes(null);
+      } finally {
+        setAuthLoading(false);
       }
     }
     
@@ -239,6 +242,7 @@ content: randomResponse,
   // Handle auth state changes from Header component
   const handleAuthChange = (authenticated: boolean) => {
     setIsAuthenticated(authenticated);
+    setAuthLoading(false); // Auth state is now determined
     if (authenticated) {
       // Refresh user data when authenticated
       getCurrentUser().then(async (user) => {
@@ -259,15 +263,18 @@ content: randomResponse,
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
       
-      {/* Header */}
-      <Header 
-        onMenuClick={() => {}} // No sidebar to toggle
-        isAuthenticated={isAuthenticated}
-        onAuthChange={handleAuthChange}
-      />
+      {authLoading ? null : (
+        <>
+          {/* Header */}
+          <Header 
+            onMenuClick={() => {}} // No sidebar to toggle
+            isAuthenticated={isAuthenticated}
+            onAuthChange={handleAuthChange}
+            userAttributes={userAttributes} // Pass user data to prevent separate loading
+          />
 
-      {/* Main Content Area */}
-      <div className="flex flex-col h-screen pt-20">
+          {/* Main Content Area */}
+          <div className="flex flex-col h-screen pt-20">
         {messages.length === 0 ? (
           // Welcome Screen - Full Width
           <div className="flex-1 flex items-center justify-center px-4 py-12">
@@ -286,7 +293,7 @@ content: randomResponse,
                   Arcane Kitchen
                 </h1>
                 <h2 className="text-2xl md:text-3xl text-hearth font-semibold">
-                  {isAuthenticated ? `Welcome home, ${getDisplayName()}` : 'A Cozy Place for Culinary Wisdom'}
+                  {isAuthenticated && userAttributes ? `Welcome home, ${getDisplayName()}` : 'Welcome home'}
                 </h2>
                 <p className="text-xl text-stone-200 max-w-3xl mx-auto leading-relaxed">
                   {isAuthenticated 
@@ -523,6 +530,8 @@ content: randomResponse,
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
