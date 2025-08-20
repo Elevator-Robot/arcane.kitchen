@@ -407,12 +407,12 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
           onClick={closeModal}
         >
           <div
-            className={`fixed top-4 right-4 bottom-4 w-96 bg-gradient-to-br from-stone-900/40 via-green-900/30 to-amber-900/40 backdrop-blur-lg border border-green-400/60 rounded-2xl shadow-2xl overflow-y-auto transform transition-all duration-300 ease-out ${
+            className={`fixed top-4 right-4 w-96 max-h-[calc(100vh-2rem)] bg-gradient-to-br from-stone-900/40 via-green-900/30 to-amber-900/40 backdrop-blur-lg border border-green-400/60 rounded-2xl shadow-2xl overflow-y-auto transform transition-all duration-200 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
               showAuthModal ? 'translate-x-0 scale-100 opacity-100' : 'translate-x-full scale-95 opacity-0'
             }`}
             style={{
               transformOrigin: 'top right',
-              animation: showAuthModal ? 'expandFromProfile 0.3s ease-out forwards' : undefined,
+              willChange: 'transform, opacity',
               boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(34, 197, 94, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
             }}
             onClick={(e) => e.stopPropagation()}
@@ -452,7 +452,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
             <div className="mb-8 text-center">
               <div className="relative inline-block">
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-amber-300 via-yellow-300 to-green-300 bg-clip-text text-transparent gothic-text drop-shadow-lg">
-                  ✨ Profile ✨
+                  {isAuthenticated ? '✨ Profile ✨' : '✨ Join the Coven ✨'}
                 </h2>
                 <div className="absolute -inset-1 bg-gradient-to-r from-amber-400/20 to-green-400/20 rounded-lg blur opacity-30"></div>
               </div>
@@ -683,7 +683,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Confirm New Password
+                          Confirm New Sacred Password
                         </label>
                         <input
                           type="password"
@@ -757,7 +757,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                     <form onSubmit={handleSignIn} className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Witch's Email
+                          Email
                         </label>
                         <input
                           type="email"
@@ -770,7 +770,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Sacred Password
+                          Password
                         </label>
                         <input
                           type="password"
@@ -816,7 +816,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
 
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Witch's Email
+                          Email
                         </label>
                         <input
                           type="email"
@@ -829,7 +829,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Sacred Password
+                          Password
                         </label>
                         <input
                           type="password"
@@ -842,7 +842,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Confirm Sacred Password
+                          Confirm Password
                         </label>
                         <input
                           type="password"
