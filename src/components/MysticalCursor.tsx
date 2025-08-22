@@ -42,22 +42,21 @@ function MysticalCursor() {
     <div
       className="fixed pointer-events-none z-[9999] mix-blend-difference"
       style={{
-        left: position.x - 16,
-        top: position.y - 16,
-        transform: `scale(${isClicking ? 0.8 : 1})`,
-        transition: 'transform 0.1s ease-out',
+        left: position.x - 8,
+        top: position.y - 8,
+        transform: `scale(${isClicking ? 0.7 : 1})`,
+        transition: 'transform 0.15s ease-out',
       }}
     >
       {/* Main orb */}
-      <div className="relative w-8 h-8">
+      <div className="relative w-4 h-4">
         {/* Core orb */}
         <div 
-          className={`absolute inset-0 rounded-full bg-gradient-to-br from-green-300 via-emerald-400 to-green-500 shadow-lg animate-pulse ${
+          className={`absolute inset-0 rounded-full bg-gradient-to-br from-green-300 via-emerald-400 to-green-500 shadow-lg ${
             isClicking ? 'scale-75' : 'scale-100'
           }`}
           style={{
-            boxShadow: '0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.3)',
-            animation: 'mysticalGlow 2s ease-in-out infinite alternate',
+            boxShadow: '0 0 8px rgba(34, 197, 94, 0.4)',
           }}
         />
         

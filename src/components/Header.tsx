@@ -392,9 +392,14 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
               !showAuthModal && (
                 <button
                   onClick={() => setShowAuthModal(true)}
-                  className="btn-secondary text-sm"
+                  className="bg-gradient-to-r from-stone-800/60 via-green-900/30 to-amber-900/40 hover:from-stone-700/80 hover:via-green-800/50 hover:to-amber-800/60 backdrop-blur-lg border border-green-400/40 hover:border-green-400/70 rounded-xl px-6 py-3 text-stone-100 hover:text-green-200 font-medium shadow-lg shadow-green-500/20 hover:shadow-green-500/40 transition-all duration-300 text-sm relative overflow-hidden"
                 >
-                  Create Account
+                  {/* Mystical background particles */}
+                  <div className="absolute inset-0 opacity-20">
+                    <div className="absolute top-1 right-2 w-0.5 h-0.5 bg-green-300 rounded-full animate-pulse"></div>
+                    <div className="absolute bottom-1 left-3 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+                  </div>
+                  <span className="relative z-10">Create Account</span>
                 </button>
               )
             )}
