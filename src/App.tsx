@@ -310,76 +310,56 @@ content: randomResponse,
                 {[
                   {
                     title: "Grandmother's Bread",
-                    description: "How do I make traditional sourdough bread?",
-                    icon: (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                      </svg>
-                    )
+                    description: "How do I make traditional sourdough bread?"
                   },
                   {
                     title: "Hearty Stews",
-                    description: "What's a good recipe for winter stew?",
-                    icon: (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 7.172V5L8 4z" />
-                      </svg>
-                    )
+                    description: "What's a good recipe for winter stew?"
                   },
                   {
                     title: "Preserving Harvest",
-                    description: "How to preserve vegetables for winter?",
-                    icon: (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                      </svg>
-                    )
+                    description: "How to preserve vegetables for winter?"
                   },
                   {
                     title: "Comfort Foods",
-                    description: "What are some warming comfort food recipes?",
-                    icon: (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    )
+                    description: "What are some warming comfort food recipes?"
                   },
                   {
                     title: "Garden to Table",
-                    description: "How to cook with fresh garden vegetables?",
-                    icon: (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    )
+                    description: "How to cook with fresh garden vegetables?"
                   },
                   {
                     title: "Family Traditions",
-                    description: "Help me recreate my family's traditional recipes",
-                    icon: (
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    )
+                    description: "Help me recreate my family's traditional recipes"
                   }
                 ].map((example, index) => (
                   <button
                     key={index}
                     onClick={() => handleQuickMessage(example.description)}
-                    className="welcome-example group p-6 text-left h-full"
+                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/30 backdrop-blur-lg border border-green-400/30 p-8 text-left h-full hover:border-green-400/60 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/20"
                   >
-                    <div className="flex flex-col space-y-4 h-full">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-stone-600 to-stone-700 flex items-center justify-center flex-shrink-0 group-hover:shadow-lg transition-all duration-300">
-                        {example.icon}
-                      </div>
+                    {/* Mystical background pattern */}
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute top-4 right-4 w-2 h-2 bg-green-300 rounded-full animate-pulse"></div>
+                      <div className="absolute bottom-6 left-6 w-1 h-1 bg-amber-300 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
+                      <div className="absolute top-1/2 right-8 w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse" style={{animationDelay: '2s'}}></div>
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col space-y-4 h-full">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-stone-200 mb-2 group-hover:text-gradient transition-all duration-300">
+                        <h3 className="text-xl font-bold text-gradient gothic-text mb-3 group-hover:text-green-300 transition-all duration-300">
                           {example.title}
                         </h3>
-                        <p className="text-sm text-stone-300 leading-relaxed">
+                        <p className="text-stone-300 leading-relaxed group-hover:text-stone-200 transition-all duration-300">
                           {example.description}
                         </p>
                       </div>
+                      
+                      {/* Mystical hover effect */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"></div>
+                      
+                      {/* Bottom accent line */}
+                      <div className="h-px bg-gradient-to-r from-transparent via-green-400/50 to-transparent group-hover:via-green-400/80 transition-all duration-300"></div>
                     </div>
                   </button>
                 ))}
