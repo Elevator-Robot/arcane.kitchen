@@ -4,6 +4,7 @@ import { generateClient } from "aws-amplify/data";
 import type { Schema } from "../amplify/data/resource";
 import Header from "./components/Header";
 import MysticalEffects from "./components/MysticalEffects";
+import MysticalCursor from "./components/MysticalCursor";
 
 const dataClient = generateClient<Schema>();
 
@@ -262,6 +263,7 @@ content: randomResponse,
   return (
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
+      <MysticalCursor />
       
       {authLoading ? null : (
         <>
