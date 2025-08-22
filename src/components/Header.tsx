@@ -389,12 +389,14 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                 </div>
               </button>
             ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="btn-secondary text-sm"
-              >
-                Create Account
-              </button>
+              !showAuthModal && (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className="btn-secondary text-sm"
+                >
+                  Create Account
+                </button>
+              )
             )}
           </div>
         </div>
