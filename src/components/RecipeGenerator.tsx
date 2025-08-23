@@ -66,7 +66,7 @@ export default function RecipeGenerator() {
         }
       });
 
-      const completion = response.data.generateRecipe.completion;
+      const completion = (response as any).data?.generateRecipe?.completion;
       setGeneratedRecipe(completion);
     } catch (error) {
       console.error('Error generating recipe:', error);
