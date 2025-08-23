@@ -338,9 +338,12 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
         <div className="flex justify-between items-center px-4 py-2">
           {/* Left side - Logo */}
           <div className="flex items-center space-x-3">
-            <div>
-              <h1 className="text-2xl font-semibold text-gradient gothic-text">𝔄𝔯𝔠𝔞𝔫𝔢 𝔎𝔦𝔱𝔠𝔥𝔢𝔫</h1>
-            </div>
+            <button 
+              onClick={() => window.location.reload()}
+              className="hover:scale-105 transition-transform duration-200 p-3 rounded-lg"
+            >
+              <h1 className="text-2xl font-semibold text-gradient gothic-text cursor-pointer">𝔄𝔯𝔠𝔞𝔫𝔢 𝔎𝔦𝔱𝔠𝔥𝔢𝔫</h1>
+            </button>
           </div>
 
           {/* Right side - Auth */}
