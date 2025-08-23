@@ -38,26 +38,9 @@ function CottageEffects() {
         animationDelay: '8s'
       }}></div>
       
-      {/* Cottage Window Light Effects */}
-      <div className="absolute top-10 right-10 w-20 h-20 opacity-10">
-        <div className="w-full h-full rounded-lg bg-gradient-to-br from-yellow-300 to-orange-400 animate-pulse"></div>
-      </div>
-      
-      {/* Hearth Glow */}
-      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-96 h-32 opacity-5">
-        <div className="w-full h-full bg-gradient-radial from-orange-400 via-red-500 to-transparent animate-pulse"></div>
-      </div>
-      
       {/* Wooden Beam Shadows */}
       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-black/10 to-transparent"></div>
       <div className="absolute top-16 left-0 w-full h-1 bg-gradient-to-r from-transparent via-black/5 to-transparent"></div>
-      
-      {/* Cottage Corner Decorations */}
-      <div className="absolute top-4 left-4 w-8 h-8 opacity-20">
-        <svg viewBox="0 0 24 24" fill="currentColor" className="text-amber-600">
-          <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z"/>
-        </svg>
-      </div>
       
       <div className="absolute bottom-4 right-4 w-6 h-6 opacity-15">
         <svg viewBox="0 0 24 24" fill="currentColor" className="text-orange-700">
