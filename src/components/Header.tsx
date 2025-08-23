@@ -351,14 +351,14 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   setShowAuthModal(true);
                   setAuthMode('account'); // Go directly to account settings
                 }}
-                className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-2 rounded-lg hover:bg-green-800/20"
+                className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-4"
                 title="Profile"
               >
                 {isAuthenticated && profilePictureLoaded && currentProfilePicture ? (
                   <img
                     src={`/images/profile-pictures/${currentProfilePicture}`}
                     alt="Profile"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-green-500/60 shadow-lg hover:border-green-400/80 transition-all duration-200"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-green-500/60 shadow-lg hover:scale-110 hover:shadow-green-400/50 hover:shadow-2xl hover:border-green-400/80 transition-all duration-300 ease-out"
                     onError={(e) => {
                       // Fallback to default icon if image fails to load
                       const target = e.target as HTMLImageElement;
@@ -372,7 +372,7 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                     <div className="w-4 h-4 bg-stone-400/50 rounded-full animate-pulse"></div>
                   </div>
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg hover:scale-110 hover:shadow-green-400/50 hover:shadow-2xl transition-all duration-300 ease-out">
                     <svg className="w-8 h-8 text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
@@ -389,28 +389,114 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
             ) : (
               <button
                 onClick={() => setShowAuthModal(true)}
-                className="btn-secondary text-sm"
+                className="bg-gradient-to-r from-stone-800/60 via-green-900/30 to-amber-900/40 hover:from-stone-700/80 hover:via-green-800/50 hover:to-amber-800/60 backdrop-blur-lg border border-green-400/40 hover:border-green-400/70 rounded-xl px-6 py-3 text-stone-100 hover:text-green-200 font-medium shadow-lg shadow-green-500/20 hover:shadow-green-500/40 transition-all duration-300 text-sm relative overflow-hidden"
               >
-                Create Account
+                {/* Mystical background particles */}
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-1 right-2 w-0.5 h-0.5 bg-green-300 rounded-full animate-pulse"></div>
+                  <div className="absolute bottom-1 left-3 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+                </div>
+                <span className="relative z-10">Create Account</span>
               </button>
             )}
           </div>
         </div>
       </header>
 
-      {/* Custom Authentication Modal */}
+      {/* Mystical Authentication Modal */}
       {showAuthModal && (
         <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-start justify-end z-50 p-4"
           onClick={closeModal}
         >
           <div
-            className="modal-enchanted rounded-2xl shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto"
+            className="bg-gradient-to-br from-stone-800/90 via-green-900/30 to-amber-900/40 backdrop-blur-xl border border-green-400/40 rounded-2xl shadow-2xl shadow-green-500/20 p-8 max-w-md w-full max-h-[95vh] overflow-y-auto relative mr-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gradient rustic-text">
-                Profile
+            {/* Mystical background particles and stars */}
+            <div className="absolute inset-0 opacity-30 pointer-events-none overflow-hidden">
+              {/* Floating particles */}
+              <div className="absolute top-6 right-8 w-1 h-1 bg-green-300 rounded-full animate-pulse"></div>
+              <div className="absolute bottom-8 left-6 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+              <div className="absolute top-1/3 left-8 w-0.5 h-0.5 bg-emerald-300 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute bottom-1/3 right-6 w-1 h-1 bg-yellow-300 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+
+              {/* Pulsing stars - dynamically positioned */}
+              <div className="absolute top-12 left-12 text-green-300 animate-pulse" style={{ animationDuration: '2s' }}>
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute top-24 right-16 text-amber-300 animate-pulse" style={{ animationDuration: '2.5s', animationDelay: '0.5s' }}>
+                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute top-40 left-20 text-emerald-300 animate-pulse" style={{ animationDuration: '3s', animationDelay: '1s' }}>
+                <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute bottom-32 right-8 text-yellow-300 animate-pulse" style={{ animationDuration: '2.2s', animationDelay: '1.5s' }}>
+                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute bottom-48 left-8 text-green-200 animate-pulse" style={{ animationDuration: '2.8s', animationDelay: '0.8s' }}>
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute top-60 right-24 text-amber-200 animate-pulse" style={{ animationDuration: '2.3s', animationDelay: '2s' }}>
+                <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute bottom-20 left-16 text-emerald-200 animate-pulse" style={{ animationDuration: '2.7s', animationDelay: '0.3s' }}>
+                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute top-80 left-24 text-green-400 animate-pulse" style={{ animationDuration: '3.2s', animationDelay: '1.2s' }}>
+                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              {/* Twinkling effect stars */}
+              <div className="absolute top-16 right-12 text-white animate-ping" style={{ animationDuration: '4s', animationDelay: '0.5s' }}>
+                <svg className="w-1 h-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+
+              <div className="absolute bottom-40 right-20 text-white animate-ping" style={{ animationDuration: '3.5s', animationDelay: '2.5s' }}>
+                <svg className="w-1 h-1" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="mb-8 relative z-10 text-center py-6 px-8">
+              <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-amber-300 via-green-300 to-emerald-400 bg-clip-text font-mono tracking-widest drop-shadow-lg relative">
+                {isAuthenticated ? (
+                  <span className="relative">
+                    ✦ Profile ✦
+                    <div className="absolute -top-1 -left-1 text-green-300/30 animate-pulse">✦ Profile ✦</div>
+                  </span>
+                ) : (
+                  <span className="relative">
+                    ✦ Join the Coven ✦
+                    <div className="absolute -top-1 -left-1 text-green-300/30 animate-pulse">✦ Join the Coven ✦</div>
+                  </span>
+                )}
               </h2>
             </div>
 
@@ -498,18 +584,24 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
 
                         <button
                           type="submit"
-                          className="btn-primary w-full py-3 text-base font-medium"
+                          className="bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 hover:from-amber-700 hover:via-amber-600 hover:to-amber-700 text-stone-100 hover:text-amber-100 font-medium rounded-xl border border-stone-500/60 hover:border-amber-400/60 shadow-lg shadow-stone-900/50 hover:shadow-amber-500/30 transition-all duration-300 backdrop-blur-lg w-full py-3 text-base relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={isLoading}
                         >
+                          {/* Mystical button background */}
+                          <div className="absolute inset-0 opacity-20">
+                            <div className="absolute top-1 right-4 w-0.5 h-0.5 bg-amber-300 rounded-full animate-pulse"></div>
+                            <div className="absolute bottom-1 left-6 w-0.5 h-0.5 bg-green-300 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
+                          </div>
+
                           {isLoading ? (
-                            <div className="flex items-center justify-center">
+                            <div className="flex items-center justify-center relative z-10">
                               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
                               Updating Profile...
                             </div>
                           ) : (
-                            <div className="flex items-center justify-center">
+                            <div className="flex items-center justify-center relative z-10">
                               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                               </svg>
                               Update Profile
                             </div>
@@ -711,9 +803,6 @@ function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: pa
                   {authMode === 'signin' && (
                     <form onSubmit={handleSignIn} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-green-300 mb-2">
-                          Witch's Email
-                        </label>
                         <input
                           type="email"
                           value={email}
