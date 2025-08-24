@@ -403,7 +403,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                   <div className="absolute top-1 right-2 w-0.5 h-0.5 bg-green-300 rounded-full animate-pulse"></div>
                   <div className="absolute bottom-1 left-3 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
                 </div>
-                <span className="relative z-10">Create Account</span>
+                <span className="relative z-10">Join the Coven</span>
               </button>
             )}
           </div>
@@ -810,6 +810,9 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                   {authMode === 'signin' && (
                     <form onSubmit={handleSignIn} className="space-y-4">
                       <div>
+                        <label className="block text-sm font-medium text-green-300 mb-2">
+                          Email
+                        </label>
                         <input
                           type="email"
                           value={email}
@@ -909,7 +912,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                         className="btn-primary w-full"
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Creating Grimoire...' : 'Create Account'}
+                        {isLoading ? 'Creating Grimoire...' : 'Join the Coven'}
                       </button>
                     </form>
                   )}
