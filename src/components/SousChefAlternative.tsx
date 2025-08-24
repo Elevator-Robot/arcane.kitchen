@@ -35,8 +35,8 @@ export default function SousChefAlternative() {
     try {
       console.log('🔮 Trying alternative approach with route...');
       
-      // Try using the conversation as a route instead
-      const response = await client.conversations.sousChef({
+      // Try using the conversation route with proper typing
+      const response = await (client.conversations.sousChef as any).create({
         content: [{ text: userMessage }]
       });
 

@@ -62,7 +62,7 @@ export default function SousChef() {
         }
       });
 
-      const completion = response.data.getSousChefResponse.completion;
+      const completion = (response as any).data?.getSousChefResponse?.completion;
 
       // Add the response to messages
       setMessages(prev => [...prev, { 

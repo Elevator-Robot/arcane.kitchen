@@ -9,7 +9,7 @@ interface HeaderProps {
   userAttributes?: any;
 }
 
-function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: passedUserAttributes }: HeaderProps) {
+function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, userAttributes: passedUserAttributes }: HeaderProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'confirm' | 'account' | 'updatePassword'>('signin');
   const [email, setEmail] = useState('');

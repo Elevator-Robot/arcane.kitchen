@@ -67,19 +67,62 @@ function App() {
         // Try the real AI conversation first
         try {
           console.log('🔮 Attempting real AI conversation...');
+          console.log('🔍 Available conversation methods:', Object.keys(dataClient.conversations.sousChef));
+          console.log('🔍 Conversation object:', dataClient.conversations.sousChef);
           
-          // This is the correct way to call a.conversation from frontend
-          const response = await dataClient.conversations.sousChef.sendMessage({
-            content: [{ text: content }]
-          });
+          // Try different possible API structures for Amplify Gen2 AI conversations
+          let response;
+          
+          // Method 1: Try sendMessage on the conversation route
+          if ('sendMessage' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).sendMessage === 'function') {
+            console.log('📤 Trying sendMessage method...');
+            response = await (dataClient.conversations.sousChef as any).sendMessage({
+              content: [{ text: content }]
+            });
+          }
+          // Method 2: Try create method with message content
+          else if ('create' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).create === 'function') {
+            console.log('📤 Trying create method...');
+            response = await (dataClient.conversations.sousChef as any).create({
+              content: [{ text: content }]
+            });
+          }
+          // Method 3: Try mutations approach
+          else if (dataClient.mutations) {
+            console.log('📤 Trying mutations approach...');
+            console.log('🔍 Available mutations:', Object.keys(dataClient.mutations));
+            
+            const mutationKeys = Object.keys(dataClient.mutations);
+            const aiMutation = mutationKeys.find(key => 
+              key.toLowerCase().includes('souschef') || 
+              key.toLowerCase().includes('conversation') ||
+              key.toLowerCase().includes('message')
+            );
+            
+            if (aiMutation) {
+              console.log(`📤 Using mutation: ${aiMutation}`);
+              response = await (dataClient.mutations as any)[aiMutation]({
+                content: content
+              });
+            }
+          }
           
           console.log('✅ AI Response received:', response);
           
           if (response?.data?.content) {
-            const aiContent = response.data.content
-              .filter((item: any) => item.text)
-              .map((item: any) => item.text)
-              .join('');
+            let aiContent;
+            
+            // Handle different response formats
+            if (Array.isArray(response.data.content)) {
+              aiContent = response.data.content
+                .filter((item: any) => item.text)
+                .map((item: any) => item.text)
+                .join('');
+            } else if (typeof response.data.content === 'string') {
+              aiContent = response.data.content;
+            } else {
+              aiContent = JSON.stringify(response.data.content);
+            }
             
             setMessages(prev => [...prev, { 
               role: 'assistant', 
@@ -89,6 +132,9 @@ function App() {
             setIsWaitingForResponse(false);
             return;
           }
+          
+          // If we get here, the API call succeeded but didn't return expected content
+          throw new Error('AI response received but no content found');
           
         } catch (aiError) {
           console.error('❌ Real AI failed:', aiError);
@@ -107,7 +153,7 @@ The AI conversation system needs to be deployed first. To get real AI responses:
 2. **Wait for deployment**: Usually takes 5-10 minutes
 3. **Test again**: The AI should then respond with real Claude responses
 
-**Current Error**: ${aiError.message || 'AI conversation not available'}
+**Current Error**: ${aiError instanceof Error ? aiError.message : 'AI conversation not available'}
 
 Once deployed, I'll be able to give you proper cooking advice and recipes! 🍳✨`,
               timestamp: new Date()
@@ -149,43 +195,6 @@ Once authenticated, you'll have access to:
         timestamp: new Date()
       }]);
     }
-  };
-
-  // Dynamic response generator
-  const generateDynamicResponse = (content: string, displayName: string, _isAuthenticated: boolean): string => {
-    const lowerContent = content.toLowerCase();
-    
-    if (lowerContent.includes('hi') || lowerContent.includes('hello')) {
-      return `Hello ${displayName}! 🔮 Welcome to Arcane Kitchen! I'm your mystical sous chef, ready to help you with recipes, cooking techniques, and culinary adventures. What magical dish would you like to create today? ✨🍳`;
-    }
-    
-    if (lowerContent.includes('stew')) {
-      return `${displayName}, I'd love to help you make a delicious stew! Here's a magical winter stew recipe:
-
-🍲 **Mystical Winter Stew**
-*Serves 6-8, Cook time: 2-3 hours*
-
-**Ingredients:**
-• 2 lbs beef chuck, cubed
-• 3 large carrots, chopped
-• 3 potatoes, cubed  
-• 1 large onion, diced
-• 2 celery stalks, chopped
-• 4 cups beef broth
-• 2 bay leaves
-• Fresh thyme sprigs
-• Salt & pepper to taste
-
-**Method:**
-1. Brown beef in a heavy pot
-2. Add vegetables and sauté until fragrant
-3. Pour in broth, add herbs
-4. Simmer covered for 2-3 hours until tender
-
-The secret is patience - let those flavors develop slowly! 🔥`;
-    }
-    
-    return `${displayName}, that's an interesting question about "${content}"! As your mystical sous chef, I'm here to help with all things culinary. What specific cooking challenge can I help you tackle today? ✨🍳`;
   };
 
   const generateErrorResponse = (content: string): string => {

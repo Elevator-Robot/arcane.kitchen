@@ -92,7 +92,7 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
                 src={`/images/profile-pictures/${image}`}
                 alt={getDisplayName(image)}
                 className="w-full h-full object-cover"
-                onError={(e) => {
+                onError={(_e) => {
                   console.error(`Failed to load image: ${image}`);
                 }}
               />
