@@ -82,9 +82,9 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
             <button
               key={image}
               onClick={() => onSelect(image)}
-              className={`relative group aspect-square rounded-xl overflow-hidden transition-all duration-200 ${isSelected
-                  ? 'ring-3 ring-stone-400 bg-stone-600'
-                  : 'hover:ring-2 hover:ring-stone-500 bg-stone-700/50 hover:bg-stone-600/70'
+              className={`relative group aspect-square rounded-xl overflow-hidden transition-all duration-300 transform hover:scale-105 focus:scale-105 ${isSelected
+                  ? 'ring-3 ring-emerald-400 bg-stone-600 shadow-lg shadow-emerald-500/30'
+                  : 'hover:ring-2 hover:ring-emerald-500/70 focus:ring-2 focus:ring-emerald-500/70 bg-stone-700/50 hover:bg-stone-600/70 focus:bg-stone-600/70 hover:shadow-lg hover:shadow-emerald-500/20 focus:shadow-lg focus:shadow-emerald-500/20'
                 }`}
               title={getDisplayName(image)}
             >
@@ -99,15 +99,18 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
 
               {/* Selection indicator */}
               {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-stone-400 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-stone-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute top-2 right-2 w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                  <svg className="w-4 h-4 text-emerald-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
               )}
 
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+              {/* Hover overlay with glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/30 to-transparent opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-300" />
+              
+              {/* Subtle glow ring on hover */}
+              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-xl opacity-0 group-hover:opacity-100 group-focus:opacity-100 blur-sm transition-all duration-300 -z-10" />
             </button>
           );
         })}

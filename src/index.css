@@ -193,13 +193,14 @@
     background: 
       url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='inputwood' x='0' y='0' width='30' height='6' patternUnits='userSpaceOnUse'%3E%3Crect width='30' height='6' fill='%234A3728'/%3E%3Cpath d='M0 3 Q7 2 15 3 T30 3' stroke='%23654321' stroke-width='0.3' fill='none' opacity='0.7'/%3E%3Cpath d='M0 4.5 Q10 4 20 4.5 T30 4.5' stroke='%238B4513' stroke-width='0.2' fill='none' opacity='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='30' height='30' fill='url(%23inputwood)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(74, 55, 40, 0.95), rgba(45, 24, 16, 0.98));
-    border: 2px solid rgba(139, 69, 19, 0.6);
+    border: 2px solid rgba(139, 69, 19, 0.8);
     color: #f4f1e8;
     backdrop-filter: blur(15px);
     box-shadow: 
       inset 0 2px 4px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.1),
-      0 0 20px rgba(0, 0, 0, 0.3);
+      0 0 20px rgba(0, 0, 0, 0.3),
+      inset 0 0 0 1px rgba(205, 133, 63, 0.3);
   }
 
   .chat-input::placeholder {
@@ -208,14 +209,17 @@
 
   .chat-input:focus {
     outline: none;
-    border-color: rgba(210, 105, 30, 0.8);
+    border-color: rgba(210, 105, 30, 0.9);
     box-shadow: 
-      0 0 20px rgba(139, 69, 19, 0.5),
+      0 0 25px rgba(139, 69, 19, 0.6),
+      0 0 40px rgba(210, 105, 30, 0.3),
       inset 0 2px 4px rgba(0, 0, 0, 0.3),
-      0 1px 0 rgba(255, 255, 255, 0.15);
+      0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 0 0 1px rgba(205, 133, 63, 0.5);
     background: 
       url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='inputwoodfocus' x='0' y='0' width='30' height='6' patternUnits='userSpaceOnUse'%3E%3Crect width='30' height='6' fill='%235D4037'/%3E%3Cpath d='M0 3 Q7 2 15 3 T30 3' stroke='%23795548' stroke-width='0.4' fill='none' opacity='0.8'/%3E%3Cpath d='M0 4.5 Q10 4 20 4.5 T30 4.5' stroke='%238D6E63' stroke-width='0.3' fill='none' opacity='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='30' height='30' fill='url(%23inputwoodfocus)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(93, 64, 55, 0.9), rgba(74, 55, 40, 0.95));
+    transform: translateY(-1px);
   }
 
   /* Rustic Button Styles with Wood Texture - Muted */

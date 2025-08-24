@@ -131,7 +131,7 @@ function MysticalCursor() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes mysticalGlow {
           0% { 
             box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.3);

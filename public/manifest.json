@@ -1,0 +1,73 @@
+{
+  "name": "Arcane Kitchen - Where Culinary Magic Meets Ancient Wisdom",
+  "short_name": "Arcane Kitchen",
+  "description": "Discover enchanted recipes, craft magical potions, and build your mystical cookbook with our AI-powered culinary companion.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#6B46C1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["food", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-narrow.png", 
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Recipes",
+      "short_name": "Recipes",
+      "description": "Search for magical recipes",
+      "url": "/recipes",
+      "icons": [
+        {
+          "src": "/shortcut-recipe.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "My Grimoire",
+      "short_name": "Grimoire", 
+      "description": "View your saved recipes",
+      "url": "/grimoire",
+      "icons": [
+        {
+          "src": "/shortcut-grimoire.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}
