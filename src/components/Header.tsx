@@ -343,7 +343,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
               className="hover:scale-105 transition-transform duration-200 p-2 rounded-lg"
             >
               <img 
-                src="/logo.png" 
+                src="/logo.svg" 
                 alt="Arcane Kitchen" 
                 className="h-28 w-auto cursor-pointer"
               />
