@@ -403,7 +403,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                   <div className="absolute top-1 right-2 w-0.5 h-0.5 bg-green-300 rounded-full animate-pulse"></div>
                   <div className="absolute bottom-1 left-3 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
                 </div>
-                <span className="relative z-10">Create Account</span>
+                <span className="relative z-10">Join the Coven</span>
               </button>
             )}
           </div>
@@ -591,7 +591,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
 
                         <button
                           type="submit"
-                          className="bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 hover:from-amber-700 hover:via-amber-600 hover:to-amber-700 text-stone-100 hover:text-amber-100 font-medium rounded-xl border border-stone-500/60 hover:border-amber-400/60 shadow-lg shadow-stone-900/50 hover:shadow-amber-500/30 transition-all duration-300 backdrop-blur-lg w-full py-3 text-base relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="btn-primary w-full py-3 text-base relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={isLoading}
                         >
                           {/* Mystical button background */}
@@ -621,12 +621,12 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                         <div className="grid grid-cols-1 gap-3">
                           <button
                             onClick={() => setAuthMode('updatePassword')}
-                            className="btn-secondary w-full py-3 flex items-center justify-center"
+                            className="btn-secondary w-full py-3 flex items-center justify-center hover:border-emerald-500/50 hover:text-emerald-300"
                           >
                             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                             </svg>
-                            Change Sacred Password
+                            Change Password
                           </button>
 
                           <div className="grid grid-cols-2 gap-3">
@@ -711,7 +711,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
 
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Current Sacred Password
+                          Current Password
                         </label>
                         <input
                           type="password"
@@ -724,7 +724,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          New Sacred Password
+                          New Password
                         </label>
                         <input
                           type="password"
@@ -810,6 +810,9 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                   {authMode === 'signin' && (
                     <form onSubmit={handleSignIn} className="space-y-4">
                       <div>
+                        <label className="block text-sm font-medium text-green-300 mb-2">
+                          Email
+                        </label>
                         <input
                           type="email"
                           value={email}
@@ -821,7 +824,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Sacred Password
+                          Password
                         </label>
                         <input
                           type="password"
@@ -837,7 +840,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                         className="btn-primary w-full"
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Signing in...' : 'Signin'}
+                        {isLoading ? 'Signing in...' : 'Sign in'}
                       </button>
                     </form>
                   )}
@@ -880,7 +883,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Sacred Password
+                          Password
                         </label>
                         <input
                           type="password"
@@ -893,7 +896,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
-                          Confirm Sacred Password
+                          Confirm Password
                         </label>
                         <input
                           type="password"
@@ -909,7 +912,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                         className="btn-primary w-full"
                         disabled={isLoading}
                       >
-                        {isLoading ? 'Creating Grimoire...' : 'Create Account'}
+                        {isLoading ? 'Creating Grimoire...' : 'Join the Coven'}
                       </button>
                     </form>
                   )}
@@ -958,7 +961,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                           onClick={() => setAuthMode('signup')}
                           className="btn-secondary w-full"
                         >
-                          Signup
+                          Sign up
                         </button>
                       ) : (
                         <button
@@ -973,8 +976,7 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
 
                   <div className="text-center">
                     <p className="text-xs text-green-400">
-                      By joining our coven, you agree to share in the ancient wisdom
-                      and protect the sacred recipes of kitchen witchcraft.
+                      By joining our coven, you pledge to guard the sacred recipes of kitchen witchcraft.
                     </p>
                   </div>
                 </div>
