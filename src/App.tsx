@@ -60,90 +60,95 @@ function App() {
   };
 
   const handleSendMessage = async (content: string): Promise<void> => {
+    // Block unauthenticated users completely
+    if (!isAuthenticated || !currentUser) {
+      console.log('❌ Unauthenticated user attempted to send message');
+      return;
+    }
+
     try {
       setIsWaitingForResponse(true);
       
-      if (isAuthenticated && currentUser) {
-        // Try the real AI conversation first
-        try {
-          console.log('🔮 Attempting real AI conversation...');
-          console.log('🔍 Available conversation methods:', Object.keys(dataClient.conversations.sousChef));
-          console.log('🔍 Conversation object:', dataClient.conversations.sousChef);
+      // Try the real AI conversation first
+      try {
+        console.log('🔮 Attempting real AI conversation...');
+        console.log('🔍 Available conversation methods:', Object.keys(dataClient.conversations.sousChef));
+        console.log('🔍 Conversation object:', dataClient.conversations.sousChef);
+        
+        // Try different possible API structures for Amplify Gen2 AI conversations
+        let response;
+        
+        // Method 1: Try sendMessage on the conversation route
+        if ('sendMessage' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).sendMessage === 'function') {
+          console.log('📤 Trying sendMessage method...');
+          response = await (dataClient.conversations.sousChef as any).sendMessage({
+            content: [{ text: content }]
+          });
+        }
+        // Method 2: Try create method with message content
+        else if ('create' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).create === 'function') {
+          console.log('📤 Trying create method...');
+          response = await (dataClient.conversations.sousChef as any).create({
+            content: [{ text: content }]
+          });
+        }
+        // Method 3: Try mutations approach
+        else if (dataClient.mutations) {
+          console.log('📤 Trying mutations approach...');
+          console.log('🔍 Available mutations:', Object.keys(dataClient.mutations));
           
-          // Try different possible API structures for Amplify Gen2 AI conversations
-          let response;
+          const mutationKeys = Object.keys(dataClient.mutations);
+          const aiMutation = mutationKeys.find(key => 
+            key.toLowerCase().includes('souschef') || 
+            key.toLowerCase().includes('conversation') ||
+            key.toLowerCase().includes('message')
+          );
           
-          // Method 1: Try sendMessage on the conversation route
-          if ('sendMessage' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).sendMessage === 'function') {
-            console.log('📤 Trying sendMessage method...');
-            response = await (dataClient.conversations.sousChef as any).sendMessage({
-              content: [{ text: content }]
+          if (aiMutation) {
+            console.log(`📤 Using mutation: ${aiMutation}`);
+            response = await (dataClient.mutations as any)[aiMutation]({
+              content: content
             });
           }
-          // Method 2: Try create method with message content
-          else if ('create' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).create === 'function') {
-            console.log('📤 Trying create method...');
-            response = await (dataClient.conversations.sousChef as any).create({
-              content: [{ text: content }]
-            });
-          }
-          // Method 3: Try mutations approach
-          else if (dataClient.mutations) {
-            console.log('📤 Trying mutations approach...');
-            console.log('🔍 Available mutations:', Object.keys(dataClient.mutations));
-            
-            const mutationKeys = Object.keys(dataClient.mutations);
-            const aiMutation = mutationKeys.find(key => 
-              key.toLowerCase().includes('souschef') || 
-              key.toLowerCase().includes('conversation') ||
-              key.toLowerCase().includes('message')
-            );
-            
-            if (aiMutation) {
-              console.log(`📤 Using mutation: ${aiMutation}`);
-              response = await (dataClient.mutations as any)[aiMutation]({
-                content: content
-              });
-            }
+        }
+        
+        console.log('✅ AI Response received:', response);
+        
+        if (response?.data?.content) {
+          let aiContent;
+          
+          // Handle different response formats
+          if (Array.isArray(response.data.content)) {
+            aiContent = response.data.content
+              .filter((item: any) => item.text)
+              .map((item: any) => item.text)
+              .join('');
+          } else if (typeof response.data.content === 'string') {
+            aiContent = response.data.content;
+          } else {
+            aiContent = JSON.stringify(response.data.content);
           }
           
-          console.log('✅ AI Response received:', response);
-          
-          if (response?.data?.content) {
-            let aiContent;
-            
-            // Handle different response formats
-            if (Array.isArray(response.data.content)) {
-              aiContent = response.data.content
-                .filter((item: any) => item.text)
-                .map((item: any) => item.text)
-                .join('');
-            } else if (typeof response.data.content === 'string') {
-              aiContent = response.data.content;
-            } else {
-              aiContent = JSON.stringify(response.data.content);
-            }
-            
-            setMessages(prev => [...prev, { 
-              role: 'assistant', 
-              content: aiContent,
-              timestamp: new Date()
-            }]);
-            setIsWaitingForResponse(false);
-            return;
-          }
-          
-          // If we get here, the API call succeeded but didn't return expected content
-          throw new Error('AI response received but no content found');
-          
-        } catch (aiError) {
-          console.error('❌ Real AI failed:', aiError);
-          
-          // Show deployment status instead of generated responses
-          setTimeout(() => {
-            setMessages(prev => [...prev, { 
-              role: 'assistant', 
-              content: `🔧 **AI Deployment Status**
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: aiContent,
+            timestamp: new Date()
+          }]);
+          setIsWaitingForResponse(false);
+          return;
+        }
+        
+        // If we get here, the API call succeeded but didn't return expected content
+        throw new Error('AI response received but no content found');
+        
+      } catch (aiError) {
+        console.error('❌ Real AI failed:', aiError);
+        
+        // Show deployment status instead of generated responses
+        setTimeout(() => {
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `🔧 **AI Deployment Status**
 
 I can see you asked: "${content}"
 
@@ -156,35 +161,12 @@ The AI conversation system needs to be deployed first. To get real AI responses:
 **Current Error**: ${aiError instanceof Error ? aiError.message : 'AI conversation not available'}
 
 Once deployed, I'll be able to give you proper cooking advice and recipes! 🍳✨`,
-              timestamp: new Date()
-            }]);
-            setIsWaitingForResponse(false);
-          }, 1000);
-        }
-        
-      } else {
-        // Guest user - encourage authentication for AI features
-        setTimeout(() => {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: `👋 **Welcome to Arcane Kitchen!**
-
-You asked: "${content}"
-
-To get personalized AI cooking assistance, please **sign up or log in**. 
-
-Once authenticated, you'll have access to:
-• Real-time AI cooking advice
-• Personalized recipe suggestions  
-• Custom meal planning
-• Ingredient substitution help
-
-**Sign up now** to unlock the full mystical kitchen experience! 🔮✨`,
             timestamp: new Date()
           }]);
           setIsWaitingForResponse(false);
         }, 1000);
       }
+        
     } catch (error) {
       console.error('❌ Message handling error:', error);
       setIsWaitingForResponse(false);
@@ -217,6 +199,36 @@ Once authenticated, you'll have access to:
   };
 
   const handleQuickMessage = async (message: string) => {
+    if (!isAuthenticated || !currentUser) {
+      // For unauthenticated users, show a sign-up encouragement message
+      setMessages(prev => [...prev, 
+        { 
+          role: 'user', 
+          content: message,
+          timestamp: new Date()
+        },
+        { 
+          role: 'assistant', 
+          content: `👋 **Welcome to Arcane Kitchen!**
+
+You asked: "${message}"
+
+To get personalized AI cooking assistance, please **sign up or log in**. 
+
+Once authenticated, you'll have access to:
+• Real-time AI cooking advice from our mystical sous chef
+• Personalized recipe suggestions based on your preferences
+• Custom meal planning and ingredient substitutions
+• Step-by-step cooking guidance
+
+**Sign up now** to unlock the full magical kitchen experience! 🔮✨`,
+          timestamp: new Date()
+        }
+      ]);
+      return;
+    }
+
+    // Authenticated users get full functionality
     setMessages(prev => [...prev, { 
       role: 'user', 
       content: message,
@@ -273,7 +285,11 @@ Once authenticated, you'll have access to:
                         <button
                           key={index}
                           onClick={() => handleQuickMessage(example.description)}
-                          className="group relative bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 hover:border-green-400/60 rounded-2xl p-6 text-left transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-500/20"
+                          className={`group relative bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer ${
+                            isAuthenticated 
+                              ? 'hover:border-green-400/60 hover:scale-105 hover:shadow-xl hover:shadow-green-500/20' 
+                              : 'hover:border-amber-400/60 hover:scale-102 hover:shadow-lg hover:shadow-amber-500/20'
+                          }`}
                         >
                           <div className="flex-1">
                             <h3 className="text-xl font-bold text-stone-200 gothic-text mb-3 group-hover:text-green-300 transition-all duration-300">
@@ -412,7 +428,8 @@ Once authenticated, you'll have access to:
                   </div>
                 </div>
 
-                <div className="border-t border-green-400/30 bg-gradient-to-r from-stone-800/60 via-green-900/20 to-amber-900/30 backdrop-blur-lg p-4 relative overflow-hidden">
+                {isAuthenticated && (
+                  <div className="border-t border-green-400/30 bg-gradient-to-r from-stone-800/60 via-green-900/20 to-amber-900/30 backdrop-blur-lg p-4 relative overflow-hidden">
                   <div className="absolute inset-0 opacity-10">
                     <div className="absolute top-2 left-20 w-1 h-1 bg-green-300 rounded-full animate-pulse"></div>
                     <div className="absolute bottom-2 right-32 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{animationDelay: '1.5s'}}></div>
@@ -455,6 +472,7 @@ Once authenticated, you'll have access to:
                     </form>
                   </div>
                 </div>
+                )}
               </div>
             )}
           </div>
