@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
-import MysticalCursor from './components/MysticalCursor';
+
 import ChatInterface from './components/ChatInterface';
 
 function App() {
@@ -40,7 +40,7 @@ function App() {
   return (
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
-      <MysticalCursor />
+
       
       {authLoading ? null : (
         <>

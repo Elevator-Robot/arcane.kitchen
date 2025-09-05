@@ -49,10 +49,7 @@
     letter-spacing: 0.02em;
   }
 
-  /* Hide default cursor */
-  * {
-    cursor: none !important;
-  }
+
 
   /* Mystical cursor animations */
   @keyframes mysticalGlow {
