@@ -31,26 +31,9 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
   ];
 
   useEffect(() => {
-    // Verify which images actually exist
-    const checkImages = async () => {
-      const existingImages: string[] = [];
-
-      for (const image of profilePictures) {
-        try {
-          const response = await fetch(`/images/profile-pictures/${image}`, { method: 'HEAD' });
-          if (response.ok) {
-            existingImages.push(image);
-          }
-        } catch (error) {
-          console.log(`Image ${image} not found`);
-        }
-      }
-
-      setAvailableImages(existingImages);
-      setLoading(false);
-    };
-
-    checkImages();
+    // Skip async verification - let images load naturally with onError handling
+    setAvailableImages(profilePictures);
+    setLoading(false);
   }, []);
 
   const getDisplayName = (filename: string) => {
@@ -92,8 +75,10 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
                 src={`/images/profile-pictures/${image}`}
                 alt={getDisplayName(image)}
                 className="w-full h-full object-cover"
-                onError={(_e) => {
+                onError={(e) => {
                   console.error(`Failed to load image: ${image}`);
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/images/profile-pictures/witch1.png'; // Fallback to default
                 }}
               />
 

@@ -361,20 +361,23 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
                 className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-4"
                 title="Profile"
               >
-                {isAuthenticated && profilePictureLoaded && currentProfilePicture ? (
+{isAuthenticated && currentProfilePicture ? (
                   <img
                     src={`/images/profile-pictures/${currentProfilePicture}`}
                     alt="Profile"
                     className="w-16 h-16 rounded-full object-cover border-2 border-green-500/60 shadow-lg hover:scale-110 hover:shadow-green-400/50 hover:shadow-2xl hover:border-green-400/80 transition-all duration-300 ease-out"
                     onError={(e) => {
-                      // Fallback to default icon if image fails to load
+                      console.error(`Failed to load profile image: ${currentProfilePicture}`);
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
                       target.nextElementSibling?.classList.remove('hidden');
                     }}
+onLoad={() => {
+                      setProfilePictureLoaded(true);
+                      console.log('Profile picture loaded:', profilePictureLoaded);
+                    }}
                   />
                 ) : isAuthenticated ? (
-                  // Loading state - show nothing or a subtle placeholder
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-stone-600/20 to-stone-700/20 flex items-center justify-center border border-stone-500/20 shadow-lg">
                     <div className="w-4 h-4 bg-stone-400/50 rounded-full animate-pulse"></div>
                   </div>
