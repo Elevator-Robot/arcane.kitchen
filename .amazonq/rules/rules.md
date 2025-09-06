@@ -3,6 +3,8 @@
 ## Project Context
 Arcane Kitchen is an AI-powered culinary companion that combines ancient culinary wisdom with modern technology. We help users explore global recipes, customize dishes, and build personal cookbooks through mystical AI guidance.
 
+Full project context and details can be found in the README.md file.
+
 ## Core Focus Areas
 - AI-powered recipe discovery and customization
 - Culinary AI chatbot (Mystical Sous Chef)
@@ -30,7 +32,7 @@ Arcane Kitchen is an AI-powered culinary companion that combines ancient culinar
 - Sustainable cooking practices
 
 ## Technical Preferences
-- AWS services and infrastructure
+- AWS services and infrastructure (us-east-1 region)
 - **AWS Amplify Gen2 framework** (CRITICAL: Always use Gen2 methods, NOT Gen1)
 - **AWS profile** (CRITICAL: Always use AWS profile brain)
 - Modern AI/ML frameworks for recipe recommendations
