@@ -42,22 +42,22 @@ export function useChat(options: ChatOptions = {}) {
     const userMessage = addMessage({ role: 'user', content: content.trim(), metadata });
 
     try {
-      // Create conversation if needed
-      if (!conversationId) {
+      // Always create a new conversation for each message (for now)
+      let currentConversationId = conversationId;
+      
+      if (!currentConversationId) {
         const conversation = await client.conversations.sousChef.create();
         if (!conversation.data?.id) {
           throw new Error('Failed to create conversation');
         }
-        setConversationId(conversation.data.id);
+        currentConversationId = conversation.data.id;
+        setConversationId(currentConversationId);
       }
 
-      // Use the streaming conversation API
-      const stream = client.conversations.sousChef.onStreamEvent({
-        conversationId: conversationId!
-      });
+      console.log('🔮 Sending message with conversation ID:', currentConversationId);
 
-      // Send message via GraphQL mutation
-      const messageResponse = await client.graphql({
+      // Send message via direct GraphQL mutation
+      const response = await client.graphql({
         query: `
           mutation SendMessage($conversationId: ID!, $content: [AmplifyAIContentBlockInput!]!) {
             sousChef(conversationId: $conversationId, content: $content) {
@@ -65,22 +65,24 @@ export function useChat(options: ChatOptions = {}) {
               content {
                 text
               }
+              role
+              createdAt
             }
           }
         `,
         variables: {
-          conversationId: conversationId!,
+          conversationId: currentConversationId,
           content: [{ text: content.trim() }]
         }
       });
 
-      const response = messageResponse.data?.sousChef;
+      const aiResponse = response.data?.sousChef;
 
-      if (response?.content?.[0]?.text) {
+      if (aiResponse?.content?.[0]?.text) {
         const assistantMessage = addMessage({ 
           role: 'assistant', 
-          content: response.content[0].text,
-          metadata: { responseId: response.id }
+          content: aiResponse.content[0].text,
+          metadata: { responseId: aiResponse.id }
         });
         return assistantMessage;
       } else {
@@ -90,6 +92,12 @@ export function useChat(options: ChatOptions = {}) {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Chat error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // Log GraphQL errors specifically
+      if (error && typeof error === 'object' && 'errors' in error) {
+        console.error('GraphQL errors:', (error as any).errors);
+      }
       
       const errorResponse = addMessage({ 
         role: 'assistant', 
