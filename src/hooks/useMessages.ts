@@ -48,11 +48,26 @@ export const useMessages = () => {
         throw new Error('Failed to create conversation');
       }
 
-      // Just return success for now to see the structure
-      addMessage({ 
-        role: 'assistant', 
-        content: `✅ Conversation created with ID: ${conversation.data.id}. Check console for available methods.`
+      // Use the message mutation (based on amplify_outputs.json structure)
+      const response = await client.mutations.sousChef({
+        conversationId: conversation.data.id,
+        content: [{ text: content }]
       });
+
+      console.log('✅ Response received:', response);
+
+      if (response.data?.content?.[0]?.text) {
+        addMessage({ 
+          role: 'assistant', 
+          content: response.data.content[0].text
+        });
+      } else {
+        console.warn('⚠️ No text content in response:', response.data);
+        addMessage({ 
+          role: 'assistant', 
+          content: `⚠️ Received empty response. Raw: ${JSON.stringify(response.data)}`
+        });
+      }
 
     } catch (error) {
       console.error('❌ Failed to send message:', error);
