@@ -35,10 +35,13 @@ Full project context and details can be found in the README.md file.
 - AWS services and infrastructure (us-east-1 region)
 - **AWS Amplify Gen2 framework** (CRITICAL: Always use Gen2 methods, NOT Gen1)
 - **AWS profile** (CRITICAL: Always use AWS profile brain)
+- **Amplify deployment** (CRITICAL: Always use `npx ampx sandbox --once --profile brain` for deployments)
 - Modern AI/ML frameworks for recipe recommendations
 - Fast search and filtering capabilities
 - Mobile-responsive design
 - Community and social features
+- **TypeScript for all application code** (primary language)
+- Reference examples/scripts/ for GraphQL interaction patterns (Python examples for reference only)
 
 ## Communication Style
 - Embrace magical/mystical terminology
