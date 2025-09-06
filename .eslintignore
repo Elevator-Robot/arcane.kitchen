@@ -1,0 +1,9 @@
+dist/
+node_modules/
+amplify_outputs.json
+amplify/data/resource.ts
+*.config.js
+*.config.ts
+public/
+.amplify/
+.git/
