@@ -20,7 +20,7 @@ function App() {
       const user = await getCurrentUser();
       setCurrentUser(user);
       setIsAuthenticated(true);
-      
+
       const attributes = await fetchUserAttributes();
       setUserAttributes(attributes);
     } catch (error) {
@@ -41,11 +41,10 @@ function App() {
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
 
-      
       {authLoading ? null : (
         <>
-          <Header 
-            onMenuClick={() => {}} 
+          <Header
+            onMenuClick={() => {}}
             isAuthenticated={isAuthenticated}
             onAuthChange={handleAuthChange}
             userAttributes={userAttributes}

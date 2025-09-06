@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 
-const dataClient = generateClient<Schema>();
+const client = generateClient<Schema>();
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -29,86 +29,35 @@ export const useMessages = () => {
       return;
     }
 
+    addMessage({ role: 'user', content });
+    setIsWaitingForResponse(true);
+
     try {
-      setIsWaitingForResponse(true);
+      // Debug what's available
+      console.log('Client keys:', Object.keys(client));
+      console.log('Models:', Object.keys((client as any).models || {}));
+      console.log('Mutations:', Object.keys((client as any).mutations || {}));
       
-      // Try the real AI conversation first
-      try {
-        console.log('🔮 Attempting real AI conversation...');
-        
-        let response;
-        
-        // Method 1: Try sendMessage on the conversation route
-        if ('sendMessage' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).sendMessage === 'function') {
-          response = await (dataClient.conversations.sousChef as any).sendMessage({
-            content: [{ text: content }]
-          });
-        }
-        // Method 2: Try create method with message content
-        else if ('create' in dataClient.conversations.sousChef && typeof (dataClient.conversations.sousChef as any).create === 'function') {
-          response = await (dataClient.conversations.sousChef as any).create({
-            content: [{ text: content }]
-          });
-        }
-        // Method 3: Try mutations approach
-        else if (dataClient.mutations) {
-          const mutationKeys = Object.keys(dataClient.mutations);
-          const aiMutation = mutationKeys.find(key => 
-            key.toLowerCase().includes('souschef') || 
-            key.toLowerCase().includes('conversation') ||
-            key.toLowerCase().includes('message')
-          );
-          
-          if (aiMutation) {
-            response = await (dataClient.mutations as any)[aiMutation]({
-              content: content
-            });
-          }
-        }
-        
-        if (response?.data?.content) {
-          let aiContent;
-          
-          // Handle different response formats
-          if (Array.isArray(response.data.content)) {
-            aiContent = response.data.content
-              .filter((item: any) => item.text)
-              .map((item: any) => item.text)
-              .join('');
-          } else if (typeof response.data.content === 'string') {
-            aiContent = response.data.content;
-          } else {
-            aiContent = JSON.stringify(response.data.content);
-          }
-          
-          addMessage({ role: 'assistant', content: aiContent });
-          setIsWaitingForResponse(false);
-          return;
-        }
-        
-        throw new Error('AI response received but no content found');
-        
-      } catch (aiError) {
-        console.error('❌ Real AI failed:', aiError);
-        
-        // Show deployment status instead of generated responses
-        setTimeout(() => {
-          addMessage({ 
-            role: 'assistant', 
-            content: `🔧 **AI Deployment Status**\n\nI can see you asked: "${content}"\n\nThe AI conversation system needs to be deployed first. To get real AI responses:\n\n1. **Deploy the backend**: Run \`npx ampx sandbox\`\n2. **Wait for deployment**: Usually takes 5-10 minutes\n3. **Test again**: The AI should then respond with real Claude responses\n\n**Current Error**: ${aiError instanceof Error ? aiError.message : 'AI conversation not available'}\n\nOnce deployed, I'll be able to give you proper cooking advice and recipes! 🍳✨`
-          });
-          setIsWaitingForResponse(false);
-        }, 1000);
+      // Try to use the conversation model directly
+      if ((client as any).models?.ConversationSousChef) {
+        const conversation = await (client as any).models.ConversationSousChef.create({});
+        console.log('Created conversation:', conversation);
       }
-        
-    } catch (error) {
-      console.error('❌ Message handling error:', error);
-      setIsWaitingForResponse(false);
-      
+
+      // Temporary response while debugging
       addMessage({ 
         role: 'assistant', 
-        content: `I'm having a small technical hiccup, but I'm still here to help with "${content}"! What cooking question can I assist you with right now? 🔧✨`
+        content: `I received your message: "${content}". I'm working on connecting to my full AI capabilities. Check the console for debug info! 🔮`
       });
+
+    } catch (error) {
+      console.error('❌ Debug error:', error);
+      addMessage({ 
+        role: 'assistant', 
+        content: `Debug mode: "${content}" - Check console for client structure details.`
+      });
+    } finally {
+      setIsWaitingForResponse(false);
     }
   };
 

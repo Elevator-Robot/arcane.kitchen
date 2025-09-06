@@ -1,0 +1,47 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2020": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:react/recommended",
+    "plugin:react/jsx-runtime",
+    "plugin:prettier/recommended"
+  ],
+  "ignorePatterns": [
+    "dist",
+    ".eslintrc.cjs",
+    "amplify_outputs.json",
+    "node_modules",
+    "amplify/"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "react-refresh",
+    "@typescript-eslint",
+    "prettier"
+  ],
+  "rules": {
+    "prettier/prettier": "error",
+    "react-refresh/only-export-components": [
+      "warn",
+      { "allowConstantExport": true }
+    ],
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "off",
+    "react/prop-types": "off",
+    "react/no-unescaped-entities": "off",
+    "no-console": "off",
+    "react-hooks/exhaustive-deps": "warn"
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}
