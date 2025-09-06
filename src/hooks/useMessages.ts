@@ -33,28 +33,33 @@ export const useMessages = () => {
     setIsWaitingForResponse(true);
 
     try {
-      // Debug what's available
-      console.log('Client keys:', Object.keys(client));
-      console.log('Models:', Object.keys((client as any).models || {}));
-      console.log('Mutations:', Object.keys((client as any).mutations || {}));
+      console.log('🔮 Sending message to conversation API:', content);
+      console.log('🔍 Client structure:', client);
+      console.log('🔍 Conversations:', client.conversations);
+      console.log('🔍 SousChef object:', client.conversations.sousChef);
+      console.log('🔍 Available sousChef methods:', Object.keys(client.conversations.sousChef));
+      console.log('🔍 SousChef prototype:', Object.getOwnPropertyNames(Object.getPrototypeOf(client.conversations.sousChef)));
       
-      // Try to use the conversation model directly
-      if ((client as any).models?.ConversationSousChef) {
-        const conversation = await (client as any).models.ConversationSousChef.create({});
-        console.log('Created conversation:', conversation);
+      // Create conversation if needed
+      const conversation = await client.conversations.sousChef.create();
+      console.log('✅ Conversation created:', conversation);
+      
+      if (!conversation.data?.id) {
+        throw new Error('Failed to create conversation');
       }
 
-      // Temporary response while debugging
+      // Just return success for now to see the structure
       addMessage({ 
         role: 'assistant', 
-        content: `I received your message: "${content}". I'm working on connecting to my full AI capabilities. Check the console for debug info! 🔮`
+        content: `✅ Conversation created with ID: ${conversation.data.id}. Check console for available methods.`
       });
 
     } catch (error) {
-      console.error('❌ Debug error:', error);
+      console.error('❌ Failed to send message:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       addMessage({ 
         role: 'assistant', 
-        content: `Debug mode: "${content}" - Check console for client structure details.`
+        content: `❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}. Check console for details.`
       });
     } finally {
       setIsWaitingForResponse(false);
