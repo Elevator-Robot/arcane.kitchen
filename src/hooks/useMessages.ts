@@ -49,7 +49,7 @@ export const useMessages = () => {
       }
 
       // Use the message mutation (based on amplify_outputs.json structure)
-      const response = await client.mutations.sousChef({
+      const response = await (client as any).mutations.sousChef({
         conversationId: conversation.data.id,
         content: [{ text: content }]
       });

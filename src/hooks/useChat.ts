@@ -39,7 +39,7 @@ export function useChat(options: ChatOptions = {}) {
     if (!content.trim() || isLoading) return null;
 
     setIsLoading(true);
-    const userMessage = addMessage({ role: 'user', content: content.trim(), metadata });
+    addMessage({ role: 'user', content: content.trim(), metadata });
 
     try {
       // Always create a new conversation for each message (for now)
@@ -76,7 +76,7 @@ export function useChat(options: ChatOptions = {}) {
         }
       });
 
-      const aiResponse = response.data?.sousChef;
+      const aiResponse = (response as any).data?.sousChef;
 
       if (aiResponse?.content?.[0]?.text) {
         const assistantMessage = addMessage({ 

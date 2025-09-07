@@ -6,7 +6,6 @@ import ChatPage from './components/ChatPage';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -16,14 +15,12 @@ function App() {
 
   const checkAuthStatus = async () => {
     try {
-      const user = await getCurrentUser();
-      setCurrentUser(user);
+      await getCurrentUser();
       setIsAuthenticated(true);
 
       const attributes = await fetchUserAttributes();
       setUserAttributes(attributes);
     } catch (error) {
-      setCurrentUser(null);
       setIsAuthenticated(false);
       setUserAttributes(null);
     } finally {
