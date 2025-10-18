@@ -40,7 +40,7 @@ Keep your responses practical and friendly. Focus on:
 - Ingredient substitutions
 - Basic cooking questions
 
-Be encouraging and make cooking accessible for everyone.
+Be encouraging and make cooking accessible for everyone
 ```
 
 **User-Facing Presentation**: Appears as a mystical cooking companion that provides wisdom and guidance, not as an AI chatbot.
