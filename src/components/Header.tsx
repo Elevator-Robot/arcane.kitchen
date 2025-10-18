@@ -7,9 +7,17 @@ interface HeaderProps {
   isAuthenticated: boolean;
   onAuthChange: (authenticated: boolean) => void;
   userAttributes?: any;
+  characterData?: {
+    avatar: string;
+    name: string;
+    cookingStyle: string;
+    favoriteIngredients: string[];
+    magicalSpecialty: string;
+  } | null;
+  onShowCharacterBuilder?: () => void;
 }
 
-function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, userAttributes: passedUserAttributes }: HeaderProps) {
+function Header({ onMenuClick, isAuthenticated, onAuthChange, userAttributes: passedUserAttributes, characterData, onShowCharacterBuilder }: HeaderProps) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signin' | 'signup' | 'confirm' | 'account' | 'updatePassword'>('signin');
   const [email, setEmail] = useState('');
@@ -349,6 +357,33 @@ function Header({ onMenuClick: _onMenuClick, isAuthenticated, onAuthChange, user
               />
             </button>
           </div>
+
+          {/* Center - Navigation (when authenticated) */}
+          {isAuthenticated && (
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={onMenuClick}
+                className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-stone-800/50 border border-stone-600/30 hover:border-emerald-400/50 transition-all duration-300 text-stone-300 hover:text-emerald-300"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <span className="text-sm font-medium">Toggle View</span>
+              </button>
+              
+              {onShowCharacterBuilder && (
+                <button
+                  onClick={onShowCharacterBuilder}
+                  className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-amber-800/50 border border-amber-600/30 hover:border-amber-400/50 transition-all duration-300 text-amber-300 hover:text-amber-200"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-sm font-medium">Character</span>
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Right side - Auth */}
           <div className="flex items-center space-x-4">
