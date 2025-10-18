@@ -498,6 +498,73 @@
   .rustic-text {
     font-size: 0.9em;
   }
+
+  /* Character Builder Mobile Optimizations */
+  .character-builder-container {
+    @apply px-4 py-6;
+  }
+  
+  .character-builder-card {
+    @apply p-6;
+  }
+  
+  .character-builder-title {
+    @apply text-3xl;
+  }
+
+  /* Recipe Builder Mobile Optimizations */
+  .recipe-builder-grid {
+    @apply grid-cols-1 gap-6;
+  }
+  
+  .recipe-form-section {
+    @apply p-4;
+  }
+  
+  .dish-type-grid {
+    @apply grid-cols-2 gap-2;
+  }
+  
+  .ingredient-tags {
+    @apply text-xs px-2 py-1;
+  }
+
+  /* Header Navigation Mobile */
+  .header-nav-buttons {
+    @apply space-x-2;
+  }
+  
+  .header-nav-button {
+    @apply px-3 py-2 text-xs;
+  }
+  
+  .header-nav-button span {
+    @apply hidden;
+  }
+
+  /* Profile Picture Selector Mobile */
+  .profile-grid {
+    @apply grid-cols-3 gap-2;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small mobile devices */
+  .character-builder-title {
+    @apply text-2xl;
+  }
+  
+  .recipe-builder-title {
+    @apply text-3xl;
+  }
+  
+  .dish-type-grid {
+    @apply grid-cols-2;
+  }
+  
+  .profile-grid {
+    @apply grid-cols-2 gap-3;
+  }
 }
 
 /* Dark mode optimizations for cozy theme */

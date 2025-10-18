@@ -3,7 +3,9 @@ import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
 import ChatInterface from './components/ChatInterface';
-import CharacterBuilder, { type CharacterData } from './components/CharacterBuilder';
+import CharacterBuilder, {
+  type CharacterData,
+} from './components/CharacterBuilder';
 import RecipeBuilder from './components/RecipeBuilder';
 
 type AppView = 'characterBuilder' | 'recipeBuilder' | 'chat';
@@ -14,7 +16,9 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentView, setCurrentView] = useState<AppView>('recipeBuilder');
-  const [characterData, setCharacterData] = useState<CharacterData | null>(null);
+  const [characterData, setCharacterData] = useState<CharacterData | null>(
+    null
+  );
   const [showCharacterBuilder, setShowCharacterBuilder] = useState(false);
 
   useEffect(() => {
@@ -66,7 +70,6 @@ function App() {
   if (showCharacterBuilder) {
     return (
       <CharacterBuilder
-        isAuthenticated={isAuthenticated}
         userAttributes={userAttributes}
         onComplete={handleCharacterComplete}
         onSkip={handleSkipCharacterBuilder}
@@ -106,7 +109,7 @@ function App() {
               <RecipeBuilder
                 isAuthenticated={isAuthenticated}
                 currentUser={currentUser}
-                characterData={characterData}
+                characterData={characterData || undefined}
                 onShowChat={() => setCurrentView('chat')}
               />
             )}

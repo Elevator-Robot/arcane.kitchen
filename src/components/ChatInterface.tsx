@@ -13,14 +13,14 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
   isAuthenticated,
   currentUser,
-  userAttributes
+  userAttributes,
 }) => {
   const {
     messages,
     isWaitingForResponse,
     messagesEndRef,
     handleSendMessage,
-    handleQuickMessage
+    handleQuickMessage,
   } = useMessages();
 
   const [inputMessage, setInputMessage] = useState('');

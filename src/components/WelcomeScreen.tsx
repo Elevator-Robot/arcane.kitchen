@@ -20,7 +20,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   inputMessage,
   setInputMessage,
   handleSubmit,
-  isWaitingForResponse
+  isWaitingForResponse,
 }) => {
   return (
     <div className="flex-1 flex flex-col">
@@ -28,17 +28,28 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         <div className="max-w-4xl w-full text-center space-y-12">
           <div className="relative">
             <div className="absolute -top-4 -right-8 w-6 h-6 botanical-orb"></div>
-            <div className="absolute -bottom-4 -left-8 w-4 h-4 botanical-orb" style={{animationDelay: '2s'}}></div>
-            <div className="absolute top-1/2 -left-12 w-3 h-3 herb-particle" style={{animationDelay: '1s'}}></div>
-            <div className="absolute top-1/4 -right-12 w-3 h-3 herb-particle" style={{animationDelay: '3s'}}></div>
+            <div
+              className="absolute -bottom-4 -left-8 w-4 h-4 botanical-orb"
+              style={{ animationDelay: '2s' }}
+            ></div>
+            <div
+              className="absolute top-1/2 -left-12 w-3 h-3 herb-particle"
+              style={{ animationDelay: '1s' }}
+            ></div>
+            <div
+              className="absolute top-1/4 -right-12 w-3 h-3 herb-particle"
+              style={{ animationDelay: '3s' }}
+            ></div>
           </div>
-          
+
           <div className="space-y-6">
             <h1 className="text-5xl md:text-7xl font-bold text-gradient leading-tight">
               Arcane Kitchen
             </h1>
             <h2 className="text-2xl md:text-3xl text-hearth font-semibold">
-              {isAuthenticated && userAttributes ? `Welcome home, ${getDisplayName(userAttributes)}` : 'Welcome home'}
+              {isAuthenticated && userAttributes
+                ? `Welcome home, ${getDisplayName(userAttributes)}`
+                : 'Welcome home'}
             </h2>
           </div>
 
@@ -48,8 +59,8 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 key={index}
                 onClick={() => onQuickMessage(example.description)}
                 className={`group relative bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-6 text-left transition-all duration-300 cursor-pointer ${
-                  isAuthenticated 
-                    ? 'hover:border-green-400/60 hover:scale-105 hover:shadow-xl hover:shadow-green-500/20' 
+                  isAuthenticated
+                    ? 'hover:border-green-400/60 hover:scale-105 hover:shadow-xl hover:shadow-green-500/20'
                     : 'hover:border-amber-400/60 hover:scale-102 hover:shadow-lg hover:shadow-amber-500/20'
                 }`}
               >
@@ -68,15 +79,16 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </div>
 
           <div className="text-sm text-stone-300/70 max-w-2xl mx-auto italic border-t border-stone-600/30 pt-6">
-            "By herb and root, by leaf and flower, I weave the ancient kitchen's power. 
-            What grows from earth shall feed the soul, and make the broken spirit whole."
+            "By herb and root, by leaf and flower, I weave the ancient kitchen's
+            power. What grows from earth shall feed the soul, and make the
+            broken spirit whole."
             <div className="text-xs text-stone-400/60 mt-2 not-italic">
               — Margot the Wise, Kitchen Witch of Blackmoor (1347)
             </div>
           </div>
         </div>
       </div>
-      
+
       {isAuthenticated && (
         <ChatInput
           inputMessage={inputMessage}

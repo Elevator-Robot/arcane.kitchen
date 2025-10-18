@@ -11,16 +11,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
   inputMessage,
   setInputMessage,
   handleSubmit,
-  isWaitingForResponse
+  isWaitingForResponse,
 }) => {
   return (
     <div className="border-t border-green-400/30 bg-gradient-to-r from-stone-800/60 via-green-900/20 to-amber-900/30 backdrop-blur-lg p-4 relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-2 left-20 w-1 h-1 bg-green-300 rounded-full animate-pulse"></div>
-        <div className="absolute bottom-2 right-32 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping" style={{animationDelay: '1.5s'}}></div>
-        <div className="absolute top-1/2 left-1/2 w-0.5 h-0.5 bg-emerald-300 rounded-full animate-pulse" style={{animationDelay: '2.5s'}}></div>
+        <div
+          className="absolute bottom-2 right-32 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping"
+          style={{ animationDelay: '1.5s' }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 w-0.5 h-0.5 bg-emerald-300 rounded-full animate-pulse"
+          style={{ animationDelay: '2.5s' }}
+        ></div>
       </div>
-      
+
       <div className="max-w-6xl mx-auto relative z-10">
         <form onSubmit={handleSubmit} className="flex gap-4">
           <div className="flex-1 relative flex">
@@ -33,7 +39,12 @@ const ChatInput: React.FC<ChatInputProps> = ({
               style={{ color: '#a7f3d0' }}
               disabled={isWaitingForResponse}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey && inputMessage.trim() && !isWaitingForResponse) {
+                if (
+                  e.key === 'Enter' &&
+                  !e.shiftKey &&
+                  inputMessage.trim() &&
+                  !isWaitingForResponse
+                ) {
                   handleSubmit(e);
                 }
               }}
@@ -49,8 +60,18 @@ const ChatInput: React.FC<ChatInputProps> = ({
               }}
               disabled={!inputMessage.trim() || isWaitingForResponse}
             >
-              <svg className="w-4 h-4 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <svg
+                className="w-4 h-4 group-hover:scale-110 transition-transform duration-200"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2.5}
+                  d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                />
               </svg>
             </button>
           </div>

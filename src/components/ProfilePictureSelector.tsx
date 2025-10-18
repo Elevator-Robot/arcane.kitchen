@@ -9,7 +9,7 @@ interface ProfilePictureSelectorProps {
 const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
   selectedProfilePicture,
   onSelect,
-  className = ''
+  className = '',
 }) => {
   const [availableImages, setAvailableImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,7 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
     'goblin3.png',
     'troll1.png',
     'troll2.png',
-    'troll3.png'
+    'troll3.png',
   ];
 
   useEffect(() => {
@@ -56,7 +56,7 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
 
   return (
     <div className={className}>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+      <div className="profile-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
         {availableImages.map((image) => {
           const isSelected = selectedProfilePicture === image;
 
@@ -64,10 +64,11 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
             <button
               key={image}
               onClick={() => onSelect(image)}
-              className={`relative group aspect-square rounded-2xl overflow-hidden transition-all duration-300 transform hover:scale-105 focus:scale-105 ${isSelected
+              className={`relative group aspect-square rounded-2xl overflow-hidden transition-all duration-300 transform hover:scale-105 focus:scale-105 ${
+                isSelected
                   ? 'ring-3 ring-emerald-400 bg-stone-600 shadow-xl shadow-emerald-500/40 scale-105'
                   : 'hover:ring-2 hover:ring-emerald-500/70 focus:ring-2 focus:ring-emerald-500/70 bg-stone-700/50 hover:bg-stone-600/70 focus:bg-stone-600/70 hover:shadow-xl hover:shadow-emerald-500/25 focus:shadow-xl focus:shadow-emerald-500/25'
-                }`}
+              }`}
               title={getDisplayName(image)}
             >
               {/* Avatar image */}
@@ -94,19 +95,33 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
               {/* Selection indicator */}
               {isSelected && (
                 <div className="absolute top-2 right-2 w-7 h-7 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg animate-pulse-glow">
-                  <svg className="w-4 h-4 text-emerald-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  <svg
+                    className="w-4 h-4 text-emerald-900"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
                   </svg>
                 </div>
               )}
 
               {/* Magical glow effect on hover */}
               <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/20 via-emerald-400/10 to-transparent opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-all duration-500" />
-              
+
               {/* Outer mystical glow */}
-              <div className={`absolute -inset-2 bg-gradient-to-r from-emerald-400/30 via-teal-400/30 to-emerald-400/30 rounded-2xl opacity-0 blur-md transition-all duration-500 -z-10 ${
-                isSelected ? 'opacity-100 animate-pulse-glow' : 'group-hover:opacity-100 group-focus:opacity-100'
-              }`} />
+              <div
+                className={`absolute -inset-2 bg-gradient-to-r from-emerald-400/30 via-teal-400/30 to-emerald-400/30 rounded-2xl opacity-0 blur-md transition-all duration-500 -z-10 ${
+                  isSelected
+                    ? 'opacity-100 animate-pulse-glow'
+                    : 'group-hover:opacity-100 group-focus:opacity-100'
+                }`}
+              />
 
               {/* Selection pulse effect */}
               {isSelected && (
