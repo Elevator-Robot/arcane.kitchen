@@ -16,6 +16,7 @@ Arcane Kitchen is an AI-powered culinary companion that gamifies cooking through
 ## Technical Architecture
 
 - **Frontend**: React 18 with TypeScript, Vite build system, Tailwind CSS for styling
+- **UI Components**: Meraki UI (https://merakiui.com) - Tailwind CSS component library
 - **Backend**: AWS Amplify with GraphQL API, DynamoDB for data storage
 - **Authentication**: AWS Cognito user pools
 - **AI Integration**: Amazon Nova Pro for conversational AI (SousChef assistant)
@@ -42,10 +43,13 @@ Arcane Kitchen is an AI-powered culinary companion that gamifies cooking through
 ### Styling Conventions
 
 - Use Tailwind CSS utility classes for styling
+- Leverage **Meraki UI** (https://merakiui.com) components and patterns for UI elements
+- When building new components, reference Meraki UI for Tailwind-based patterns
 - Maintain mystical/arcane theme with custom color palette (`cottage-interior`, `arcane-parchment`)
 - Use responsive design patterns (`sm:`, `md:`, `lg:` breakpoints)
 - Implement hover and transition effects for interactive elements
 - Maintain consistent spacing and typography scale
+- Adapt Meraki UI components to fit the witchy/mystical aesthetic
 
 ### File Organization
 
