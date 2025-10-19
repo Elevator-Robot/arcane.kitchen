@@ -2,12 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-// import { Amplify } from 'aws-amplify';
-// import outputs from '../amplify_outputs.json';
+import { Amplify } from 'aws-amplify';
+import outputs from '../amplify_outputs.json';
 import '@aws-amplify/ui-react/styles.css';
 
 // Configure Amplify
-// Amplify.configure(outputs);
+Amplify.configure(outputs);
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {

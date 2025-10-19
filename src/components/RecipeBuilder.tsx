@@ -1,11 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { useMessages } from '../hooks/useMessages';
-import type { CharacterData } from './CharacterBuilder';
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
   currentUser: any;
-  characterData?: CharacterData;
+  userAttributes?: any;
   onShowChat?: () => void;
 }
 
@@ -80,7 +79,7 @@ const OCCASIONS = [
 const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   isAuthenticated,
   currentUser,
-  characterData,
+  userAttributes,
   onShowChat,
 }) => {
   const { handleSendMessage } = useMessages();
@@ -154,7 +153,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       prompt += `. Difficulty level should be ${recipeForm.difficulty}`;
     }
 
-    if (characterData?.magicalSpecialty) {
+    // Use magical specialty from user profile
+    const magicalSpecialty = userAttributes?.['custom:magicalSpecialty'];
+    if (magicalSpecialty) {
       const specialtyMap: Record<string, string> = {
         healing: 'with nourishing and healing properties',
         protection: 'with protective and cleansing ingredients',
@@ -163,7 +164,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         wisdom: 'that enhances clarity and mental focus',
         strength: 'that provides energy and vitality',
       };
-      prompt += ` ${specialtyMap[characterData.magicalSpecialty] || ''}`;
+      prompt += ` ${specialtyMap[magicalSpecialty] || ''}`;
     }
 
     if (recipeForm.customPrompt) {
@@ -191,7 +192,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   }, [
     recipeForm,
-    characterData,
+    userAttributes,
     isAuthenticated,
     currentUser,
     handleSendMessage,
@@ -220,15 +221,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         <h1 className="recipe-builder-title text-3xl md:text-4xl lg:text-5xl font-bold text-gradient mb-4">
           Recipe Cauldron
         </h1>
-        {characterData && (
+        {userAttributes?.picture && userAttributes?.nickname && (
           <div className="flex items-center justify-center space-x-4 mb-4">
             <img
-              src={`/images/profile-pictures/${characterData.avatar}`}
+              src={`/images/profile-pictures/${userAttributes.picture}`}
               alt="Your Avatar"
               className="w-12 h-12 rounded-full border-2 border-emerald-400/50"
             />
             <p className="text-xl text-hearth">
-              Welcome back, {characterData.name}
+              Welcome back, {userAttributes.nickname}
             </p>
           </div>
         )}
