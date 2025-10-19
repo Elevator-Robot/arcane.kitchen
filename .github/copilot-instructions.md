@@ -106,6 +106,12 @@ Arcane Kitchen is an AI-powered culinary companion that gamifies cooking through
 - Ensure accessibility compliance (WCAG 2.1 AA)
 - Design for mobile-first responsive experience
 
+## Documentation and Commit Messages
+
+- **Use witchy emojis liberally** 🧙‍♀️✨🔮🌙⚗️🕯️🪄🍄🌿🦉🐈‍⬛ in README files, documentation, and commit messages to enhance the magical atmosphere
+- Keep the mystical theme consistent in all project documentation
+- Write commit messages that reflect the arcane nature of the project
+
 ### Code Quality
 
 - Follow the existing ESLint and Prettier configurations

@@ -3,7 +3,9 @@ import { fetchUserAttributes } from 'aws-amplify/auth';
 
 export function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userAttributes, setUserAttributes] = useState<Record<string, string | undefined> | undefined>();
+  const [userAttributes, setUserAttributes] = useState<
+    Record<string, string | undefined> | undefined
+  >();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -13,13 +15,13 @@ export function useAuth() {
         setUserAttributes(attributes);
         setIsAuthenticated(true);
       } catch (error) {
-        console.log("User is not authenticated");
+        console.log('User is not authenticated');
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
     }
-    
+
     checkAuth();
   }, []);
 
@@ -27,6 +29,6 @@ export function useAuth() {
     isAuthenticated,
     userAttributes,
     isLoading,
-    userId: userAttributes?.sub
+    userId: userAttributes?.sub,
   };
 }

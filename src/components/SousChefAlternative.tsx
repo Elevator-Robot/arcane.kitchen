@@ -28,41 +28,49 @@ export default function SousChefAlternative() {
     if (!inputMessage.trim() || isWaitingForResponse) return;
 
     const userMessage = inputMessage;
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setInputMessage('');
     setIsWaitingForResponse(true);
 
     try {
       console.log('🔮 Trying alternative approach with route...');
-      
+
       // Try using the conversation route with proper typing
       const response = await (client.conversations.sousChef as any).create({
-        content: [{ text: userMessage }]
+        content: [{ text: userMessage }],
       });
 
       console.log('📨 Route response:', response);
 
       // Extract the assistant's response
-      const assistantMessage = response?.content?.[0]?.text || 
-                              response?.data?.content?.[0]?.text ||
-                              "I apologize, but I couldn't process your request at the moment.";
+      const assistantMessage =
+        response?.content?.[0]?.text ||
+        response?.data?.content?.[0]?.text ||
+        "I apologize, but I couldn't process your request at the moment.";
 
       console.log('🤖 Assistant response:', assistantMessage);
 
       // Add the response to messages
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: assistantMessage
-      }]);
-
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: assistantMessage,
+        },
+      ]);
     } catch (error) {
       console.error('💥 Error in alternative approach:', error);
-      
+
       // Add a fallback response
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: "I apologize, but I'm having trouble connecting to my magical cookbook at the moment. Please try again later. Error: " + (error as Error).message
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            "I apologize, but I'm having trouble connecting to my magical cookbook at the moment. Please try again later. Error: " +
+            (error as Error).message,
+        },
+      ]);
     } finally {
       setIsWaitingForResponse(false);
     }
@@ -76,7 +84,9 @@ export default function SousChefAlternative() {
   return (
     <div>
       <div className="mb-8 text-center">
-        <h2 className="text-3xl font-heading mb-2">Your Mystical Sous Chef (Alternative)</h2>
+        <h2 className="text-3xl font-heading mb-2">
+          Your Mystical Sous Chef (Alternative)
+        </h2>
         <p className="text-arcane-text-light max-w-2xl mx-auto">
           Testing alternative conversation API approach.
         </p>
@@ -93,11 +103,12 @@ export default function SousChefAlternative() {
                 Your mystical sous chef is ready to assist you.
               </p>
               <p className="text-sm text-arcane-text-light">
-                Ask for recipe ideas, cooking techniques, or ingredient substitutions.
+                Ask for recipe ideas, cooking techniques, or ingredient
+                substitutions.
               </p>
             </div>
           )}
-          
+
           {messages.map((message, index) => (
             <div
               key={index}
@@ -105,16 +116,18 @@ export default function SousChefAlternative() {
             >
               <div
                 className={`inline-block max-w-[80%] rounded-2xl p-4 ${
-                  message.role === 'user' 
-                    ? 'bg-arcane-purple text-white' 
+                  message.role === 'user'
+                    ? 'bg-arcane-purple text-white'
                     : 'bg-arcane-parchment-dark'
                 }`}
               >
-                <p className="leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                <p className="leading-relaxed whitespace-pre-wrap">
+                  {message.content}
+                </p>
               </div>
             </div>
           ))}
-          
+
           {isWaitingForResponse && (
             <div className="text-left mb-4">
               <div className="inline-block rounded-2xl p-4 bg-arcane-parchment-dark">
@@ -126,7 +139,7 @@ export default function SousChefAlternative() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -146,8 +159,19 @@ export default function SousChefAlternative() {
               disabled={isWaitingForResponse}
             >
               <span className="mr-1">Send</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                />
               </svg>
             </button>
           </form>
@@ -158,23 +182,29 @@ export default function SousChefAlternative() {
         <div className="magical-divider">
           <span className="magical-icon">💡</span>
         </div>
-        <h3 className="text-2xl font-heading mb-4 text-center">Test Questions</h3>
+        <h3 className="text-2xl font-heading mb-4 text-center">
+          Test Questions
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <button 
+          <button
             className="p-4 bg-white rounded-lg border border-arcane-amber-light/30 text-left hover:shadow-magical transition-shadow"
-            onClick={() => handleSuggestedQuestion("Who are you?")}
+            onClick={() => handleSuggestedQuestion('Who are you?')}
           >
             "Who are you?"
           </button>
-          <button 
+          <button
             className="p-4 bg-white rounded-lg border border-arcane-amber-light/30 text-left hover:shadow-magical transition-shadow"
-            onClick={() => handleSuggestedQuestion("What can you help me with?")}
+            onClick={() =>
+              handleSuggestedQuestion('What can you help me with?')
+            }
           >
             "What can you help me with?"
           </button>
-          <button 
+          <button
             className="p-4 bg-white rounded-lg border border-arcane-amber-light/30 text-left hover:shadow-magical transition-shadow"
-            onClick={() => handleSuggestedQuestion("Tell me about magical herbs")}
+            onClick={() =>
+              handleSuggestedQuestion('Tell me about magical herbs')
+            }
           >
             "Tell me about magical herbs"
           </button>

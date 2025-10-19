@@ -8,6 +8,19 @@ export const auth = defineAuth({
     nickname: {
       required: true,
       mutable: true
+    },
+    // Store character preferences in user profile
+    'custom:cookingStyle': {
+      dataType: 'String',
+      mutable: true
+    },
+    'custom:magicalSpecialty': {
+      dataType: 'String',
+      mutable: true
+    },
+    'custom:favoriteIngredients': {
+      dataType: 'String', // JSON string of array
+      mutable: true
     }
   },
 });
