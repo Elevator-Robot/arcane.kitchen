@@ -102,6 +102,8 @@ export default {
         'smoke-rise': 'smoke-rise 10s linear infinite',
         'shimmer': 'shimmer 2s ease-in-out infinite',
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'magical-entrance': 'magical-entrance 1s ease-out',
+        'character-glow': 'character-glow 3s ease-in-out infinite',
       },
       keyframes: {
         'magical-glow': {

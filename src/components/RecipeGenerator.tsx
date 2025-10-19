@@ -33,7 +33,7 @@ export default function RecipeGenerator() {
   const [magicalProperties, setMagicalProperties] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState('');
   const [region, setRegion] = useState('');
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedRecipe, setGeneratedRecipe] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -50,8 +50,8 @@ export default function RecipeGenerator() {
       // Parse ingredients from comma-separated string
       const ingredientsList = ingredients
         .split(',')
-        .map(item => item.trim())
-        .filter(item => item.length > 0);
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
       // Call the GraphQL API with Nova Pro generation
       const response = await client.graphql({
@@ -59,11 +59,13 @@ export default function RecipeGenerator() {
         variables: {
           prompt,
           ingredients: ingredientsList.length > 0 ? ingredientsList : null,
-          dietaryRestrictions: dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
-          magicalProperties: magicalProperties.length > 0 ? magicalProperties : null,
+          dietaryRestrictions:
+            dietaryRestrictions.length > 0 ? dietaryRestrictions : null,
+          magicalProperties:
+            magicalProperties.length > 0 ? magicalProperties : null,
           difficulty: difficulty || null,
-          region: region || null
-        }
+          region: region || null,
+        },
       });
 
       const completion = (response as any).data?.generateRecipe?.completion;
@@ -77,17 +79,17 @@ export default function RecipeGenerator() {
   };
 
   const handleDietaryChange = (restriction: string) => {
-    setDietaryRestrictions(prev => 
-      prev.includes(restriction) 
-        ? prev.filter(item => item !== restriction)
+    setDietaryRestrictions((prev) =>
+      prev.includes(restriction)
+        ? prev.filter((item) => item !== restriction)
         : [...prev, restriction]
     );
   };
 
   const handleMagicalPropertyChange = (property: string) => {
-    setMagicalProperties(prev => 
-      prev.includes(property) 
-        ? prev.filter(item => item !== property)
+    setMagicalProperties((prev) =>
+      prev.includes(property)
+        ? prev.filter((item) => item !== property)
         : [...prev, property]
     );
   };
@@ -97,7 +99,8 @@ export default function RecipeGenerator() {
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-heading mb-2">Magical Recipe Generator</h2>
         <p className="text-arcane-text-light max-w-2xl mx-auto">
-          Describe what kind of recipe you'd like, and our mystical cauldron will brew up something special for you.
+          Describe what kind of recipe you'd like, and our mystical cauldron
+          will brew up something special for you.
         </p>
       </div>
 
@@ -136,7 +139,13 @@ export default function RecipeGenerator() {
                   Dietary Restrictions
                 </label>
                 <div className="space-y-2">
-                  {['Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Nut-Free'].map(restriction => (
+                  {[
+                    'Vegetarian',
+                    'Vegan',
+                    'Gluten-Free',
+                    'Dairy-Free',
+                    'Nut-Free',
+                  ].map((restriction) => (
                     <label key={restriction} className="flex items-center">
                       <input
                         type="checkbox"
@@ -155,7 +164,14 @@ export default function RecipeGenerator() {
                   Magical Properties
                 </label>
                 <div className="space-y-2">
-                  {['Healing', 'Protection', 'Love', 'Prosperity', 'Clarity', 'Vitality'].map(property => (
+                  {[
+                    'Healing',
+                    'Protection',
+                    'Love',
+                    'Prosperity',
+                    'Clarity',
+                    'Vitality',
+                  ].map((property) => (
                     <label key={property} className="flex items-center">
                       <input
                         type="checkbox"
@@ -220,9 +236,25 @@ export default function RecipeGenerator() {
             >
               {isGenerating ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Brewing your recipe...
                 </span>
@@ -237,21 +269,23 @@ export default function RecipeGenerator() {
           <div className="p-6">
             <div className="prose max-w-none">
               {/* Display the raw generated recipe */}
-              <div dangerouslySetInnerHTML={{ __html: generatedRecipe.replace(/\n/g, '<br/>') }} />
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: generatedRecipe.replace(/\n/g, '<br/>'),
+                }}
+              />
             </div>
           </div>
-          
+
           <div className="p-6 border-t border-arcane-amber-light/30 flex justify-between">
-            <button 
+            <button
               className="btn btn-outline"
               onClick={() => setGeneratedRecipe(null)}
             >
               Generate Another Recipe
             </button>
-            
-            <button className="btn btn-primary">
-              Save to My Grimoire
-            </button>
+
+            <button className="btn btn-primary">Save to My Grimoire</button>
           </div>
         </div>
       )}

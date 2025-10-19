@@ -9,10 +9,7 @@ type Message = {
 
 // GraphQL query for the Sous Chef
 const getSousChefResponseQuery = /* GraphQL */ `
-  query GetSousChefResponse(
-    $message: String!
-    $conversationHistory: AWSJSON!
-  ) {
+  query GetSousChefResponse($message: String!, $conversationHistory: AWSJSON!) {
     getSousChefResponse(
       message: $message
       conversationHistory: $conversationHistory
@@ -42,15 +39,15 @@ export default function SousChef() {
     if (!inputMessage.trim() || isWaitingForResponse) return;
 
     const userMessage = inputMessage;
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setInputMessage('');
     setIsWaitingForResponse(true);
 
     try {
       // Prepare conversation history for the API
-      const conversationHistory = messages.map(msg => ({
+      const conversationHistory = messages.map((msg) => ({
         role: msg.role,
-        content: msg.content
+        content: msg.content,
       }));
 
       // Call the GraphQL API with Nova Pro generation
@@ -58,25 +55,33 @@ export default function SousChef() {
         query: getSousChefResponseQuery,
         variables: {
           message: userMessage,
-          conversationHistory: JSON.stringify(conversationHistory)
-        }
+          conversationHistory: JSON.stringify(conversationHistory),
+        },
       });
 
-      const completion = (response as any).data?.getSousChefResponse?.completion;
+      const completion = (response as any).data?.getSousChefResponse
+        ?.completion;
 
       // Add the response to messages
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: completion
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: completion,
+        },
+      ]);
     } catch (error) {
       console.error('Error getting sous chef response:', error);
-      
+
       // Add a fallback response
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: "I apologize, but I'm having trouble connecting to my magical cookbook at the moment. Please try again later."
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            "I apologize, but I'm having trouble connecting to my magical cookbook at the moment. Please try again later.",
+        },
+      ]);
     } finally {
       setIsWaitingForResponse(false);
     }
@@ -92,8 +97,8 @@ export default function SousChef() {
       <div className="mb-8 text-center">
         <h2 className="text-3xl font-heading mb-2">Your Mystical Sous Chef</h2>
         <p className="text-arcane-text-light max-w-2xl mx-auto">
-          Ask our AI Sous Chef to help you create custom recipes, adapt existing ones, 
-          or answer any culinary questions you might have.
+          Ask our AI Sous Chef to help you create custom recipes, adapt existing
+          ones, or answer any culinary questions you might have.
         </p>
       </div>
 
@@ -108,11 +113,12 @@ export default function SousChef() {
                 Your mystical sous chef is ready to assist you.
               </p>
               <p className="text-sm text-arcane-text-light">
-                Ask for recipe ideas, cooking techniques, or ingredient substitutions.
+                Ask for recipe ideas, cooking techniques, or ingredient
+                substitutions.
               </p>
             </div>
           )}
-          
+
           {messages.map((message, index) => (
             <div
               key={index}
@@ -120,8 +126,8 @@ export default function SousChef() {
             >
               <div
                 className={`inline-block max-w-[80%] rounded-2xl p-4 ${
-                  message.role === 'user' 
-                    ? 'bg-arcane-purple text-white' 
+                  message.role === 'user'
+                    ? 'bg-arcane-purple text-white'
                     : 'bg-arcane-parchment-dark'
                 }`}
               >
@@ -129,7 +135,7 @@ export default function SousChef() {
               </div>
             </div>
           ))}
-          
+
           {isWaitingForResponse && (
             <div className="text-left mb-4">
               <div className="inline-block rounded-2xl p-4 bg-arcane-parchment-dark">
@@ -141,7 +147,7 @@ export default function SousChef() {
               </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -161,8 +167,19 @@ export default function SousChef() {
               disabled={isWaitingForResponse}
             >
               <span className="mr-1">Send</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                />
               </svg>
             </button>
           </form>
@@ -173,23 +190,37 @@ export default function SousChef() {
         <div className="magical-divider">
           <span className="magical-icon">💡</span>
         </div>
-        <h3 className="text-2xl font-heading mb-4 text-center">Suggested Questions</h3>
+        <h3 className="text-2xl font-heading mb-4 text-center">
+          Suggested Questions
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <button 
+          <button
             className="p-4 bg-white rounded-lg border border-arcane-amber-light/30 text-left hover:shadow-magical transition-shadow"
-            onClick={() => handleSuggestedQuestion("How can I substitute eggs in a cake recipe?")}
+            onClick={() =>
+              handleSuggestedQuestion(
+                'How can I substitute eggs in a cake recipe?'
+              )
+            }
           >
             "How can I substitute eggs in a cake recipe?"
           </button>
-          <button 
+          <button
             className="p-4 bg-white rounded-lg border border-arcane-amber-light/30 text-left hover:shadow-magical transition-shadow"
-            onClick={() => handleSuggestedQuestion("Create a healing soup recipe with ingredients I might have at home")}
+            onClick={() =>
+              handleSuggestedQuestion(
+                'Create a healing soup recipe with ingredients I might have at home'
+              )
+            }
           >
             "Create a healing soup recipe with ingredients I might have at home"
           </button>
-          <button 
+          <button
             className="p-4 bg-white rounded-lg border border-arcane-amber-light/30 text-left hover:shadow-magical transition-shadow"
-            onClick={() => handleSuggestedQuestion("What herbs work well for a calming evening tea blend?")}
+            onClick={() =>
+              handleSuggestedQuestion(
+                'What herbs work well for a calming evening tea blend?'
+              )
+            }
           >
             "What herbs work well for a calming evening tea blend?"
           </button>

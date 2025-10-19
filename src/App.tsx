@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
-
 import ChatInterface from './components/ChatInterface';
+import RecipeBuilder from './components/RecipeBuilder';
+
+type AppView = 'recipeBuilder' | 'chat';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<AppView>('recipeBuilder');
 
   useEffect(() => {
     checkAuthStatus();
@@ -44,18 +47,33 @@ function App() {
       {authLoading ? null : (
         <>
           <Header
-            onMenuClick={() => {}}
+            onMenuClick={() => {
+              if (currentView === 'recipeBuilder') {
+                setCurrentView('chat');
+              } else {
+                setCurrentView('recipeBuilder');
+              }
+            }}
             isAuthenticated={isAuthenticated}
             onAuthChange={handleAuthChange}
             userAttributes={userAttributes}
           />
 
           <div className="flex flex-col h-screen pt-20">
-            <ChatInterface
-              isAuthenticated={isAuthenticated}
-              currentUser={currentUser}
-              userAttributes={userAttributes}
-            />
+            {currentView === 'chat' ? (
+              <ChatInterface
+                isAuthenticated={isAuthenticated}
+                currentUser={currentUser}
+                userAttributes={userAttributes}
+              />
+            ) : (
+              <RecipeBuilder
+                isAuthenticated={isAuthenticated}
+                currentUser={currentUser}
+                userAttributes={userAttributes}
+                onShowChat={() => setCurrentView('chat')}
+              />
+            )}
           </div>
         </>
       )}
