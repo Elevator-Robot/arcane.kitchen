@@ -42,28 +42,45 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
             <p className="italic text-emerald-300">
               "Welcome, traveler, to the crossroads of culinary magic..."
             </p>
-            
+
             <p>
-              In ages past, wise cooks known as <span className="text-emerald-300 font-semibold">Kitchen Witches</span> gathered 
-              recipes not just for sustenance, but for the magic woven within each ingredient, 
-              each technique, each loving preparation.
+              In ages past, wise cooks known as{' '}
+              <span className="text-emerald-300 font-semibold">
+                Kitchen Witches
+              </span>{' '}
+              gathered recipes not just for sustenance, but for the magic woven
+              within each ingredient, each technique, each loving preparation.
             </p>
-            
+
             <p>
-              Here in the <span className="text-amber-300 font-semibold">Arcane Kitchen</span>, you'll discover recipes 
-              from across the realms, learn the ancient arts of culinary transformation, 
-              and build your own mystical cookbook—your personal <span className="text-purple-300 font-semibold">Grimoire</span>.
+              Here in the{' '}
+              <span className="text-amber-300 font-semibold">
+                Arcane Kitchen
+              </span>
+              , you'll discover recipes from across the realms, learn the
+              ancient arts of culinary transformation, and build your own
+              mystical cookbook—your personal{' '}
+              <span className="text-purple-300 font-semibold">Grimoire</span>.
             </p>
-            
+
             <p>
-              Your journey begins now, with the creation of your <span className="text-rose-300 font-semibold">Kitchen Persona</span>—the 
-              magical identity that will guide your culinary adventures and help our 
-              <span className="text-cyan-300 font-semibold"> Mystical Sous Chef</span> understand your tastes and preferences.
+              Your journey begins now, with the creation of your{' '}
+              <span className="text-rose-300 font-semibold">
+                Kitchen Persona
+              </span>
+              —the magical identity that will guide your culinary adventures and
+              help our
+              <span className="text-cyan-300 font-semibold">
+                {' '}
+                Mystical Sous Chef
+              </span>{' '}
+              understand your tastes and preferences.
             </p>
-            
+
             <div className="border-t border-stone-600/50 pt-6 mt-8">
               <p className="text-stone-300 italic text-base">
-                "By herb and root, by leaf and flower, we weave the ancient kitchen's power..."
+                "By herb and root, by leaf and flower, we weave the ancient
+                kitchen's power..."
               </p>
             </div>
           </div>
@@ -77,7 +94,7 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
           >
             Begin Your Journey ✨
           </button>
-          
+
           {showSignIn && onSignIn && (
             <div className="flex items-center space-x-4">
               <div className="w-16 h-px bg-stone-500/50"></div>
@@ -85,7 +102,7 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
               <div className="w-16 h-px bg-stone-500/50"></div>
             </div>
           )}
-          
+
           {showSignIn && onSignIn && (
             <button
               onClick={onSignIn}
@@ -95,11 +112,11 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
             </button>
           )}
         </div>
-        
+
         {/* Atmospheric quote */}
         <div className="text-sm text-stone-400/70 max-w-2xl mx-auto italic pt-8 border-t border-stone-700/30">
-          "Every great feast begins with a single spark of inspiration, 
-          every master chef with a single step into the mystical arts of cooking."
+          "Every great feast begins with a single spark of inspiration, every
+          master chef with a single step into the mystical arts of cooking."
           <div className="text-xs text-stone-500/60 mt-2 not-italic">
             — The Chronicles of Culinary Magic
           </div>

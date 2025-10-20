@@ -26,7 +26,7 @@ const AvatarSelection: React.FC<AvatarSelectionProps> = ({
           </h1>
           <div className="w-24 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent mx-auto mb-6"></div>
           <p className="text-xl text-stone-300 max-w-2xl mx-auto leading-relaxed">
-            Choose the avatar that represents your mystical cooking persona. 
+            Choose the avatar that represents your mystical cooking persona.
             This will be your identity in the Arcane Kitchen.
           </p>
         </div>
@@ -38,7 +38,7 @@ const AvatarSelection: React.FC<AvatarSelectionProps> = ({
             onSelect={handleAvatarSelect}
             className="max-w-4xl mx-auto"
           />
-          
+
           {selectedAvatar && (
             <div className="mt-8 p-6 bg-gradient-to-r from-emerald-600/20 to-green-600/20 rounded-xl border border-emerald-400/30">
               <p className="text-emerald-300 font-semibold text-lg">
@@ -65,7 +65,8 @@ const AvatarSelection: React.FC<AvatarSelectionProps> = ({
 
         {/* Mystical flavor text */}
         <div className="text-sm text-stone-400/70 max-w-xl mx-auto italic pt-8">
-          "The face you choose reflects the magic within. Let your inner kitchen witch shine through."
+          "The face you choose reflects the magic within. Let your inner kitchen
+          witch shine through."
         </div>
       </div>
     </div>

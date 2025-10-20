@@ -18,7 +18,7 @@ export function useOnboarding() {
     name: '',
     isCompleted: false,
   });
-  
+
   const [isOnboardingRequired, setIsOnboardingRequired] = useState(true);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function useOnboarding() {
   const updateOnboardingData = (updates: Partial<OnboardingData>) => {
     const newData = { ...onboardingData, ...updates };
     setOnboardingData(newData);
-    
+
     // Store in session storage for trial mode
     sessionStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(newData));
   };
@@ -49,9 +49,12 @@ export function useOnboarding() {
     const completedData = { ...onboardingData, isCompleted: true };
     setOnboardingData(completedData);
     setIsOnboardingRequired(false);
-    
+
     // Store in session storage
-    sessionStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(completedData));
+    sessionStorage.setItem(
+      ONBOARDING_STORAGE_KEY,
+      JSON.stringify(completedData)
+    );
 
     // If authenticated, also save to Cognito user attributes
     if (isAuthenticated && onboardingData.name && onboardingData.avatar) {
@@ -62,11 +65,15 @@ export function useOnboarding() {
             picture: onboardingData.avatar,
             'custom:cooking_style': onboardingData.cookingStyle || '',
             'custom:magical_specialty': onboardingData.magicalSpecialty || '',
-            'custom:favorite_ingredients': onboardingData.favoriteIngredients?.join(',') || '',
-          }
+            'custom:favorite_ingredients':
+              onboardingData.favoriteIngredients?.join(',') || '',
+          },
         });
       } catch (error) {
-        console.error('Failed to save character data to user attributes:', error);
+        console.error(
+          'Failed to save character data to user attributes:',
+          error
+        );
       }
     }
   };

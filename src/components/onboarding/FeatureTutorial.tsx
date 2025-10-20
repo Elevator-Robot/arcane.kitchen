@@ -23,8 +23,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
       'Ask for recipe suggestions and cooking guidance',
       'Get personalized recommendations based on your preferences',
       'Learn about ingredient properties and magical correspondences',
-      'Receive step-by-step cooking assistance'
-    ]
+      'Receive step-by-step cooking assistance',
+    ],
   },
   {
     id: 'recipe-discovery',
@@ -35,8 +35,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
       'Browse recipes by region, ingredient, or magical properties',
       'Discover traditional and innovative cooking techniques',
       'Find recipes that match your dietary needs',
-      'Explore seasonal and celebration-specific dishes'
-    ]
+      'Explore seasonal and celebration-specific dishes',
+    ],
   },
   {
     id: 'grimoire',
@@ -47,8 +47,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
       'Save your favorite recipes for easy access',
       'Create custom recipe collections and meal plans',
       'Add personal notes and modifications',
-      'Share your creations with the coven community'
-    ]
+      'Share your creations with the coven community',
+    ],
   },
   {
     id: 'alchemical-transformations',
@@ -59,9 +59,9 @@ const TUTORIAL_STEPS: TutorialStep[] = [
       'Adapt recipes for dietary restrictions',
       'Scale ingredients for different serving sizes',
       'Substitute ingredients with magical alternatives',
-      'Transform traditional recipes with modern techniques'
-    ]
-  }
+      'Transform traditional recipes with modern techniques',
+    ],
+  },
 ];
 
 const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
@@ -75,8 +75,8 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
   const isLastStep = currentStepIndex === TUTORIAL_STEPS.length - 1;
 
   const handleNext = () => {
-    setCompletedSteps(prev => new Set(prev).add(currentStep.id));
-    
+    setCompletedSteps((prev) => new Set(prev).add(currentStep.id));
+
     if (isLastStep) {
       onComplete();
     } else {
@@ -100,7 +100,8 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
           </h1>
           <div className="w-24 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent mx-auto mb-6"></div>
           <p className="text-lg text-stone-300 max-w-2xl mx-auto leading-relaxed">
-            Let us guide you through the magical features that await you in the Arcane Kitchen.
+            Let us guide you through the magical features that await you in the
+            Arcane Kitchen.
           </p>
         </div>
 
@@ -115,8 +116,8 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
                   index < currentStepIndex
                     ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
                     : index === currentStepIndex
-                    ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
-                    : 'bg-stone-600/50'
+                      ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
+                      : 'bg-stone-600/50'
                 }`}
               />
             ))}
@@ -177,7 +178,7 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
 
         {/* Completion encouragement */}
         <div className="text-sm text-stone-400/70 max-w-xl mx-auto italic pt-8">
-          "Knowledge is the first ingredient in any successful magical recipe. 
+          "Knowledge is the first ingredient in any successful magical recipe.
           Master these tools, and the kitchen's secrets shall be yours."
         </div>
       </div>

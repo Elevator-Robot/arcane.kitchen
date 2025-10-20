@@ -20,7 +20,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   onSignIn,
 }) => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
-  const { onboardingData, updateOnboardingData, completeOnboarding } = useOnboarding();
+  const { onboardingData, updateOnboardingData, completeOnboarding } =
+    useOnboarding();
 
   const handleStepComplete = (step: OnboardingStep, data?: any) => {
     switch (step) {
@@ -64,7 +65,9 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <AvatarSelection
             selectedAvatar={onboardingData.avatar}
-            onAvatarSelect={(avatar) => handleStepComplete('avatar', { avatar })}
+            onAvatarSelect={(avatar) =>
+              handleStepComplete('avatar', { avatar })
+            }
           />
         );
       case 'name':
@@ -89,7 +92,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   return (
     <div className="min-h-screen cottage-interior relative overflow-hidden">
       <MysticalEffects />
-      
+
       {/* Progress Indicator - Only show after welcome */}
       {currentStep !== 'welcome' && (
         <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
@@ -101,8 +104,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
                   getCurrentStepIndex() > index
                     ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
                     : getCurrentStepIndex() === index
-                    ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
-                    : 'bg-stone-600/50'
+                      ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
+                      : 'bg-stone-600/50'
                 }`}
               />
             ))}
@@ -111,9 +114,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       )}
 
       {/* Step Content */}
-      <div className="relative z-10">
-        {renderCurrentStep()}
-      </div>
+      <div className="relative z-10">{renderCurrentStep()}</div>
 
       {/* Mystical particles for atmosphere */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

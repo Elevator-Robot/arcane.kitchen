@@ -5,17 +5,14 @@ interface NameEntryProps {
   onNameSubmit: (name: string) => void;
 }
 
-const NameEntry: React.FC<NameEntryProps> = ({
-  initialName,
-  onNameSubmit,
-}) => {
+const NameEntry: React.FC<NameEntryProps> = ({ initialName, onNameSubmit }) => {
   const [name, setName] = useState(initialName);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    
+
     setIsSubmitting(true);
     // Add a small delay for dramatic effect
     setTimeout(() => {
@@ -36,7 +33,7 @@ const NameEntry: React.FC<NameEntryProps> = ({
           </h1>
           <div className="w-24 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent mx-auto mb-6"></div>
           <p className="text-xl text-stone-300 max-w-2xl mx-auto leading-relaxed">
-            Tell us what to call you in the mystical realm of culinary arts. 
+            Tell us what to call you in the mystical realm of culinary arts.
             This can be your real name or your chosen kitchen witch identity.
           </p>
         </div>
@@ -59,7 +56,7 @@ const NameEntry: React.FC<NameEntryProps> = ({
                 {/* Mystical glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 to-green-400/10 rounded-xl opacity-0 transition-opacity duration-300 pointer-events-none"></div>
               </div>
-              
+
               {name && (
                 <div className="mt-4 text-stone-400 text-sm">
                   {name.length}/50 characters
@@ -71,7 +68,7 @@ const NameEntry: React.FC<NameEntryProps> = ({
             {name.trim() && (
               <div className="mt-6 p-6 bg-gradient-to-r from-emerald-600/20 to-green-600/20 rounded-xl border border-emerald-400/30 transition-all duration-500">
                 <p className="text-emerald-300 font-semibold text-lg mb-2">
-                  Blessed be, {name.trim()}! 
+                  Blessed be, {name.trim()}!
                 </p>
                 <p className="text-stone-300">
                   Welcome to the ancient tradition of kitchen witchcraft. ✨
@@ -107,13 +104,15 @@ const NameEntry: React.FC<NameEntryProps> = ({
 
         {/* Mystical flavor text */}
         <div className="text-sm text-stone-400/70 max-w-xl mx-auto italic pt-8">
-          "Names hold power in the mystical arts. Choose wisely, for this will be how 
-          the spirits of flavor and the Mystical Sous Chef shall know you."
+          "Names hold power in the mystical arts. Choose wisely, for this will
+          be how the spirits of flavor and the Mystical Sous Chef shall know
+          you."
         </div>
 
         {/* Additional guidance */}
         <div className="mt-6 text-xs text-stone-500/60 max-w-lg mx-auto">
-          Your name will be used throughout your Arcane Kitchen experience and can be changed later in your profile settings.
+          Your name will be used throughout your Arcane Kitchen experience and
+          can be changed later in your profile settings.
         </div>
       </div>
     </div>
