@@ -4,6 +4,8 @@ import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
 import ChatInterface from './components/ChatInterface';
 import RecipeBuilder from './components/RecipeBuilder';
+import OnboardingFlow from './components/OnboardingFlow';
+import { useOnboarding } from './hooks/useOnboarding';
 
 type AppView = 'recipeBuilder' | 'chat';
 
@@ -13,6 +15,7 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentView, setCurrentView] = useState<AppView>('recipeBuilder');
+  const { isOnboardingRequired, completeOnboarding } = useOnboarding();
 
   useEffect(() => {
     checkAuthStatus();
@@ -39,6 +42,19 @@ function App() {
     setAuthLoading(true);
     await checkAuthStatus();
   };
+
+  // Show onboarding for first-time users or non-authenticated users who haven't completed it
+  const shouldShowOnboarding = !authLoading && isOnboardingRequired;
+
+  if (shouldShowOnboarding) {
+    return (
+      <OnboardingFlow
+        isAuthenticated={isAuthenticated}
+        onComplete={() => completeOnboarding(isAuthenticated)}
+        onSignIn={handleAuthChange}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen cottage-interior relative">

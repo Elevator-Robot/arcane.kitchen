@@ -687,6 +687,29 @@ select:focus-visible {
   }
 }
 
+@keyframes mystical-float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-10px) translateX(5px) scale(1.1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-5px) translateX(-3px) scale(0.9);
+    opacity: 0.4;
+  }
+  75% {
+    transform: translateY(-15px) translateX(8px) scale(1.05);
+    opacity: 0.5;
+  }
+}
+
+.animate-mystical-float {
+  animation: mystical-float 6s ease-in-out infinite;
+}
+
 /* Smooth cozy transitions */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
