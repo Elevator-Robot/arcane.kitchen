@@ -4,6 +4,8 @@ import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
 import ChatInterface from './components/ChatInterface';
 import RecipeBuilder from './components/RecipeBuilder';
+import OnboardingFlow from './components/OnboardingFlow';
+import { useOnboarding } from './hooks/useOnboarding';
 
 type AppView = 'recipeBuilder' | 'chat';
 
@@ -13,6 +15,8 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentView, setCurrentView] = useState<AppView>('recipeBuilder');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { isOnboardingRequired, completeOnboarding, onboardingData } = useOnboarding();
 
   useEffect(() => {
     checkAuthStatus();
@@ -40,6 +44,23 @@ function App() {
     await checkAuthStatus();
   };
 
+  const handleOpenAuthModal = () => {
+    setShowAuthModal(true);
+  };
+
+  // Show onboarding for first-time users or non-authenticated users who haven't completed it
+  const shouldShowOnboarding = !authLoading && isOnboardingRequired;
+
+  if (shouldShowOnboarding) {
+    return (
+      <OnboardingFlow
+        isAuthenticated={isAuthenticated}
+        onComplete={() => completeOnboarding(isAuthenticated)}
+        onSignIn={handleOpenAuthModal}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
@@ -57,6 +78,9 @@ function App() {
             isAuthenticated={isAuthenticated}
             onAuthChange={handleAuthChange}
             userAttributes={userAttributes}
+            showAuthModal={showAuthModal}
+            setShowAuthModal={setShowAuthModal}
+            prefilledData={onboardingData}
           />
 
           <div className="flex flex-col h-screen pt-20">
