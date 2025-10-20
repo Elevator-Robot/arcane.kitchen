@@ -11,6 +11,7 @@ export interface OnboardingData {
 }
 
 const ONBOARDING_STORAGE_KEY = 'arcane_onboarding_data';
+const ONBOARDING_PREFILL_KEY = 'arcane_onboarding_prefill';
 
 export function useOnboarding() {
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
@@ -30,6 +31,9 @@ export function useOnboarding() {
         if (parsed.isCompleted) {
           setOnboardingData(parsed);
           setIsOnboardingRequired(false);
+        } else {
+          // Load partial data if not completed
+          setOnboardingData(parsed);
         }
       } catch (error) {
         console.error('Error parsing onboarding data:', error);
@@ -43,6 +47,12 @@ export function useOnboarding() {
 
     // Store in session storage for trial mode
     sessionStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(newData));
+    
+    // Also store in localStorage for prefill when creating account
+    localStorage.setItem(ONBOARDING_PREFILL_KEY, JSON.stringify({
+      avatar: newData.avatar,
+      name: newData.name,
+    }));
   };
 
   const completeOnboarding = async (isAuthenticated: boolean = false) => {

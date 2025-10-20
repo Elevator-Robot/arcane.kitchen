@@ -15,7 +15,8 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentView, setCurrentView] = useState<AppView>('recipeBuilder');
-  const { isOnboardingRequired, completeOnboarding } = useOnboarding();
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { isOnboardingRequired, completeOnboarding, onboardingData } = useOnboarding();
 
   useEffect(() => {
     checkAuthStatus();
@@ -43,6 +44,10 @@ function App() {
     await checkAuthStatus();
   };
 
+  const handleOpenAuthModal = () => {
+    setShowAuthModal(true);
+  };
+
   // Show onboarding for first-time users or non-authenticated users who haven't completed it
   const shouldShowOnboarding = !authLoading && isOnboardingRequired;
 
@@ -51,7 +56,7 @@ function App() {
       <OnboardingFlow
         isAuthenticated={isAuthenticated}
         onComplete={() => completeOnboarding(isAuthenticated)}
-        onSignIn={handleAuthChange}
+        onSignIn={handleOpenAuthModal}
       />
     );
   }
@@ -73,6 +78,9 @@ function App() {
             isAuthenticated={isAuthenticated}
             onAuthChange={handleAuthChange}
             userAttributes={userAttributes}
+            showAuthModal={showAuthModal}
+            setShowAuthModal={setShowAuthModal}
+            prefilledData={onboardingData}
           />
 
           <div className="flex flex-col h-screen pt-20">

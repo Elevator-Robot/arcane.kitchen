@@ -17,6 +17,12 @@ interface HeaderProps {
   isAuthenticated: boolean;
   onAuthChange: (authenticated: boolean) => void;
   userAttributes?: any;
+  showAuthModal?: boolean;
+  setShowAuthModal?: (show: boolean) => void;
+  prefilledData?: {
+    avatar: string;
+    name: string;
+  };
 }
 
 function Header({
@@ -24,11 +30,17 @@ function Header({
   isAuthenticated,
   onAuthChange,
   userAttributes: passedUserAttributes,
+  showAuthModal: externalShowAuthModal,
+  setShowAuthModal: externalSetShowAuthModal,
+  prefilledData,
 }: HeaderProps) {
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [internalShowAuthModal, setInternalShowAuthModal] = useState(false);
+  const showAuthModal = externalShowAuthModal ?? internalShowAuthModal;
+  const setShowAuthModal = externalSetShowAuthModal ?? setInternalShowAuthModal;
   const [authMode, setAuthMode] = useState<
-    'signin' | 'signup' | 'confirm' | 'account' | 'persona' | 'updatePassword'
-  >('signin');
+    'auth' | 'signup' | 'confirm' | 'account' | 'persona' | 'updatePassword'
+  >('auth');
+  const [isNewUser, setIsNewUser] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -88,6 +100,38 @@ function Header({
     }
   }, [isAuthenticated, passedUserAttributes]);
 
+  // Prefill data from onboarding when modal opens or when switching to new user mode
+  useEffect(() => {
+    if (!isAuthenticated && (showAuthModal || isNewUser)) {
+      // Try to load from localStorage first
+      try {
+        const storedPrefill = localStorage.getItem('arcane_onboarding_prefill');
+        if (storedPrefill) {
+          const prefillData = JSON.parse(storedPrefill);
+          if (prefillData.name && prefillData.name.trim() !== '') {
+            setNickName(prefillData.name);
+          }
+          if (prefillData.avatar && prefillData.avatar.trim() !== '') {
+            setSelectedProfilePicture(prefillData.avatar);
+          }
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading prefill data:', error);
+      }
+      
+      // Fallback to passed prefilledData if localStorage is empty
+      if (prefilledData) {
+        if (prefilledData.name && prefilledData.name.trim() !== '') {
+          setNickName(prefilledData.name);
+        }
+        if (prefilledData.avatar && prefilledData.avatar.trim() !== '') {
+          setSelectedProfilePicture(prefilledData.avatar);
+        }
+      }
+    }
+  }, [showAuthModal, isAuthenticated, prefilledData, isNewUser]);
+
   const fetchUserData = async () => {
     try {
       const user = await getCurrentUser();
@@ -144,11 +188,58 @@ function Header({
     return 'Kitchen Witch';
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
+    // If this is a new user completing signup
+    if (isNewUser) {
+      // Validate additional fields
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!nickName.trim()) {
+        setError('Name is required.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!selectedProfilePicture) {
+        setError('Please choose an avatar.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Proceed with sign up
+      try {
+        const result = await signUp({
+          username: email,
+          password: password,
+          options: {
+            userAttributes: {
+              email: email,
+              nickname: nickName.trim(),
+              picture: selectedProfilePicture,
+            },
+          },
+        });
+
+        if (result.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
+          setAuthMode('confirm');
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to create account. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Try to sign in first
     try {
       const result = await signIn({
         username: email,
@@ -165,55 +256,19 @@ function Header({
         resetForm();
       }
     } catch (err: any) {
-      setError(
-        err.message || 'Failed to sign in. Please check your credentials.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!nickName.trim()) {
-      setError('Name is required.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!selectedProfilePicture) {
-      setError('Please choose an avatar.');
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const result = await signUp({
-        username: email,
-        password: password,
-        options: {
-          userAttributes: {
-            email: email,
-            nickname: nickName.trim(),
-            picture: selectedProfilePicture,
-          },
-        },
-      });
-
-      if (result.nextStep?.signUpStep === 'CONFIRM_SIGN_UP') {
-        setAuthMode('confirm');
+      // If user doesn't exist, switch to sign up mode
+      if (
+        err.name === 'UserNotFoundException' ||
+        err.message?.includes('User does not exist') ||
+        err.message?.includes('Incorrect username or password')
+      ) {
+        setIsNewUser(true);
+        setError(''); // Clear any errors when switching to signup mode
+      } else {
+        setError(
+          err.message || 'Failed to sign in. Please check your credentials.'
+        );
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -243,6 +298,10 @@ function Header({
         setUserAttributes(attributes);
         onAuthChange(true);
         setShowAuthModal(false);
+        
+        // Clear prefill data from localStorage after successful account creation
+        localStorage.removeItem('arcane_onboarding_prefill');
+        
         resetForm();
       }
     } catch (err: any) {
@@ -412,7 +471,8 @@ function Header({
     setCurrentProfilePicture('');
     setProfilePictureLoaded(false);
     setError('');
-    setAuthMode('signin');
+    setAuthMode('auth');
+    setIsNewUser(false);
   };
 
   const closeModal = () => {
@@ -739,11 +799,25 @@ function Header({
                       ✦ Profile ✦
                     </div>
                   </span>
+                ) : authMode === 'confirm' ? (
+                  <span className="relative">
+                    ✦ Confirm Your Email ✦
+                    <div className="absolute -top-1 -left-1 text-green-300/30 animate-pulse">
+                      ✦ Confirm Your Email ✦
+                    </div>
+                  </span>
+                ) : isNewUser ? (
+                  <span className="relative">
+                    ✦ Complete Your Profile ✦
+                    <div className="absolute -top-1 -left-1 text-green-300/30 animate-pulse">
+                      ✦ Complete Your Profile ✦
+                    </div>
+                  </span>
                 ) : (
                   <span className="relative">
-                    ✦ Join the Coven ✦
+                    ✦ Enter the Kitchen ✦
                     <div className="absolute -top-1 -left-1 text-green-300/30 animate-pulse">
-                      ✦ Join the Coven ✦
+                      ✦ Enter the Kitchen ✦
                     </div>
                   </span>
                 )}
@@ -1433,8 +1507,41 @@ function Header({
                     </div>
                   )}
 
-                  {authMode === 'signin' && (
-                    <form onSubmit={handleSignIn} className="space-y-4">
+                  {authMode === 'auth' && (
+                    <form onSubmit={handleAuth} className="space-y-4">
+                      {isNewUser && (
+                        <div className="mb-4 p-4 rounded-xl bg-green-900/20 border border-green-500/30">
+                          <p className="text-green-300 text-sm text-center">
+                            ✨ Welcome, new witch! Let's complete your profile
+                          </p>
+                        </div>
+                      )}
+
+                      {isNewUser && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-green-300 mb-2">
+                              Name
+                            </label>
+                            <input
+                              type="text"
+                              value={nickName}
+                              onChange={(e) => setNickName(e.target.value)}
+                              className="chat-input w-full"
+                              placeholder="Your name"
+                              required
+                            />
+                          </div>
+
+                          {/* Profile Picture Selection */}
+                          <ProfilePictureSelector
+                            selectedProfilePicture={selectedProfilePicture}
+                            onSelect={setSelectedProfilePicture}
+                            className="mb-4"
+                          />
+                        </>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium text-green-300 mb-2">
                           Email
@@ -1446,6 +1553,7 @@ function Header({
                           className="chat-input w-full"
                           placeholder="Enter your email"
                           required
+                          disabled={isNewUser}
                         />
                       </div>
                       <div>
@@ -1459,87 +1567,59 @@ function Header({
                           className="chat-input w-full"
                           placeholder="Enter your password"
                           required
+                          minLength={8}
+                          disabled={isNewUser}
                         />
-                      </div>
-                      <button
-                        type="submit"
-                        className="btn-primary w-full"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Signing in...' : 'Sign in'}
-                      </button>
-                    </form>
-                  )}
-
-                  {authMode === 'signup' && (
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-green-300 mb-2">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          value={nickName}
-                          onChange={(e) => setNickName(e.target.value)}
-                          className="chat-input w-full"
-                          placeholder="Your name"
-                          required
-                        />
+                        {!isNewUser && (
+                          <p className="text-xs text-green-400 mt-1">
+                            New here? Just enter your email and create a password to get started! ✨
+                          </p>
+                        )}
                       </div>
 
-                      {/* Profile Picture Selection */}
-                      <ProfilePictureSelector
-                        selectedProfilePicture={selectedProfilePicture}
-                        onSelect={setSelectedProfilePicture}
-                        className="mb-4"
-                      />
+                      {isNewUser && (
+                        <div>
+                          <label className="block text-sm font-medium text-green-300 mb-2">
+                            Confirm Password
+                          </label>
+                          <input
+                            type="password"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            className="chat-input w-full"
+                            placeholder="Confirm your password"
+                            required
+                            minLength={8}
+                          />
+                        </div>
+                      )}
 
-                      <div>
-                        <label className="block text-sm font-medium text-green-300 mb-2">
-                          Witch's Email
-                        </label>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className="chat-input w-full"
-                          placeholder="your.name@coven.mystical"
-                          required
-                        />
+                      <div className="flex space-x-2">
+                        {isNewUser && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsNewUser(false);
+                              setNickName('');
+                              setConfirmPassword('');
+                              setSelectedProfilePicture('');
+                              setError('');
+                            }}
+                            className="btn-secondary flex-1"
+                          >
+                            Back
+                          </button>
+                        )}
+                        <button
+                          type="submit"
+                          className={`btn-primary ${isNewUser ? 'flex-1' : 'w-full'}`}
+                          disabled={isLoading}
+                        >
+                          {isLoading 
+                            ? (isNewUser ? 'Creating Account...' : 'Checking...')
+                            : (isNewUser ? 'Join the Coven' : 'Continue')}
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-green-300 mb-2">
-                          Password
-                        </label>
-                        <input
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="chat-input w-full"
-                          placeholder="Create password"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-green-300 mb-2">
-                          Confirm Password
-                        </label>
-                        <input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="chat-input w-full"
-                          placeholder="Confirm password"
-                          required
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="btn-primary w-full"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? 'Creating Grimoire...' : 'Join the Coven'}
-                      </button>
                     </form>
                   )}
 
@@ -1572,33 +1652,6 @@ function Header({
                         {isLoading ? 'Confirming...' : 'Complete Initiation'}
                       </button>
                     </form>
-                  )}
-
-                  {/* Mode Switcher */}
-                  {authMode !== 'confirm' && (
-                    <div className="text-center">
-                      <div className="flex items-center justify-center space-x-4 mb-4">
-                        <div className="h-px bg-green-700 flex-1"></div>
-                        <span className="text-green-400 text-sm">or</span>
-                        <div className="h-px bg-green-700 flex-1"></div>
-                      </div>
-
-                      {authMode === 'signin' ? (
-                        <button
-                          onClick={() => setAuthMode('signup')}
-                          className="btn-secondary w-full"
-                        >
-                          Sign up
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setAuthMode('signin')}
-                          className="btn-secondary w-full"
-                        >
-                          Return to Login
-                        </button>
-                      )}
-                    </div>
                   )}
 
                   <div className="text-center">
