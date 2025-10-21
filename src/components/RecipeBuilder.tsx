@@ -5,7 +5,6 @@ interface RecipeBuilderProps {
   isAuthenticated: boolean;
   currentUser: any;
   userAttributes?: any;
-  onShowChat?: () => void;
 }
 
 interface RecipeForm {
@@ -65,27 +64,12 @@ const COOKING_TIMES = [
   'All day slow cook',
 ];
 
-const OCCASIONS = [
-  'Everyday Meal',
-  'Family Dinner',
-  'Date Night',
-  'Party/Gathering',
-  'Holiday Feast',
-  'Comfort Food',
-  'Healthy Living',
-  'Quick & Easy',
-];
-
 const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   isAuthenticated,
   currentUser,
   userAttributes,
-  onShowChat,
 }) => {
   const { handleSendMessage } = useMessages();
-  const [activeTab, setActiveTab] = useState<'builder' | 'inspiration'>(
-    'builder'
-  );
   const [recipeForm, setRecipeForm] = useState<RecipeForm>({
     dishType: '',
     mainIngredients: [],
@@ -216,57 +200,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   return (
     <div className="flex-1 flex flex-col min-h-0 p-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="recipe-builder-title text-3xl md:text-4xl lg:text-5xl font-bold text-gradient mb-4">
-          Recipe Cauldron
-        </h1>
-        {userAttributes?.picture && userAttributes?.nickname && (
-          <div className="flex items-center justify-center space-x-4 mb-4">
-            <img
-              src={`/images/profile-pictures/${userAttributes.picture}`}
-              alt="Your Avatar"
-              className="w-12 h-12 rounded-full border-2 border-emerald-400/50"
-            />
-            <p className="text-xl text-hearth">
-              Welcome back, {userAttributes.nickname}
-            </p>
-          </div>
-        )}
-        <p className="text-stone-300">
-          Craft magical recipes with the wisdom of the ancients
-        </p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex justify-center mb-6">
-        <div className="bg-stone-800/50 rounded-xl p-1 border border-stone-600/30">
-          <button
-            onClick={() => setActiveTab('builder')}
-            className={`px-6 py-2 rounded-lg transition-all duration-300 ${
-              activeTab === 'builder'
-                ? 'bg-emerald-600/40 text-emerald-200 shadow-lg shadow-emerald-500/20'
-                : 'text-stone-400 hover:text-stone-300'
-            }`}
-          >
-            Recipe Builder
-          </button>
-          <button
-            onClick={() => setActiveTab('inspiration')}
-            className={`px-6 py-2 rounded-lg transition-all duration-300 ${
-              activeTab === 'inspiration'
-                ? 'bg-amber-600/40 text-amber-200 shadow-lg shadow-amber-500/20'
-                : 'text-stone-400 hover:text-stone-300'
-            }`}
-          >
-            Quick Inspiration
-          </button>
-        </div>
-      </div>
-
       <div className="flex-1 max-w-6xl mx-auto w-full">
-        {activeTab === 'builder' ? (
-          <div className="recipe-builder-grid grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="recipe-builder-grid grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Recipe Form */}
             <div className="space-y-6">
               <div className="recipe-form-section bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-4 md:p-6">
@@ -476,50 +411,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       Your recipe will materialize here once you cast the
                       spell...
                     </p>
-                    <div className="mt-6">
-                      {onShowChat && (
-                        <button
-                          onClick={onShowChat}
-                          className="text-emerald-400 hover:text-emerald-300 underline"
-                        >
-                          Or chat with your Sous Chef for inspiration
-                        </button>
-                      )}
-                    </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
-        ) : (
-          /* Quick Inspiration Tab */
-          <div className="text-center">
-            <div className="bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-8">
-              <h2 className="text-2xl font-bold text-stone-200 mb-6">
-                Quick Recipe Inspiration
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {OCCASIONS.map((occasion) => (
-                  <button
-                    key={occasion}
-                    onClick={() => {
-                      setActiveTab('builder');
-                      updateForm('occasion', occasion);
-                    }}
-                    className="p-4 bg-gradient-to-br from-stone-700/40 to-stone-800/40 border-2 border-stone-600/30 rounded-xl hover:border-amber-400/40 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300"
-                  >
-                    <h3 className="font-bold text-stone-200 mb-2">
-                      {occasion}
-                    </h3>
-                    <p className="text-stone-400 text-sm">
-                      Get recipes perfect for this occasion
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

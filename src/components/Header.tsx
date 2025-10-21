@@ -13,7 +13,6 @@ import {
 import ProfilePictureSelector from './ProfilePictureSelector';
 
 interface HeaderProps {
-  onMenuClick: () => void;
   isAuthenticated: boolean;
   onAuthChange: (authenticated: boolean) => void;
   userAttributes?: any;
@@ -26,7 +25,6 @@ interface HeaderProps {
 }
 
 function Header({
-  onMenuClick,
   isAuthenticated,
   onAuthChange,
   userAttributes: passedUserAttributes,
@@ -58,6 +56,16 @@ function Header({
   const [favoriteIngredients, setFavoriteIngredients] = useState<string[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userAttributes, setUserAttributes] = useState<any>(null);
+
+  // Cooking styles mapping
+  const COOKING_STYLES_MAP: { [key: string]: string } = {
+    traditional: 'Traditional Kitchen Witch',
+    experimental: 'Alchemical Innovator',
+    herbalist: 'Garden Herbalist',
+    comfort: 'Comfort Food Sage',
+    global: 'Worldly Wanderer',
+    seasonal: 'Seasonal Mystic',
+  };
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error'>(
@@ -512,32 +520,8 @@ function Header({
             </button>
           </div>
 
-          {/* Center - Navigation (when authenticated) */}
-          {isAuthenticated && (
-            <div className="header-nav-buttons flex items-center space-x-2 md:space-x-4">
-              <button
-                onClick={onMenuClick}
-                className="header-nav-button flex items-center space-x-1 md:space-x-2 px-3 md:px-4 py-2 rounded-xl bg-stone-800/50 border border-stone-600/30 hover:border-emerald-400/50 transition-all duration-300 text-stone-300 hover:text-emerald-300"
-              >
-                <svg
-                  className="w-4 h-4 md:w-5 md:h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3-3m0 0l-3 3m3-3v12"
-                  />
-                </svg>
-                <span className="text-xs md:text-sm font-medium">
-                  Toggle View
-                </span>
-              </button>
-            </div>
-          )}
+          {/* Center - Empty space for balanced layout */}
+          <div></div>
 
           {/* Right side - Auth */}
           <div className="flex items-center space-x-4">
@@ -873,7 +857,10 @@ function Header({
                           <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-800/30 border border-green-600/40 mb-4">
                             <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
                             <span className="text-green-300 text-sm font-medium">
-                              Kitchen Witch
+                              {cookingStyle
+                                ? COOKING_STYLES_MAP[cookingStyle] ||
+                                  'Kitchen Witch'
+                                : 'Kitchen Witch'}
                             </span>
                           </div>
                           <p className="text-green-300/80 text-sm">
