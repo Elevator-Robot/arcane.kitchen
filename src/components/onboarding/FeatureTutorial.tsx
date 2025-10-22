@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 interface FeatureTutorialProps {
   userName: string;
   onComplete: () => void;
+  isAuthenticated: boolean;
 }
 
 interface TutorialStep {
@@ -67,6 +68,7 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
   userName,
   onComplete,
+  isAuthenticated,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [, setCompletedSteps] = useState<Set<string>>(new Set());
@@ -78,6 +80,7 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
     setCompletedSteps((prev) => new Set(prev).add(currentStep.id));
 
     if (isLastStep) {
+      // Proceed to next step (account creation or complete)
       onComplete();
     } else {
       setCurrentStepIndex(currentStepIndex + 1);
@@ -171,7 +174,7 @@ const FeatureTutorial: React.FC<FeatureTutorialProps> = ({
               onClick={handleNext}
               className="btn-primary px-8 py-3 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transform hover:scale-105 transition-all duration-300"
             >
-              {isLastStep ? 'Enter the Kitchen ✨' : 'Next →'}
+              {isLastStep ? 'Continue →' : 'Next →'}
             </button>
           </div>
         </div>

@@ -22,6 +22,7 @@ interface HeaderProps {
     avatar: string;
     name: string;
   };
+  hideProfileButton?: boolean;
 }
 
 function Header({
@@ -31,6 +32,7 @@ function Header({
   showAuthModal: externalShowAuthModal,
   setShowAuthModal: externalSetShowAuthModal,
   prefilledData,
+  hideProfileButton = false,
 }: HeaderProps) {
   const [internalShowAuthModal, setInternalShowAuthModal] = useState(false);
   const showAuthModal = externalShowAuthModal ?? internalShowAuthModal;
@@ -474,37 +476,63 @@ function Header({
 
   return (
     <>
-      <header className="header-mystical fixed top-0 w-full z-50">
-        <div className="flex justify-between items-center px-4 py-2">
-          {/* Left side - Logo */}
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="hover:scale-105 transition-transform duration-200 p-2 rounded-lg"
-            >
-              <img
-                src="/logo-no-background.svg"
-                alt="Arcane Kitchen"
-                className="h-28 w-auto cursor-pointer"
-              />
-            </button>
+      {!hideProfileButton && (
+        <header className="fixed top-0 right-0 z-50">
+          {/* Mobile: Right side profile layout */}
+          <div className="md:hidden fixed top-1/2 right-0 -translate-y-1/2">
+            {/* Profile Button - Right Center */}
+            <div className="flex justify-end pr-6">
+              <button
+                onClick={() => {
+                  setShowAuthModal(true);
+                  setAuthMode('account');
+                }}
+                className="text-sm text-green-200 hover:text-green-100 transition-colors"
+                title="Profile"
+              >
+                {currentProfilePicture ? (
+                  <img
+                    src={`/images/profile-pictures/${currentProfilePicture}`}
+                    alt="Profile"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-green-500/60 shadow-lg hover:scale-110 hover:shadow-green-400/50 hover:shadow-2xl hover:border-green-400/80 transition-all duration-300 ease-out"
+                    onError={(e) => {
+                      console.error(
+                        `Failed to load profile image: ${currentProfilePicture}`
+                      );
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                    onLoad={() => {
+                      setProfilePictureLoaded(true);
+                      console.log(
+                        'Profile picture loaded:',
+                        profilePictureLoaded
+                      );
+                    }}
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-stone-600/20 to-stone-700/20 flex items-center justify-center border border-stone-500/20 shadow-lg">
+                    <div className="w-4 h-4 bg-stone-400/50 rounded-full animate-pulse"></div>
+                  </div>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Center - Empty space for balanced layout */}
-          <div></div>
-
-          {/* Right side - Auth */}
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
+          {/* Desktop: Right side layout */}
+          <div className="hidden md:block fixed top-1/2 right-0 -translate-y-1/2">
+            {/* Profile Button - Right Center */}
+            <div className="flex justify-end pr-6">
               <button
                 onClick={() => {
                   setShowAuthModal(true);
                   setAuthMode('account'); // Go directly to account settings
                 }}
-                className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-4"
+                className="flex items-center space-x-3 text-sm text-green-200 hover:text-green-100 transition-colors p-6"
                 title="Profile"
               >
-                {isAuthenticated && currentProfilePicture ? (
+                {currentProfilePicture ? (
                   <img
                     src={`/images/profile-pictures/${currentProfilePicture}`}
                     alt="Profile"
@@ -525,73 +553,25 @@ function Header({
                       );
                     }}
                   />
-                ) : isAuthenticated ? (
+                ) : (
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-stone-600/20 to-stone-700/20 flex items-center justify-center border border-stone-500/20 shadow-lg">
                     <div className="w-4 h-4 bg-stone-400/50 rounded-full animate-pulse"></div>
                   </div>
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg hover:scale-110 hover:shadow-green-400/50 hover:shadow-2xl transition-all duration-300 ease-out">
-                    <svg
-                      className="w-8 h-8 text-green-100"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                      />
-                    </svg>
-                  </div>
                 )}
-
-                {/* Fallback icon (hidden by default) */}
-                <div className="hidden w-12 h-12 rounded-full bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center border border-green-500/40 shadow-lg">
-                  <svg
-                    className="w-6 h-6 text-green-100"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
               </button>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="bg-gradient-to-r from-stone-800/60 via-green-900/30 to-amber-900/40 hover:from-stone-700/80 hover:via-green-800/50 hover:to-amber-800/60 backdrop-blur-lg border border-green-400/40 hover:border-green-400/70 rounded-xl px-6 py-3 text-stone-100 hover:text-green-200 font-medium shadow-lg shadow-green-500/20 hover:shadow-green-500/40 transition-all duration-300 text-sm relative overflow-hidden"
-              >
-                {/* Mystical background particles */}
-                <div className="absolute inset-0 opacity-20">
-                  <div className="absolute top-1 right-2 w-0.5 h-0.5 bg-green-300 rounded-full animate-pulse"></div>
-                  <div
-                    className="absolute bottom-1 left-3 w-0.5 h-0.5 bg-amber-300 rounded-full animate-ping"
-                    style={{ animationDelay: '1s' }}
-                  ></div>
-                </div>
-                <span className="relative z-10">Join the Coven</span>
-              </button>
-            )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
-      {/* Mystical Authentication Modal */}
+      {/* Mystical Authentication Modal - Slide from Right */}
       {showAuthModal && (
         <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-start justify-end z-50 p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-end z-50 animate-fadeIn"
           onClick={closeModal}
         >
           <div
-            className="bg-gradient-to-br from-stone-800/90 via-green-900/30 to-amber-900/40 backdrop-blur-xl border border-green-400/40 rounded-2xl shadow-2xl shadow-green-500/20 p-8 max-w-md w-full max-h-[95vh] overflow-y-auto relative mr-4"
+            className="bg-gradient-to-br from-stone-800/90 via-green-900/30 to-amber-900/40 backdrop-blur-xl border-l border-green-400/40 shadow-2xl shadow-green-500/20 p-8 w-full max-w-md h-full overflow-y-auto relative animate-slideInRight"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Mystical background particles and stars */}

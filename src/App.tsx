@@ -40,23 +40,21 @@ function App() {
     await checkAuthStatus();
   };
 
-  const handleOpenAuthModal = () => {
-    setShowAuthModal(true);
-  };
-
-  // Show onboarding for first-time users or non-authenticated users who haven't completed it
-  const shouldShowOnboarding = !authLoading && isOnboardingRequired;
+  // Show onboarding for first-time users
+  // All users must go through character creation and be authenticated
+  const shouldShowOnboarding = !authLoading && (!isAuthenticated || isOnboardingRequired);
 
   if (shouldShowOnboarding) {
     return (
       <OnboardingFlow
         isAuthenticated={isAuthenticated}
         onComplete={() => completeOnboarding(isAuthenticated)}
-        onSignIn={handleOpenAuthModal}
+        onAuthChange={handleAuthChange}
       />
     );
   }
 
+  // Only show main app to authenticated users who have completed onboarding
   return (
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
@@ -72,7 +70,7 @@ function App() {
             prefilledData={onboardingData}
           />
 
-          <div className="flex flex-col h-screen pt-20">
+          <div className="flex flex-col h-screen">
             <RecipeBuilder
               isAuthenticated={isAuthenticated}
               currentUser={currentUser}
