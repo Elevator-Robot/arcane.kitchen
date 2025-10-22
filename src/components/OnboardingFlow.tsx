@@ -4,20 +4,22 @@ import WelcomeIntro from './onboarding/WelcomeIntro';
 import AvatarSelection from './onboarding/AvatarSelection';
 import NameEntry from './onboarding/NameEntry';
 import FeatureTutorial from './onboarding/FeatureTutorial';
+import AccountCreation from './onboarding/AccountCreation';
+import Login from './onboarding/Login';
 import MysticalEffects from './MysticalEffects';
 
-type OnboardingStep = 'welcome' | 'avatar' | 'name' | 'tutorial';
+type OnboardingStep = 'welcome' | 'avatar' | 'name' | 'tutorial' | 'account' | 'login';
 
 interface OnboardingFlowProps {
   isAuthenticated: boolean;
   onComplete: () => void;
-  onSignIn?: () => void;
+  onAuthChange?: () => void;
 }
 
 const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   isAuthenticated,
   onComplete,
-  onSignIn,
+  onAuthChange,
 }) => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const { onboardingData, updateOnboardingData, completeOnboarding } =
@@ -41,6 +43,17 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         setCurrentStep('tutorial');
         break;
       case 'tutorial':
+        // If not authenticated, go to account creation
+        if (!isAuthenticated) {
+          setCurrentStep('account');
+        } else {
+          handleOnboardingComplete();
+        }
+        break;
+      case 'account':
+        handleOnboardingComplete();
+        break;
+      case 'login':
         handleOnboardingComplete();
         break;
     }
@@ -48,6 +61,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
   const handleOnboardingComplete = async () => {
     await completeOnboarding(isAuthenticated);
+    
+    // Refresh auth state to ensure user attributes are loaded
+    if (onAuthChange) {
+      await onAuthChange();
+    }
+    
     onComplete();
   };
 
@@ -57,8 +76,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         return (
           <WelcomeIntro
             onContinue={() => handleStepComplete('welcome')}
-            onSignIn={onSignIn}
-            showSignIn={!isAuthenticated}
+            onSignIn={() => setCurrentStep('login')}
+          />
+        );
+      case 'login':
+        return (
+          <Login
+            onComplete={() => handleStepComplete('login')}
+            onBack={() => setCurrentStep('welcome')}
           />
         );
       case 'avatar':
@@ -84,6 +109,14 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             onComplete={() => handleStepComplete('tutorial')}
           />
         );
+      case 'account':
+        return (
+          <AccountCreation
+            userName={onboardingData.name}
+            userAvatar={onboardingData.avatar}
+            onComplete={() => handleStepComplete('account')}
+          />
+        );
       default:
         return null;
     }
@@ -93,8 +126,8 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
     <div className="min-h-screen cottage-interior relative overflow-hidden">
       <MysticalEffects />
 
-      {/* Progress Indicator - Only show after welcome */}
-      {currentStep !== 'welcome' && (
+      {/* Progress Indicator - Only show after welcome and not on login/account */}
+      {currentStep !== 'welcome' && currentStep !== 'account' && currentStep !== 'login' && (
         <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
           <div className="flex space-x-3">
             {['avatar', 'name', 'tutorial'].map((step, index) => (

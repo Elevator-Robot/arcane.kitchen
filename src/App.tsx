@@ -2,19 +2,15 @@ import { useState, useEffect } from 'react';
 import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
-import ChatInterface from './components/ChatInterface';
 import RecipeBuilder from './components/RecipeBuilder';
 import OnboardingFlow from './components/OnboardingFlow';
 import { useOnboarding } from './hooks/useOnboarding';
-
-type AppView = 'recipeBuilder' | 'chat';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<AppView>('recipeBuilder');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { isOnboardingRequired, completeOnboarding, onboardingData } = useOnboarding();
 
@@ -44,23 +40,21 @@ function App() {
     await checkAuthStatus();
   };
 
-  const handleOpenAuthModal = () => {
-    setShowAuthModal(true);
-  };
-
-  // Show onboarding for first-time users or non-authenticated users who haven't completed it
-  const shouldShowOnboarding = !authLoading && isOnboardingRequired;
+  // Show onboarding for first-time users
+  // All users must go through character creation and be authenticated
+  const shouldShowOnboarding = !authLoading && (!isAuthenticated || isOnboardingRequired);
 
   if (shouldShowOnboarding) {
     return (
       <OnboardingFlow
         isAuthenticated={isAuthenticated}
         onComplete={() => completeOnboarding(isAuthenticated)}
-        onSignIn={handleOpenAuthModal}
+        onAuthChange={handleAuthChange}
       />
     );
   }
 
+  // Only show main app to authenticated users who have completed onboarding
   return (
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
@@ -68,13 +62,6 @@ function App() {
       {authLoading ? null : (
         <>
           <Header
-            onMenuClick={() => {
-              if (currentView === 'recipeBuilder') {
-                setCurrentView('chat');
-              } else {
-                setCurrentView('recipeBuilder');
-              }
-            }}
             isAuthenticated={isAuthenticated}
             onAuthChange={handleAuthChange}
             userAttributes={userAttributes}
@@ -83,21 +70,12 @@ function App() {
             prefilledData={onboardingData}
           />
 
-          <div className="flex flex-col h-screen pt-20">
-            {currentView === 'chat' ? (
-              <ChatInterface
-                isAuthenticated={isAuthenticated}
-                currentUser={currentUser}
-                userAttributes={userAttributes}
-              />
-            ) : (
-              <RecipeBuilder
-                isAuthenticated={isAuthenticated}
-                currentUser={currentUser}
-                userAttributes={userAttributes}
-                onShowChat={() => setCurrentView('chat')}
-              />
-            )}
+          <div className="flex flex-col h-screen">
+            <RecipeBuilder
+              isAuthenticated={isAuthenticated}
+              currentUser={currentUser}
+              userAttributes={userAttributes}
+            />
           </div>
         </>
       )}

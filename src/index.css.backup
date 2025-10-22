@@ -464,24 +464,6 @@
   }
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 /* Cozy Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -605,14 +587,6 @@ select:focus-visible {
   animation: slideIn 0.4s ease-out forwards;
 }
 
-.animate-slideInRight {
-  animation: slideInRight 0.3s ease-out forwards;
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.2s ease-out forwards;
-}
-
 /* Cozy text selection */
 ::selection {
   background: rgba(210, 105, 30, 0.4);
@@ -711,29 +685,6 @@ select:focus-visible {
   50% {
     box-shadow: 0 0 30px rgba(34, 197, 94, 0.8), 0 0 60px rgba(34, 197, 94, 0.4);
   }
-}
-
-@keyframes mystical-float {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px) scale(1);
-    opacity: 0.3;
-  }
-  25% {
-    transform: translateY(-10px) translateX(5px) scale(1.1);
-    opacity: 0.6;
-  }
-  50% {
-    transform: translateY(-5px) translateX(-3px) scale(0.9);
-    opacity: 0.4;
-  }
-  75% {
-    transform: translateY(-15px) translateX(8px) scale(1.05);
-    opacity: 0.5;
-  }
-}
-
-.animate-mystical-float {
-  animation: mystical-float 6s ease-in-out infinite;
 }
 
 /* Smooth cozy transitions */

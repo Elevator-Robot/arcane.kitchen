@@ -3,13 +3,11 @@ import React from 'react';
 interface WelcomeIntroProps {
   onContinue: () => void;
   onSignIn?: () => void;
-  showSignIn: boolean;
 }
 
 const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
   onContinue,
   onSignIn,
-  showSignIn,
 }) => {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -87,7 +85,7 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
         </div>
 
         {/* Action buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+        <div className="flex flex-col gap-4 justify-center items-center pt-8">
           <button
             onClick={onContinue}
             className="btn-primary text-xl px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/40 transform hover:scale-105 transition-all duration-300"
@@ -95,20 +93,16 @@ const WelcomeIntro: React.FC<WelcomeIntroProps> = ({
             Begin Your Journey ✨
           </button>
 
-          {showSignIn && onSignIn && (
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-px bg-stone-500/50"></div>
-              <span className="text-stone-400 text-sm">or</span>
-              <div className="w-16 h-px bg-stone-500/50"></div>
-            </div>
-          )}
-
-          {showSignIn && onSignIn && (
+          {/* Discreet Login Link */}
+          {onSignIn && (
             <button
               onClick={onSignIn}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-stone-700/50 to-stone-800/50 text-stone-300 border border-stone-600/50 hover:border-amber-400/60 hover:text-amber-300 hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300"
+              className="text-sm text-stone-500 hover:text-emerald-300 transition-colors"
             >
-              Return to Your Coven
+              Already have an account?{' '}
+              <span className="text-stone-400 hover:text-emerald-300">
+                Sign in
+              </span>
             </button>
           )}
         </div>
