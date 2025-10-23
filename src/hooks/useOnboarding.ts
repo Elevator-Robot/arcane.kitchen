@@ -47,12 +47,15 @@ export function useOnboarding() {
 
     // Store in session storage for trial mode
     sessionStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(newData));
-    
+
     // Also store in localStorage for prefill when creating account
-    localStorage.setItem(ONBOARDING_PREFILL_KEY, JSON.stringify({
-      avatar: newData.avatar,
-      name: newData.name,
-    }));
+    localStorage.setItem(
+      ONBOARDING_PREFILL_KEY,
+      JSON.stringify({
+        avatar: newData.avatar,
+        name: newData.name,
+      })
+    );
   };
 
   const completeOnboarding = async (isAuthenticated: boolean = false) => {

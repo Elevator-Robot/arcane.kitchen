@@ -29,7 +29,9 @@ const Login: React.FC<LoginProps> = ({ onComplete, onBack }) => {
         onComplete();
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      setError(
+        err.message || 'Failed to sign in. Please check your credentials.'
+      );
     } finally {
       setIsLoading(false);
     }

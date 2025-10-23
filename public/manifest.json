@@ -38,7 +38,7 @@
       "form_factor": "wide"
     },
     {
-      "src": "/screenshot-narrow.png", 
+      "src": "/screenshot-narrow.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"
@@ -59,7 +59,7 @@
     },
     {
       "name": "My Grimoire",
-      "short_name": "Grimoire", 
+      "short_name": "Grimoire",
       "description": "View your saved recipes",
       "url": "/grimoire",
       "icons": [
