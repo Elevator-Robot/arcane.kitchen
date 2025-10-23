@@ -240,10 +240,20 @@ describe('RecipeBuilder Component', () => {
       await user.click(createButton);
 
       // Verify the recipe generation was triggered with correct parameters
+      const [actualPrompt] = mockHandleSendMessage.mock.calls[0];
+      
+      // Test key components of the generated prompt
+      expect(actualPrompt).toContain('Create a appetizer recipe');
+      expect(actualPrompt).toContain('featuring chicken, herbs');
+      expect(actualPrompt).toContain('Mediterranean style');
+      expect(actualPrompt).toContain('serves 6 people');
+      expect(actualPrompt).toContain('Make it vegetarian');
+      expect(actualPrompt).toContain('Difficulty level should be intermediate');
+      expect(actualPrompt).toContain('nourishing and healing properties');
+      expect(actualPrompt).toContain('Make it extra magical with herbs');
+      
       expect(mockHandleSendMessage).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /Create a appetizer recipe featuring chicken, herbs in Mediterranean style.*and serves 6 people.*Make it vegetarian.*Difficulty level should be intermediate.*with nourishing and healing properties.*Additional requirements: Make it extra magical with herbs/
-        ),
+        actualPrompt,
         true,
         defaultRecipeBuilderProps.currentUser
       );

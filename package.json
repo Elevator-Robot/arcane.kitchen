@@ -36,6 +36,8 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.0.2",
+    "@vitest/ui": "^4.0.2",
     "autoprefixer": "^10.4.20",
     "aws-cdk": "^2.138.0",
     "aws-cdk-lib": "^2.138.0",
