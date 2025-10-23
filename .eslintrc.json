@@ -21,11 +21,7 @@
     "amplify/"
   ],
   "parser": "@typescript-eslint/parser",
-  "plugins": [
-    "react-refresh",
-    "@typescript-eslint",
-    "prettier"
-  ],
+  "plugins": ["react-refresh", "@typescript-eslint", "prettier"],
   "rules": {
     "prettier/prettier": "error",
     "react-refresh/only-export-components": [

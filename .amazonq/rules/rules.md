@@ -1,9 +1,11 @@
 # Amazon Q Rules - Arcane Kitchen
 
 ## Project Context
+
 Arcane Kitchen is an AI-powered culinary companion that combines ancient culinary wisdom with modern technology. We help users explore global recipes, customize dishes, and build personal cookbooks through mystical AI guidance.
 
 ## Core Focus Areas
+
 - AI-powered recipe discovery and customization
 - Culinary AI chatbot (Mystical Sous Chef)
 - Recipe recommendation systems
@@ -13,6 +15,7 @@ Arcane Kitchen is an AI-powered culinary companion that combines ancient culinar
 - Herbal and ingredient knowledge systems
 
 ## Code Standards
+
 - Magical theming throughout UI/UX
 - Fast, responsive recipe search and discovery
 - Minimal viable implementations
@@ -21,6 +24,7 @@ Arcane Kitchen is an AI-powered culinary companion that combines ancient culinar
 - Accessibility-compliant code
 
 ## Project Features
+
 - Recipe discovery by region, ingredient, dietary needs
 - Interactive AI recipe customization
 - Personal cookbook (Grimoire) management
@@ -30,6 +34,7 @@ Arcane Kitchen is an AI-powered culinary companion that combines ancient culinar
 - Sustainable cooking practices
 
 ## Technical Preferences
+
 - AWS services and infrastructure
 - **AWS Amplify Gen2 framework** (CRITICAL: Always use Gen2 methods, NOT Gen1)
 - **AWS profile** (CRITICAL: Always use AWS profile brain)
@@ -39,6 +44,7 @@ Arcane Kitchen is an AI-powered culinary companion that combines ancient culinar
 - Community and social features
 
 ## Communication Style
+
 - Embrace magical/mystical terminology
 - Focus on culinary solutions
 - Assume cooking enthusiasm

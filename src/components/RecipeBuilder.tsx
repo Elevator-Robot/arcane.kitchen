@@ -202,220 +202,215 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     <div className="flex-1 flex flex-col min-h-0 p-6">
       <div className="flex-1 max-w-6xl mx-auto w-full">
         <div className="recipe-builder-grid grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            {/* Recipe Form */}
-            <div className="space-y-6">
-              <div className="recipe-form-section bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-4 md:p-6">
-                <h2 className="text-2xl font-bold text-stone-200 mb-6">
-                  Craft Your Recipe
-                </h2>
+          {/* Recipe Form */}
+          <div className="space-y-6">
+            <div className="recipe-form-section bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-4 md:p-6">
+              <h2 className="text-2xl font-bold text-stone-200 mb-6">
+                Craft Your Recipe
+              </h2>
 
-                {/* Dish Type */}
-                <div className="mb-6">
-                  <label className="block text-stone-300 font-medium mb-3">
-                    What are you creating?
-                  </label>
-                  <div className="dish-type-grid grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {DISH_TYPES.map((type) => (
-                      <button
-                        key={type.id}
-                        onClick={() => updateForm('dishType', type.id)}
-                        className={`p-3 rounded-xl text-center transition-all duration-300 ${
-                          recipeForm.dishType === type.id
-                            ? 'bg-emerald-600/40 border-2 border-emerald-400/60'
-                            : 'bg-stone-700/40 border-2 border-stone-600/30 hover:border-emerald-400/40'
-                        }`}
+              {/* Dish Type */}
+              <div className="mb-6">
+                <label className="block text-stone-300 font-medium mb-3">
+                  What are you creating?
+                </label>
+                <div className="dish-type-grid grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {DISH_TYPES.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => updateForm('dishType', type.id)}
+                      className={`p-3 rounded-xl text-center transition-all duration-300 ${
+                        recipeForm.dishType === type.id
+                          ? 'bg-emerald-600/40 border-2 border-emerald-400/60'
+                          : 'bg-stone-700/40 border-2 border-stone-600/30 hover:border-emerald-400/40'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{type.icon}</div>
+                      <div className="text-xs text-stone-300">{type.name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Main Ingredients */}
+              <div className="mb-6">
+                <label className="block text-stone-300 font-medium mb-3">
+                  Key Ingredients
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., chicken, herbs, tomatoes..."
+                  className="chat-input w-full"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                      const ingredient = e.currentTarget.value.trim();
+                      if (!recipeForm.mainIngredients.includes(ingredient)) {
+                        toggleArrayItem('mainIngredients', ingredient);
+                      }
+                      e.currentTarget.value = '';
+                    }
+                  }}
+                />
+                {recipeForm.mainIngredients.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {recipeForm.mainIngredients.map((ingredient) => (
+                      <span
+                        key={ingredient}
+                        className="px-3 py-1 bg-emerald-400/30 text-emerald-200 rounded-full text-sm cursor-pointer hover:bg-red-400/30 hover:text-red-200 transition-colors"
+                        onClick={() =>
+                          toggleArrayItem('mainIngredients', ingredient)
+                        }
                       >
-                        <div className="text-2xl mb-1">{type.icon}</div>
-                        <div className="text-xs text-stone-300">
-                          {type.name}
-                        </div>
-                      </button>
+                        {ingredient} ×
+                      </span>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Main Ingredients */}
-                <div className="mb-6">
-                  <label className="block text-stone-300 font-medium mb-3">
-                    Key Ingredients
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., chicken, herbs, tomatoes..."
-                    className="chat-input w-full"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                        const ingredient = e.currentTarget.value.trim();
-                        if (!recipeForm.mainIngredients.includes(ingredient)) {
-                          toggleArrayItem('mainIngredients', ingredient);
-                        }
-                        e.currentTarget.value = '';
-                      }
-                    }}
-                  />
-                  {recipeForm.mainIngredients.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {recipeForm.mainIngredients.map((ingredient) => (
-                        <span
-                          key={ingredient}
-                          className="px-3 py-1 bg-emerald-400/30 text-emerald-200 rounded-full text-sm cursor-pointer hover:bg-red-400/30 hover:text-red-200 transition-colors"
-                          onClick={() =>
-                            toggleArrayItem('mainIngredients', ingredient)
-                          }
-                        >
-                          {ingredient} ×
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Cuisine Style */}
+              <div className="mb-6">
+                <label className="block text-stone-300 font-medium mb-3">
+                  Cuisine Style
+                </label>
+                <select
+                  value={recipeForm.cuisineStyle}
+                  onChange={(e) => updateForm('cuisineStyle', e.target.value)}
+                  className="chat-input w-full"
+                >
+                  <option value="">Select cuisine style...</option>
+                  {CUISINE_STYLES.map((style) => (
+                    <option key={style} value={style}>
+                      {style}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                {/* Cuisine Style */}
-                <div className="mb-6">
-                  <label className="block text-stone-300 font-medium mb-3">
-                    Cuisine Style
+              {/* Quick Options Row */}
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-stone-300 font-medium mb-2">
+                    Cooking Time
                   </label>
                   <select
-                    value={recipeForm.cuisineStyle}
-                    onChange={(e) => updateForm('cuisineStyle', e.target.value)}
+                    value={recipeForm.cookingTime}
+                    onChange={(e) => updateForm('cookingTime', e.target.value)}
                     className="chat-input w-full"
                   >
-                    <option value="">Select cuisine style...</option>
-                    {CUISINE_STYLES.map((style) => (
-                      <option key={style} value={style}>
-                        {style}
+                    <option value="">Any time</option>
+                    {COOKING_TIMES.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                {/* Quick Options Row */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-stone-300 font-medium mb-2">
-                      Cooking Time
-                    </label>
-                    <select
-                      value={recipeForm.cookingTime}
-                      onChange={(e) =>
-                        updateForm('cookingTime', e.target.value)
-                      }
-                      className="chat-input w-full"
-                    >
-                      <option value="">Any time</option>
-                      {COOKING_TIMES.map((time) => (
-                        <option key={time} value={time}>
-                          {time}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-stone-300 font-medium mb-2">
-                      Servings
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="20"
-                      value={recipeForm.servings}
-                      onChange={(e) => updateForm('servings', e.target.value)}
-                      className="chat-input w-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Dietary Restrictions */}
-                <div className="mb-6">
-                  <label className="block text-stone-300 font-medium mb-3">
-                    Dietary Considerations
+                <div>
+                  <label className="block text-stone-300 font-medium mb-2">
+                    Servings
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {DIETARY_OPTIONS.map((diet) => (
-                      <button
-                        key={diet}
-                        onClick={() =>
-                          toggleArrayItem('dietaryRestrictions', diet)
-                        }
-                        className={`px-3 py-1 rounded-full text-sm transition-all duration-300 ${
-                          recipeForm.dietaryRestrictions.includes(diet)
-                            ? 'bg-amber-400/30 text-amber-200'
-                            : 'bg-stone-700/50 text-stone-300 hover:bg-stone-600/50'
-                        }`}
-                      >
-                        {diet}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Notes */}
-                <div className="mb-6">
-                  <label className="block text-stone-300 font-medium mb-3">
-                    Special Requests or Notes
-                  </label>
-                  <textarea
-                    value={recipeForm.customPrompt}
-                    onChange={(e) => updateForm('customPrompt', e.target.value)}
-                    placeholder="Any special requirements, flavor preferences, or cooking methods you'd like to include..."
-                    className="chat-input w-full h-20 resize-none"
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={recipeForm.servings}
+                    onChange={(e) => updateForm('servings', e.target.value)}
+                    className="chat-input w-full"
                   />
                 </div>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex space-x-4">
-                  <button
-                    onClick={handleGenerate}
-                    disabled={!isAuthenticated || isGenerating}
-                    className={`btn-primary flex-1 ${
-                      isGenerating ? 'opacity-75 cursor-not-allowed' : ''
-                    }`}
-                  >
-                    {isGenerating ? (
-                      <span className="flex items-center justify-center">
-                        <div className="loading-dots mr-2">
-                          <div></div>
-                          <div></div>
-                          <div></div>
-                        </div>
-                        Conjuring Recipe...
-                      </span>
-                    ) : (
-                      '🔮 Create Recipe'
-                    )}
-                  </button>
-                  <button onClick={resetForm} className="btn-secondary px-6">
-                    Reset
-                  </button>
+              {/* Dietary Restrictions */}
+              <div className="mb-6">
+                <label className="block text-stone-300 font-medium mb-3">
+                  Dietary Considerations
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {DIETARY_OPTIONS.map((diet) => (
+                    <button
+                      key={diet}
+                      onClick={() =>
+                        toggleArrayItem('dietaryRestrictions', diet)
+                      }
+                      className={`px-3 py-1 rounded-full text-sm transition-all duration-300 ${
+                        recipeForm.dietaryRestrictions.includes(diet)
+                          ? 'bg-amber-400/30 text-amber-200'
+                          : 'bg-stone-700/50 text-stone-300 hover:bg-stone-600/50'
+                      }`}
+                    >
+                      {diet}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* Recipe Preview/Results */}
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-6 min-h-[400px]">
-                <h2 className="text-2xl font-bold text-stone-200 mb-6">
-                  Your Mystical Recipe
-                </h2>
+              {/* Custom Notes */}
+              <div className="mb-6">
+                <label className="block text-stone-300 font-medium mb-3">
+                  Special Requests or Notes
+                </label>
+                <textarea
+                  value={recipeForm.customPrompt}
+                  onChange={(e) => updateForm('customPrompt', e.target.value)}
+                  placeholder="Any special requirements, flavor preferences, or cooking methods you'd like to include..."
+                  className="chat-input w-full h-20 resize-none"
+                />
+              </div>
 
-                {generatedRecipe ? (
-                  <div className="prose prose-stone prose-invert max-w-none">
-                    <div className="whitespace-pre-wrap text-stone-300">
-                      {generatedRecipe}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-stone-400 italic py-16">
-                    <div className="text-6xl mb-4">🪄</div>
-                    <p>
-                      Your recipe will materialize here once you cast the
-                      spell...
-                    </p>
-                  </div>
-                )}
+              {/* Action Buttons */}
+              <div className="flex space-x-4">
+                <button
+                  onClick={handleGenerate}
+                  disabled={!isAuthenticated || isGenerating}
+                  className={`btn-primary flex-1 ${
+                    isGenerating ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isGenerating ? (
+                    <span className="flex items-center justify-center">
+                      <div className="loading-dots mr-2">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                      </div>
+                      Conjuring Recipe...
+                    </span>
+                  ) : (
+                    '🔮 Create Recipe'
+                  )}
+                </button>
+                <button onClick={resetForm} className="btn-secondary px-6">
+                  Reset
+                </button>
               </div>
             </div>
           </div>
+
+          {/* Recipe Preview/Results */}
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-6 min-h-[400px]">
+              <h2 className="text-2xl font-bold text-stone-200 mb-6">
+                Your Mystical Recipe
+              </h2>
+
+              {generatedRecipe ? (
+                <div className="prose prose-stone prose-invert max-w-none">
+                  <div className="whitespace-pre-wrap text-stone-300">
+                    {generatedRecipe}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-stone-400 italic py-16">
+                  <div className="text-6xl mb-4">🪄</div>
+                  <p>
+                    Your recipe will materialize here once you cast the spell...
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

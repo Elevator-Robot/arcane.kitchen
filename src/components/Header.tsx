@@ -126,7 +126,7 @@ function Header({
       } catch (error) {
         console.error('Error loading prefill data:', error);
       }
-      
+
       // Fallback to passed prefilledData if localStorage is empty
       if (prefilledData) {
         if (prefilledData.name && prefilledData.name.trim() !== '') {
@@ -305,10 +305,10 @@ function Header({
         setUserAttributes(attributes);
         onAuthChange(true);
         setShowAuthModal(false);
-        
+
         // Clear prefill data from localStorage after successful account creation
         localStorage.removeItem('arcane_onboarding_prefill');
-        
+
         resetForm();
       }
     } catch (err: any) {
@@ -1483,7 +1483,8 @@ function Header({
                         />
                         {!isNewUser && (
                           <p className="text-xs text-green-400 mt-1">
-                            New here? Just enter your email and create a password to get started! ✨
+                            New here? Just enter your email and create a
+                            password to get started! ✨
                           </p>
                         )}
                       </div>
@@ -1526,9 +1527,13 @@ function Header({
                           className={`btn-primary ${isNewUser ? 'flex-1' : 'w-full'}`}
                           disabled={isLoading}
                         >
-                          {isLoading 
-                            ? (isNewUser ? 'Creating Account...' : 'Checking...')
-                            : (isNewUser ? 'Join the Coven' : 'Continue')}
+                          {isLoading
+                            ? isNewUser
+                              ? 'Creating Account...'
+                              : 'Checking...'
+                            : isNewUser
+                              ? 'Join the Coven'
+                              : 'Continue'}
                         </button>
                       </div>
                     </form>

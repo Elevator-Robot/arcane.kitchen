@@ -12,7 +12,8 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { isOnboardingRequired, completeOnboarding, onboardingData } = useOnboarding();
+  const { isOnboardingRequired, completeOnboarding, onboardingData } =
+    useOnboarding();
 
   useEffect(() => {
     checkAuthStatus();
@@ -42,7 +43,8 @@ function App() {
 
   // Show onboarding for first-time users
   // All users must go through character creation and be authenticated
-  const shouldShowOnboarding = !authLoading && (!isAuthenticated || isOnboardingRequired);
+  const shouldShowOnboarding =
+    !authLoading && (!isAuthenticated || isOnboardingRequired);
 
   if (shouldShowOnboarding) {
     return (
