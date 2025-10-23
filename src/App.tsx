@@ -32,14 +32,15 @@ function App() {
 
   const checkAuthStatus = async () => {
     try {
-      // Check if we're in test mode for demonstration
-      if (CURRENT_TEST_MODE) {
+      // Check if we're in development test mode
+      if (import.meta.env.MODE === 'development' && CURRENT_TEST_MODE) {
         if (CURRENT_TEST_MODE.isAuthenticated) {
           setCurrentUser({ username: 'test-user' });
           setIsAuthenticated(true);
-          setUserAttributes({ 
+          setUserAttributes({
             given_name: CURRENT_TEST_MODE.userName,
-            'custom:tutorial_complete': CURRENT_TEST_MODE.tutorialComplete.toString()
+            'custom:tutorial_complete':
+              CURRENT_TEST_MODE.tutorialComplete.toString(),
           });
         } else {
           setCurrentUser(null);

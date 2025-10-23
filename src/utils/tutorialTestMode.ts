@@ -31,10 +31,11 @@ export const TEST_MODES = {
   },
 } as const;
 
-// Enable test mode by setting this to one of the TEST_MODES
-// In production, this would always be null
-export const CURRENT_TEST_MODE: TestTutorialState | null = null;
-// Uncomment one of these lines to test different modes:
-// export const CURRENT_TEST_MODE: TestTutorialState | null = TEST_MODES.SHOW_TUTORIAL;
-// export const CURRENT_TEST_MODE: TestTutorialState | null = TEST_MODES.SKIP_TUTORIAL;
-// export const CURRENT_TEST_MODE: TestTutorialState | null = TEST_MODES.REGULAR_FLOW;
+// Enable test mode only in development by setting this to one of the TEST_MODES
+// In production builds, this is always null
+export const CURRENT_TEST_MODE: TestTutorialState | null =
+  import.meta.env.MODE === 'development' ? null : null;
+// Change the first null to one of these for testing in development:
+// TEST_MODES.SHOW_TUTORIAL;
+// TEST_MODES.SKIP_TUTORIAL;
+// TEST_MODES.REGULAR_FLOW;

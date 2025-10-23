@@ -12,8 +12,8 @@ export function useTutorial() {
 
   const checkTutorialStatus = async () => {
     try {
-      // Check if we're in test mode for demonstration
-      if (CURRENT_TEST_MODE) {
+      // Check if we're in development test mode
+      if (import.meta.env.MODE === 'development' && CURRENT_TEST_MODE) {
         setShouldShowTutorial(!CURRENT_TEST_MODE.tutorialComplete);
         setIsLoading(false);
         return;
