@@ -8,6 +8,7 @@ import PostLoginTutorial from './components/PostLoginTutorial';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useTutorial } from './hooks/useTutorial';
 import { getDisplayName } from './utils/auth';
+import { CURRENT_TEST_MODE } from './utils/tutorialTestMode';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -31,6 +32,24 @@ function App() {
 
   const checkAuthStatus = async () => {
     try {
+      // Check if we're in test mode for demonstration
+      if (CURRENT_TEST_MODE) {
+        if (CURRENT_TEST_MODE.isAuthenticated) {
+          setCurrentUser({ username: 'test-user' });
+          setIsAuthenticated(true);
+          setUserAttributes({ 
+            given_name: CURRENT_TEST_MODE.userName,
+            'custom:tutorial_complete': CURRENT_TEST_MODE.tutorialComplete.toString()
+          });
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setUserAttributes(null);
+        }
+        setAuthLoading(false);
+        return;
+      }
+
       const user = await getCurrentUser();
       setCurrentUser(user);
       setIsAuthenticated(true);

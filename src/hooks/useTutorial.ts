@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchUserAttributes } from 'aws-amplify/auth';
+import { CURRENT_TEST_MODE } from '../utils/tutorialTestMode';
 
 export function useTutorial() {
   const [shouldShowTutorial, setShouldShowTutorial] = useState(false);
@@ -11,6 +12,13 @@ export function useTutorial() {
 
   const checkTutorialStatus = async () => {
     try {
+      // Check if we're in test mode for demonstration
+      if (CURRENT_TEST_MODE) {
+        setShouldShowTutorial(!CURRENT_TEST_MODE.tutorialComplete);
+        setIsLoading(false);
+        return;
+      }
+
       const userAttributes = await fetchUserAttributes();
       const tutorialComplete = userAttributes['custom:tutorial_complete'];
 
