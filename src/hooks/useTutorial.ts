@@ -35,11 +35,13 @@ export function useTutorial() {
     }
   };
 
-  const completeTutorial = () => {
+  const completeTutorial = async () => {
+    // Immediately hide the tutorial
     setShouldShowTutorial(false);
   };
 
-  const skipTutorial = () => {
+  const skipTutorial = async () => {
+    // Immediately hide the tutorial  
     setShouldShowTutorial(false);
   };
 

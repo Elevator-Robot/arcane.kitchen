@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signIn } from 'aws-amplify/auth';
+import { signIn, signOut } from 'aws-amplify/auth';
 
 interface LoginProps {
   onComplete: () => void;
@@ -18,6 +18,15 @@ const Login: React.FC<LoginProps> = ({ onComplete, onBack }) => {
     setError('');
 
     try {
+      // First, try to sign out any existing session
+      try {
+        await signOut();
+      } catch (signOutError) {
+        // Ignore sign out errors - user might not be signed in
+        console.log('No existing session to sign out');
+      }
+
+      // Now sign in with the provided credentials
       const result = await signIn({
         username: email,
         password: password,

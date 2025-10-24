@@ -82,7 +82,7 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
     try {
       await updateUserAttributes({
         userAttributes: {
-          'custom:tutorial_complete': 'true',
+          'custom:tutorial_complete': 'true', // Cognito custom attributes are always strings
         },
       });
     } catch (error) {
