@@ -22,5 +22,9 @@ export const auth = defineAuth({
       dataType: 'String', // JSON string of array
       mutable: true,
     },
+    'custom:tutorial_complete': {
+      dataType: 'String', // Store as 'true' or 'false' string
+      mutable: true,
+    },
   },
 });

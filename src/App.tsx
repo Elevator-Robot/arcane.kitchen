@@ -4,7 +4,11 @@ import Header from './components/Header';
 import MysticalEffects from './components/MysticalEffects';
 import RecipeBuilder from './components/RecipeBuilder';
 import OnboardingFlow from './components/OnboardingFlow';
+import PostLoginTutorial from './components/PostLoginTutorial';
 import { useOnboarding } from './hooks/useOnboarding';
+import { useTutorial } from './hooks/useTutorial';
+import { getDisplayName } from './utils/auth';
+import { CURRENT_TEST_MODE } from './utils/tutorialTestMode';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +16,7 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false); // Manual tutorial trigger
   const { isOnboardingRequired, completeOnboarding, onboardingData } =
     useOnboarding();
 
@@ -21,6 +26,25 @@ function App() {
 
   const checkAuthStatus = async () => {
     try {
+      // Check if we're in development test mode
+      if (import.meta.env.MODE === 'development' && CURRENT_TEST_MODE) {
+        if (CURRENT_TEST_MODE.isAuthenticated) {
+          setCurrentUser({ username: 'test-user' });
+          setIsAuthenticated(true);
+          setUserAttributes({
+            given_name: CURRENT_TEST_MODE.userName,
+            'custom:tutorial_complete':
+              CURRENT_TEST_MODE.tutorialComplete.toString(),
+          });
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          setUserAttributes(null);
+        }
+        setAuthLoading(false);
+        return;
+      }
+
       const user = await getCurrentUser();
       setCurrentUser(user);
       setIsAuthenticated(true);
@@ -56,6 +80,20 @@ function App() {
     );
   }
 
+  // Show tutorial only when manually triggered
+  if (showTutorial && isAuthenticated && userAttributes) {
+    const userName = getDisplayName(userAttributes, currentUser);
+    return (
+      <div className="min-h-screen cottage-interior relative">
+        <MysticalEffects />
+        <PostLoginTutorial
+          userName={userName}
+          onComplete={() => setShowTutorial(false)}
+        />
+      </div>
+    );
+  }
+
   // Only show main app to authenticated users who have completed onboarding
   return (
     <div className="min-h-screen cottage-interior relative">
@@ -70,6 +108,7 @@ function App() {
             showAuthModal={showAuthModal}
             setShowAuthModal={setShowAuthModal}
             prefilledData={onboardingData}
+            onShowTutorial={() => setShowTutorial(true)}
           />
 
           <div className="flex flex-col h-screen">

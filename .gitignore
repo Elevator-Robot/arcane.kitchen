@@ -197,3 +197,4 @@ conversation_history.pkl
 **/layer/python/*
 .serena
 .DS_Store
+coverage/

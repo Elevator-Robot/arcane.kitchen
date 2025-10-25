@@ -42,6 +42,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
             email: email,
             nickname: userName,
             picture: userAvatar,
+            'custom:tutorial_complete': 'false', // Initialize as false for new users
           },
         },
       });
