@@ -7,16 +7,20 @@ The Arcane Kitchen onboarding flow provides a mandatory, immersive RPG-style cha
 ## Flow Structure
 
 ### 🌟 Step 1: Welcome & Introduction
+
 **Component**: `WelcomeIntro.tsx`
+
 - **Purpose**: Set the mystical tone and explain what Arcane Kitchen is
 - **Content**: Narrative-driven introduction to Kitchen Witches and culinary magic
-- **Actions**: 
+- **Actions**:
   - "Begin Your Journey" button to start character creation
   - "Return to Your Coven" sign-in option for existing users
 - **Theming**: Full mystical atmosphere with floating orbs and mystical quotes
 
 ### 🎭 Step 2: Avatar Selection
+
 **Component**: `AvatarSelection.tsx`
+
 - **Header**: "Who are you?" (as required by acceptance criteria)
 - **Purpose**: Let users choose their kitchen witch persona
 - **Integration**: Uses existing `ProfilePictureSelector` component
@@ -24,7 +28,9 @@ The Arcane Kitchen onboarding flow provides a mandatory, immersive RPG-style cha
 - **Feedback**: Success message when avatar is selected
 
 ### 📝 Step 3: Name Entry
+
 **Component**: `NameEntry.tsx`
+
 - **Header**: "What is your name?" (as required by acceptance criteria)
 - **Purpose**: Collect user's chosen magical identity
 - **Features**:
@@ -34,9 +40,11 @@ The Arcane Kitchen onboarding flow provides a mandatory, immersive RPG-style cha
 - **Validation**: Minimum 2 characters required
 
 ### 🎓 Step 4: Feature Tutorial
+
 **Component**: `FeatureTutorial.tsx`
+
 - **Purpose**: Introduce key Arcane Kitchen features
-- **Content**: 
+- **Content**:
   - 🧙‍♀️ Mystical Sous Chef (AI cooking assistant)
   - 📜 Recipe Discovery (browse by magical properties)
   - 📖 Personal Grimoire (custom cookbook)
@@ -46,6 +54,7 @@ The Arcane Kitchen onboarding flow provides a mandatory, immersive RPG-style cha
 ## State Management
 
 ### `useOnboarding` Hook
+
 **File**: `src/hooks/useOnboarding.ts`
 
 ```typescript
@@ -60,6 +69,7 @@ interface OnboardingData {
 ```
 
 **Key Features**:
+
 - **Session Storage**: Trial mode data persists in browser session
 - **Cognito Integration**: Authenticated users save data to AWS user attributes
 - **Reset Functionality**: Clean slate for testing/development
@@ -67,11 +77,13 @@ interface OnboardingData {
 ### Session vs. Authenticated Storage
 
 **Trial Mode (Session Storage)**:
+
 - Data stored in `sessionStorage` with key `arcane_onboarding_data`
 - Persists until browser session ends
 - Used for unauthenticated exploration
 
 **Authenticated Mode (Cognito)**:
+
 - Saves to user attributes: `given_name`, `picture`, `custom:cooking_style`, etc.
 - Permanent storage linked to user account
 - Seamless transition from trial to full account
@@ -79,6 +91,7 @@ interface OnboardingData {
 ## App Integration
 
 ### `App.tsx` Changes
+
 The main app now checks onboarding status before rendering the normal interface:
 
 ```typescript
@@ -98,12 +111,14 @@ if (shouldShowOnboarding) {
 ## Theming & Animations
 
 ### Mystical Design Elements
+
 - **Colors**: Emerald, amber, and stone tones with magical gradients
 - **Animations**: `animate-mystical-float` for floating particles
 - **Typography**: Cinzel for headers, Merriweather for body text
 - **Effects**: Glowing orbs, mystical particles, gradient text
 
 ### CSS Additions
+
 - Added `@keyframes mystical-float` animation
 - Consistent `cottage-interior` background throughout
 - Responsive design for mobile and desktop
@@ -111,21 +126,25 @@ if (shouldShowOnboarding) {
 ## Technical Features
 
 ### ✅ Non-Dismissible Flow
+
 - No skip buttons or escape routes until completion
 - Modal-like full-screen overlay
 - Progress indicators show advancement
 
-### ✅ Authentication Integration  
+### ✅ Authentication Integration
+
 - Sign-in button available on welcome screen
 - Smooth transition for returning users
 - Character data synced to Cognito on authentication
 
 ### ✅ Trial Mode Support
+
 - Full functionality without account creation
 - Session-based data persistence
 - Gentle prompts to create full account
 
 ### ✅ Responsive Design
+
 - Mobile-first approach
 - Tablet and desktop optimizations
 - Consistent experience across devices
@@ -133,6 +152,7 @@ if (shouldShowOnboarding) {
 ## Validation Results
 
 ### 🎯 Acceptance Criteria: 8/8 PASSED
+
 - ✅ Onboarding triggers automatically for first-time visitors
 - ✅ Flow is full-screen, themed, and non-dismissible
 - ✅ Avatar screen displays "Who are you?" header
@@ -143,6 +163,7 @@ if (shouldShowOnboarding) {
 - ✅ Trial sessions work with feature limitations
 
 ### 🏗️ Technical Implementation: 10/10 COMPLETE
+
 - ✅ OnboardingFlow main component
 - ✅ WelcomeIntro narrative screen
 - ✅ AvatarSelection with required header
@@ -167,18 +188,21 @@ While the core requirements are fully implemented, potential future additions co
 ## Usage
 
 ### For New Users
+
 1. Visit the site for the first time
 2. Automatically see the welcome screen
 3. Progress through: Welcome → Avatar → Name → Tutorial
 4. Land in the full Arcane Kitchen experience
 
 ### For Returning Users
+
 1. Click "Return to Your Coven" on welcome screen
 2. Complete authentication
 3. Skip directly to main application
 4. Character data loaded from Cognito user attributes
 
 ### For Developers
+
 ```bash
 # Reset onboarding for testing
 sessionStorage.removeItem('arcane_onboarding_data')

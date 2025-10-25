@@ -1,0 +1,245 @@
+import React, { useState } from 'react';
+import { updateUserAttributes } from 'aws-amplify/auth';
+
+interface PostLoginTutorialProps {
+  userName: string;
+  onComplete: () => void;
+}
+
+interface TutorialStep {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  details: string[];
+}
+
+const TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: 'mystical-sous-chef',
+    title: 'Mystical Sous Chef',
+    description: 'Your AI-powered culinary companion awaits in the kitchen',
+    icon: '🧙‍♀️',
+    details: [
+      'Ask for personalized recipe suggestions and cooking guidance',
+      'Get intelligent recommendations based on your magical preferences',
+      'Learn about ingredient properties and mystical correspondences',
+      'Receive step-by-step cooking assistance from your sous chef',
+    ],
+  },
+  {
+    id: 'recipe-discovery',
+    title: 'Recipe Discovery',
+    description: 'Explore culinary treasures from across the mystical realms',
+    icon: '📜',
+    details: [
+      'Browse enchanted recipes by region, ingredient, or magical properties',
+      'Discover ancient and innovative culinary techniques',
+      'Find recipes perfectly suited to your dietary enchantments',
+      'Explore seasonal celebrations and ritual feast preparations',
+    ],
+  },
+  {
+    id: 'personal-grimoire',
+    title: 'Personal Grimoire',
+    description: 'Build your own mystical cookbook collection',
+    icon: '📖',
+    details: [
+      'Save your most treasured recipes for instant access',
+      'Create custom spell-books and magical meal plans',
+      'Add personal notes and alchemical modifications',
+      'Share your culinary creations with the coven community',
+    ],
+  },
+  {
+    id: 'alchemical-transformations',
+    title: 'Alchemical Transformations',
+    description: 'Transform recipes to suit your mystical needs',
+    icon: '⚗️',
+    details: [
+      'Adapt ancient recipes for modern dietary restrictions',
+      'Scale ingredient portions for gatherings large and small',
+      'Substitute components with magical alternatives',
+      'Transform traditional recipes with contemporary techniques',
+    ],
+  },
+];
+
+const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
+  userName,
+  onComplete,
+}) => {
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [hasMarkedComplete, setHasMarkedComplete] = useState(false);
+
+  const currentStep = TUTORIAL_STEPS[currentStepIndex];
+  const isLastStep = currentStepIndex === TUTORIAL_STEPS.length - 1;
+
+  const markTutorialComplete = async () => {
+    // Prevent multiple calls
+    if (hasMarkedComplete) {
+      return;
+    }
+    
+    setHasMarkedComplete(true);
+    
+    try {
+      await updateUserAttributes({
+        userAttributes: {
+          'custom:tutorial_complete': 'true', // Cognito custom attributes are always strings
+        },
+      });
+    } catch (error) {
+      console.error('Failed to mark tutorial as complete:', error);
+      // Continue anyway - don't block the user
+    }
+  };
+
+  const handleNext = async () => {
+    if (isLastStep) {
+      setIsCompleting(true);
+      await markTutorialComplete();
+      onComplete();
+    } else {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(currentStepIndex - 1);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Tutorial Modal - Clickable halves for navigation */}
+        <div className="relative bg-gradient-to-br from-stone-800/95 via-green-900/40 to-amber-900/40 backdrop-blur-lg border-2 border-emerald-400/60 rounded-3xl p-6 md:p-10 shadow-2xl shadow-emerald-500/20">
+          {/* Mystical corner decorations */}
+          <div className="absolute top-4 left-4 text-2xl opacity-30 pointer-events-none">✦</div>
+          <div className="absolute top-4 right-4 text-2xl opacity-30 pointer-events-none">✦</div>
+          <div className="absolute bottom-4 left-4 text-2xl opacity-30 pointer-events-none">✦</div>
+          <div className="absolute bottom-4 right-4 text-2xl opacity-30 pointer-events-none">✦</div>
+
+          {/* Clickable navigation areas */}
+          <div className="absolute inset-0 flex pointer-events-none z-10">
+            {/* Left half - Previous */}
+            {currentStepIndex > 0 && (
+              <div
+                onClick={handlePrevious}
+                className="w-1/2 cursor-pointer pointer-events-auto group"
+                title="Previous step"
+              >
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex items-center space-x-2 bg-stone-800/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-stone-600/50">
+                    <svg className="w-5 h-5 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span className="text-sm text-stone-300">Previous</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Right half - Next */}
+            <div
+              onClick={handleNext}
+              className={`${currentStepIndex > 0 ? 'w-1/2' : 'w-full'} cursor-pointer pointer-events-auto group`}
+              title={isLastStep ? "Complete tutorial" : "Next step"}
+            >
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="flex items-center space-x-2 bg-emerald-800/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-emerald-600/50">
+                  <span className="text-sm text-emerald-200">
+                    {isLastStep ? 'Complete' : 'Next'}
+                  </span>
+                  <svg className="w-5 h-5 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isLastStep ? "M5 13l4 4L19 7" : "M9 5l7 7-7 7"} />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content - pointer-events-none to allow clicks through to navigation */}
+          <div className="relative pointer-events-none">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl md:text-4xl font-bold text-gradient mb-3">
+                Welcome Back, {userName}! 🌙
+              </h1>
+              <div className="w-20 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent mx-auto mb-4"></div>
+              <p className="text-lg text-stone-300 max-w-2xl mx-auto leading-relaxed">
+                Let us guide you through the mystical powers at your command in
+                the Arcane Kitchen
+              </p>
+            </div>
+
+            {/* Step Progress Indicator */}
+            <div className="flex justify-center space-x-3 mb-8">
+              {TUTORIAL_STEPS.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
+                    index < currentStepIndex
+                      ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
+                      : index === currentStepIndex
+                        ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
+                        : 'bg-stone-600/50'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Feature Showcase */}
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="text-7xl mb-6 filter drop-shadow-lg">
+                {currentStep.icon}
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-stone-200 mb-4">
+                {currentStep.title}
+              </h2>
+              <p className="text-xl text-emerald-300 mb-8 font-semibold">
+                {currentStep.description}
+              </p>
+
+              {/* Feature Details */}
+              <div className="bg-gradient-to-r from-stone-900/40 to-stone-800/40 rounded-xl p-6 mb-8 border border-stone-700/30">
+                <ul className="space-y-4 text-left">
+                  {currentStep.details.map((detail, index) => (
+                    <li
+                      key={index}
+                      className="flex items-start space-x-3 text-stone-300"
+                    >
+                      <span className="text-emerald-400 mt-1 text-sm">✦</span>
+                      <span className="leading-relaxed">{detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Step counter */}
+            <div className="text-center mb-6">
+              <div className="text-sm text-stone-400 font-medium">
+                Step {currentStepIndex + 1} of {TUTORIAL_STEPS.length}
+              </div>
+            </div>
+
+            {/* Mystical Quote */}
+            <div className="text-center pt-6 border-t border-stone-700/30">
+              <p className="text-sm text-stone-400/80 italic max-w-2xl mx-auto leading-relaxed">
+                "The kitchen is a sacred space where mundane ingredients transform
+                into magical sustenance. Master these arts, and nourishment
+                becomes enchantment." 🕯️
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PostLoginTutorial;

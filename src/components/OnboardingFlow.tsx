@@ -3,12 +3,16 @@ import { useOnboarding } from '../hooks/useOnboarding';
 import WelcomeIntro from './onboarding/WelcomeIntro';
 import AvatarSelection from './onboarding/AvatarSelection';
 import NameEntry from './onboarding/NameEntry';
-import FeatureTutorial from './onboarding/FeatureTutorial';
 import AccountCreation from './onboarding/AccountCreation';
 import Login from './onboarding/Login';
 import MysticalEffects from './MysticalEffects';
 
-type OnboardingStep = 'welcome' | 'avatar' | 'name' | 'tutorial' | 'account' | 'login';
+type OnboardingStep =
+  | 'welcome'
+  | 'avatar'
+  | 'name'
+  | 'account'
+  | 'login';
 
 interface OnboardingFlowProps {
   isAuthenticated: boolean;
@@ -40,10 +44,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
         if (data?.name) {
           updateOnboardingData({ name: data.name });
         }
-        setCurrentStep('tutorial');
-        break;
-      case 'tutorial':
-        // If not authenticated, go to account creation
+        // Go directly to account creation
         if (!isAuthenticated) {
           setCurrentStep('account');
         } else {
@@ -61,12 +62,12 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
 
   const handleOnboardingComplete = async () => {
     await completeOnboarding(isAuthenticated);
-    
+
     // Refresh auth state to ensure user attributes are loaded
     if (onAuthChange) {
       await onAuthChange();
     }
-    
+
     onComplete();
   };
 
@@ -102,13 +103,6 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
             onNameSubmit={(name) => handleStepComplete('name', { name })}
           />
         );
-      case 'tutorial':
-        return (
-          <FeatureTutorial
-            userName={onboardingData.name}
-            onComplete={() => handleStepComplete('tutorial')}
-          />
-        );
       case 'account':
         return (
           <AccountCreation
@@ -127,24 +121,26 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
       <MysticalEffects />
 
       {/* Progress Indicator - Only show after welcome and not on login/account */}
-      {currentStep !== 'welcome' && currentStep !== 'account' && currentStep !== 'login' && (
-        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
-          <div className="flex space-x-3">
-            {['avatar', 'name', 'tutorial'].map((step, index) => (
-              <div
-                key={step}
-                className={`w-3 h-3 rounded-full transition-all duration-500 ${
-                  getCurrentStepIndex() > index
-                    ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
-                    : getCurrentStepIndex() === index
-                      ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
-                      : 'bg-stone-600/50'
-                }`}
-              />
-            ))}
+      {currentStep !== 'welcome' &&
+        currentStep !== 'account' &&
+        currentStep !== 'login' && (
+          <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="flex space-x-3">
+              {['avatar', 'name'].map((step, index) => (
+                <div
+                  key={step}
+                  className={`w-3 h-3 rounded-full transition-all duration-500 ${
+                    getCurrentStepIndex() > index
+                      ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
+                      : getCurrentStepIndex() === index
+                        ? 'bg-amber-400 shadow-lg shadow-amber-400/50 animate-pulse'
+                        : 'bg-stone-600/50'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Step Content */}
       <div className="relative z-10">{renderCurrentStep()}</div>
@@ -169,7 +165,7 @@ const OnboardingFlow: React.FC<OnboardingFlowProps> = ({
   );
 
   function getCurrentStepIndex(): number {
-    const stepOrder = ['avatar', 'name', 'tutorial'];
+    const stepOrder = ['avatar', 'name'];
     return stepOrder.indexOf(currentStep);
   }
 };

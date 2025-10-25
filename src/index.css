@@ -9,15 +9,15 @@
     font-family: 'Merriweather', serif;
     scroll-behavior: smooth;
   }
-  
+
   body {
     background: 
       /* Witch vibes background image */
       url('/witch-vibes.png'),
       /* Fallback cottage stone wall texture */
-      url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='cottage-stone' x='0' y='0' width='120' height='120' patternUnits='userSpaceOnUse'%3E%3Crect width='120' height='120' fill='%23403530'/%3E%3Cpath d='M0 0h60v40H0z' fill='%234a3f38' opacity='0.8'/%3E%3Cpath d='M60 40h60v40H60z' fill='%23524740' opacity='0.7'/%3E%3Cpath d='M0 80h40v40H0z' fill='%23453a33' opacity='0.9'/%3E%3Cpath d='M40 80h80v40H40z' fill='%233f342d' opacity='0.8'/%3E%3Cpath d='M60 0h60v40H60z' fill='%234f443d' opacity='0.6'/%3E%3Cpath d='M0 40h60v40H0z' fill='%23473c35' opacity='0.7'/%3E%3Ccircle cx='20' cy='20' r='3' fill='%235a4f48' opacity='0.4'/%3E%3Ccircle cx='100' cy='60' r='2' fill='%23635850' opacity='0.5'/%3E%3Ccircle cx='80' cy='100' r='2.5' fill='%236b6058' opacity='0.3'/%3E%3Ccircle cx='30' cy='90' r='1.5' fill='%23756a62' opacity='0.4'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='120' height='120' fill='url(%23cottage-stone)'/%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='cottage-stone' x='0' y='0' width='120' height='120' patternUnits='userSpaceOnUse'%3E%3Crect width='120' height='120' fill='%23403530'/%3E%3Cpath d='M0 0h60v40H0z' fill='%234a3f38' opacity='0.8'/%3E%3Cpath d='M60 40h60v40H60z' fill='%23524740' opacity='0.7'/%3E%3Cpath d='M0 80h40v40H0z' fill='%23453a33' opacity='0.9'/%3E%3Cpath d='M40 80h80v40H40z' fill='%233f342d' opacity='0.8'/%3E%3Cpath d='M60 0h60v40H60z' fill='%234f443d' opacity='0.6'/%3E%3Cpath d='M0 40h60v40H0z' fill='%23473c35' opacity='0.7'/%3E%3Ccircle cx='20' cy='20' r='3' fill='%235a4f48' opacity='0.4'/%3E%3Ccircle cx='100' cy='60' r='2' fill='%23635850' opacity='0.5'/%3E%3Ccircle cx='80' cy='100' r='2.5' fill='%236b6058' opacity='0.3'/%3E%3Ccircle cx='30' cy='90' r='1.5' fill='%23756a62' opacity='0.4'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='120' height='120' fill='url(%23cottage-stone)'/%3E%3C/svg%3E"),
       /* Base cottage interior color */
-      linear-gradient(135deg, #3a2f28 0%, #453a33 50%, #3f342d 100%);
+        linear-gradient(135deg, #3a2f28 0%, #453a33 50%, #3f342d 100%);
     background-size: cover, auto, auto;
     background-position: center, center, center;
     background-repeat: no-repeat, repeat, no-repeat;
@@ -32,32 +32,64 @@
       /* Semi-transparent overlay to ensure readability */
       linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
       /* Wooden ceiling beams */
-      linear-gradient(90deg, transparent 0%, transparent 48%, rgba(101, 67, 33, 0.3) 49%, rgba(101, 67, 33, 0.3) 51%, transparent 52%, transparent 100%),
-      linear-gradient(90deg, transparent 0%, transparent 23%, rgba(139, 69, 19, 0.2) 24%, rgba(139, 69, 19, 0.2) 26%, transparent 27%, transparent 100%),
-      linear-gradient(90deg, transparent 0%, transparent 73%, rgba(74, 55, 40, 0.25) 74%, rgba(74, 55, 40, 0.25) 76%, transparent 77%, transparent 100%),
-      /* The witch vibes image */
-      url('/witch-vibes.png');
+        linear-gradient(
+          90deg,
+          transparent 0%,
+          transparent 48%,
+          rgba(101, 67, 33, 0.3) 49%,
+          rgba(101, 67, 33, 0.3) 51%,
+          transparent 52%,
+          transparent 100%
+        ),
+      linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 23%,
+        rgba(139, 69, 19, 0.2) 24%,
+        rgba(139, 69, 19, 0.2) 26%,
+        transparent 27%,
+        transparent 100%
+      ),
+      linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent 73%,
+        rgba(74, 55, 40, 0.25) 74%,
+        rgba(74, 55, 40, 0.25) 76%,
+        transparent 77%,
+        transparent 100%
+      ),
+      /* The witch vibes image */ url('/witch-vibes.png');
     background-size: cover, auto, auto, auto, cover;
     background-position: center, center, center, center, center;
     background-repeat: no-repeat, repeat-x, repeat-x, repeat-x, no-repeat;
     background-attachment: fixed, scroll, scroll, scroll, fixed;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'Cinzel', serif;
     font-weight: 500;
     letter-spacing: 0.02em;
   }
 
-
-
   /* Mystical cursor animations */
   @keyframes mysticalGlow {
-    0% { 
-      box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    0% {
+      box-shadow:
+        0 0 20px rgba(34, 197, 94, 0.6),
+        0 0 40px rgba(34, 197, 94, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3);
     }
-    100% { 
-      box-shadow: 0 0 30px rgba(34, 197, 94, 0.8), 0 0 60px rgba(34, 197, 94, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    100% {
+      box-shadow:
+        0 0 30px rgba(34, 197, 94, 0.8),
+        0 0 60px rgba(34, 197, 94, 0.5),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5);
     }
   }
 
@@ -91,11 +123,14 @@
   /* Cozy Chat Interface with Wood Panels - Enhanced for witch vibes background */
   .chat-bubble-user {
     @apply rounded-2xl p-4 max-w-[85%] ml-auto relative;
-    background: 
-      linear-gradient(135deg, rgba(112, 66, 20, 0.25), rgba(101, 67, 33, 0.3));
+    background: linear-gradient(
+      135deg,
+      rgba(112, 66, 20, 0.25),
+      rgba(101, 67, 33, 0.3)
+    );
     color: #f4f1e8;
     border: 2px solid rgba(139, 69, 19, 0.15);
-    box-shadow: 
+    box-shadow:
       0 4px 15px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       inset 0 -1px 0 rgba(0, 0, 0, 0.08);
@@ -105,12 +140,15 @@
 
   .chat-bubble-assistant {
     @apply rounded-2xl p-4 max-w-[85%] relative;
-    background: 
-      linear-gradient(135deg, rgba(101, 67, 33, 0.25), rgba(74, 55, 40, 0.3));
+    background: linear-gradient(
+      135deg,
+      rgba(101, 67, 33, 0.25),
+      rgba(74, 55, 40, 0.3)
+    );
     color: #f4f1e8;
     border: 2px solid rgba(139, 69, 19, 0.15);
     backdrop-filter: blur(12px);
-    box-shadow: 
+    box-shadow:
       0 4px 15px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       inset 0 -1px 0 rgba(0, 0, 0, 0.08);
@@ -119,22 +157,28 @@
 
   /* Subtle hover effects for chat bubbles */
   .chat-bubble-user:hover {
-    background: 
-      linear-gradient(135deg, rgba(112, 66, 20, 0.35), rgba(101, 67, 33, 0.4));
+    background: linear-gradient(
+      135deg,
+      rgba(112, 66, 20, 0.35),
+      rgba(101, 67, 33, 0.4)
+    );
     border-color: rgba(139, 69, 19, 0.25);
     transform: translateY(-1px);
-    box-shadow: 
+    box-shadow:
       0 6px 20px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(0, 0, 0, 0.1);
   }
 
   .chat-bubble-assistant:hover {
-    background: 
-      linear-gradient(135deg, rgba(101, 67, 33, 0.35), rgba(74, 55, 40, 0.4));
+    background: linear-gradient(
+      135deg,
+      rgba(101, 67, 33, 0.35),
+      rgba(74, 55, 40, 0.4)
+    );
     border-color: rgba(139, 69, 19, 0.25);
     transform: translateY(-1px);
-    box-shadow: 
+    box-shadow:
       0 6px 20px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(0, 0, 0, 0.1);
@@ -151,13 +195,19 @@
     animation: cozy-pulse 1.4s ease-in-out infinite both;
   }
 
-  .loading-dots div:nth-child(1) { animation-delay: -0.32s; }
-  .loading-dots div:nth-child(2) { animation-delay: -0.16s; }
-  .loading-dots div:nth-child(3) { animation-delay: 0s; }
+  .loading-dots div:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+  .loading-dots div:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+  .loading-dots div:nth-child(3) {
+    animation-delay: 0s;
+  }
 
   /* Rustic Sidebar with Cottage Panels */
   .sidebar-rustic {
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='sidebarwood' x='0' y='0' width='80' height='16' patternUnits='userSpaceOnUse'%3E%3Crect width='80' height='16' fill='%233D2817'/%3E%3Cpath d='M0 8 Q20 6 40 8 T80 8' stroke='%23654321' stroke-width='0.5' fill='none' opacity='0.8'/%3E%3Cpath d='M0 12 Q25 10 50 12 T80 12' stroke='%238B4513' stroke-width='0.3' fill='none' opacity='0.6'/%3E%3Cpath d='M0 4 Q15 6 30 4 T80 4' stroke='%23A0522D' stroke-width='0.2' fill='none' opacity='0.4'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='80' height='80' fill='url(%23sidebarwood)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(45, 24, 16, 0.95), rgba(74, 55, 40, 0.9));
     backdrop-filter: blur(15px);
@@ -172,14 +222,22 @@
   }
 
   .sidebar-item:hover {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.3), rgba(160, 82, 45, 0.3));
+    background: linear-gradient(
+      135deg,
+      rgba(139, 69, 19, 0.3),
+      rgba(160, 82, 45, 0.3)
+    );
     color: #f4f1e8;
     border-color: rgba(210, 105, 30, 0.4);
     box-shadow: 0 2px 10px rgba(139, 69, 19, 0.3);
   }
 
   .sidebar-item.active {
-    background: linear-gradient(135deg, rgba(139, 69, 19, 0.4), rgba(160, 82, 45, 0.4));
+    background: linear-gradient(
+      135deg,
+      rgba(139, 69, 19, 0.4),
+      rgba(160, 82, 45, 0.4)
+    );
     color: #d2691e;
     border-color: rgba(210, 105, 30, 0.6);
   }
@@ -187,13 +245,13 @@
   /* Cozy Input Styles with Wood Texture - Enhanced for witch vibes */
   .chat-input {
     @apply w-full px-4 py-3 rounded-xl transition-all duration-300 relative;
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='inputwood' x='0' y='0' width='30' height='6' patternUnits='userSpaceOnUse'%3E%3Crect width='30' height='6' fill='%234A3728'/%3E%3Cpath d='M0 3 Q7 2 15 3 T30 3' stroke='%23654321' stroke-width='0.3' fill='none' opacity='0.7'/%3E%3Cpath d='M0 4.5 Q10 4 20 4.5 T30 4.5' stroke='%238B4513' stroke-width='0.2' fill='none' opacity='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='30' height='30' fill='url(%23inputwood)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(74, 55, 40, 0.95), rgba(45, 24, 16, 0.98));
     border: 2px solid rgba(139, 69, 19, 0.8);
     color: #f4f1e8;
     backdrop-filter: blur(15px);
-    box-shadow: 
+    box-shadow:
       inset 0 2px 4px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.1),
       0 0 20px rgba(0, 0, 0, 0.3),
@@ -207,13 +265,13 @@
   .chat-input:focus {
     outline: none;
     border-color: rgba(210, 105, 30, 0.9);
-    box-shadow: 
+    box-shadow:
       0 0 25px rgba(139, 69, 19, 0.6),
       0 0 40px rgba(210, 105, 30, 0.3),
       inset 0 2px 4px rgba(0, 0, 0, 0.3),
       0 1px 0 rgba(255, 255, 255, 0.15),
       inset 0 0 0 1px rgba(205, 133, 63, 0.5);
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='inputwoodfocus' x='0' y='0' width='30' height='6' patternUnits='userSpaceOnUse'%3E%3Crect width='30' height='6' fill='%235D4037'/%3E%3Cpath d='M0 3 Q7 2 15 3 T30 3' stroke='%23795548' stroke-width='0.4' fill='none' opacity='0.8'/%3E%3Cpath d='M0 4.5 Q10 4 20 4.5 T30 4.5' stroke='%238D6E63' stroke-width='0.3' fill='none' opacity='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='30' height='30' fill='url(%23inputwoodfocus)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(93, 64, 55, 0.9), rgba(74, 55, 40, 0.95));
     transform: translateY(-1px);
@@ -222,12 +280,12 @@
   /* Rustic Button Styles with Wood Texture - Muted */
   .btn-primary {
     @apply px-6 py-3 rounded-xl font-medium transition-all duration-300 relative overflow-hidden;
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='btnwood' x='0' y='0' width='40' height='8' patternUnits='userSpaceOnUse'%3E%3Crect width='40' height='8' fill='%238B4513'/%3E%3Cpath d='M0 4 Q10 2 20 4 T40 4' stroke='%23A0522D' stroke-width='0.4' fill='none' opacity='0.9'/%3E%3Cpath d='M0 6 Q15 5 30 6 T40 6' stroke='%23B8956B' stroke-width='0.3' fill='none' opacity='0.7'/%3E%3Cpath d='M0 2 Q8 3 16 2 T40 2' stroke='%23C4A373' stroke-width='0.2' fill='none' opacity='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='40' height='40' fill='url(%23btnwood)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, #8b4513, #a0522d, #b8956b);
     color: #f4f1e8;
     border: 2px solid rgba(139, 69, 19, 0.5);
-    box-shadow: 
+    box-shadow:
       0 4px 15px rgba(101, 67, 33, 0.3),
       inset 0 1px 0 rgba(255, 255, 255, 0.2),
       inset 0 -1px 0 rgba(0, 0, 0, 0.2);
@@ -240,7 +298,12 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
     transition: left 0.5s;
   }
 
@@ -249,7 +312,7 @@
   }
 
   .btn-primary:hover {
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='btnwoodhover' x='0' y='0' width='40' height='8' patternUnits='userSpaceOnUse'%3E%3Crect width='40' height='8' fill='%23A0522D'/%3E%3Cpath d='M0 4 Q10 2 20 4 T40 4' stroke='%23B8956B' stroke-width='0.4' fill='none' opacity='0.9'/%3E%3Cpath d='M0 6 Q15 5 30 6 T40 6' stroke='%23C4A373' stroke-width='0.3' fill='none' opacity='0.7'/%3E%3Cpath d='M0 2 Q8 3 16 2 T40 2' stroke='%23D4B896' stroke-width='0.2' fill='none' opacity='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='40' height='40' fill='url(%23btnwoodhover)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, #a0522d, #b8956b, #c4a373);
     box-shadow: 0 6px 25px rgba(101, 67, 33, 0.4);
@@ -258,19 +321,19 @@
 
   .btn-secondary {
     @apply px-6 py-3 rounded-xl font-medium transition-all duration-300;
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='35' height='35' viewBox='0 0 35 35' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='btnsecwood' x='0' y='0' width='35' height='7' patternUnits='userSpaceOnUse'%3E%3Crect width='35' height='7' fill='%234A3728'/%3E%3Cpath d='M0 3.5 Q8 2.5 17 3.5 T35 3.5' stroke='%23654321' stroke-width='0.3' fill='none' opacity='0.8'/%3E%3Cpath d='M0 5 Q12 4.5 24 5 T35 5' stroke='%238B4513' stroke-width='0.2' fill='none' opacity='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='35' height='35' fill='url(%23btnsecwood)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(74, 55, 40, 0.9), rgba(45, 24, 16, 0.95));
     border: 2px solid rgba(205, 133, 63, 0.6);
     color: #cd853f;
     backdrop-filter: blur(10px);
-    box-shadow: 
+    box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       inset 0 -1px 0 rgba(0, 0, 0, 0.2);
   }
 
   .btn-secondary:hover {
-    background: 
+    background:
       url("data:image/svg+xml,%3Csvg width='35' height='35' viewBox='0 0 35 35' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='btnsechwoodhover' x='0' y='0' width='35' height='7' patternUnits='userSpaceOnUse'%3E%3Crect width='35' height='7' fill='%235D4037'/%3E%3Cpath d='M0 3.5 Q8 2.5 17 3.5 T35 3.5' stroke='%236D4C41' stroke-width='0.3' fill='none' opacity='0.8'/%3E%3Cpath d='M0 5 Q12 4.5 24 5 T35 5' stroke='%237D5E52' stroke-width='0.2' fill='none' opacity='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='35' height='35' fill='url(%23btnsechwoodhover)'/%3E%3C/svg%3E"),
       linear-gradient(135deg, rgba(93, 64, 55, 0.9), rgba(74, 55, 40, 0.95));
     color: #b8956b;
@@ -281,23 +344,29 @@
   /* Cozy Welcome Screen with Cottage Panels - Nicely Transparent */
   .welcome-example {
     @apply p-4 text-left rounded-xl transition-all duration-300 cursor-pointer relative;
-    background: 
-      linear-gradient(135deg, rgba(101, 67, 33, 0.25), rgba(74, 55, 40, 0.3));
+    background: linear-gradient(
+      135deg,
+      rgba(101, 67, 33, 0.25),
+      rgba(74, 55, 40, 0.3)
+    );
     border: 2px solid rgba(139, 69, 19, 0.15);
     color: #e6d7c3;
     backdrop-filter: blur(12px);
-    box-shadow: 
+    box-shadow:
       0 4px 15px rgba(0, 0, 0, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.05),
       inset 0 -1px 0 rgba(0, 0, 0, 0.08);
   }
 
   .welcome-example:hover {
-    background: 
-      linear-gradient(135deg, rgba(101, 67, 33, 0.35), rgba(74, 55, 40, 0.4));
+    background: linear-gradient(
+      135deg,
+      rgba(101, 67, 33, 0.35),
+      rgba(74, 55, 40, 0.4)
+    );
     border-color: rgba(139, 69, 19, 0.25);
     color: #f4f1e8;
-    box-shadow: 
+    box-shadow:
       0 6px 20px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       inset 0 -1px 0 rgba(0, 0, 0, 0.1);
@@ -327,7 +396,7 @@
       linear-gradient(135deg, rgba(101, 67, 33, 0.98), rgba(139, 69, 19, 0.95));
     backdrop-filter: blur(20px);
     border-bottom: 3px solid rgba(74, 55, 40, 0.8);
-    box-shadow: 
+    box-shadow:
       0 2px 10px rgba(0, 0, 0, 0.6),
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       inset 0 -2px 0 rgba(0, 0, 0, 0.3);
@@ -344,7 +413,12 @@
   /* Floating Cozy Elements */
   .cozy-orb {
     @apply absolute rounded-full opacity-20;
-    background: radial-gradient(circle, rgba(210, 105, 30, 0.4) 0%, rgba(139, 69, 19, 0.2) 70%, transparent 100%);
+    background: radial-gradient(
+      circle,
+      rgba(210, 105, 30, 0.4) 0%,
+      rgba(139, 69, 19, 0.2) 70%,
+      transparent 100%
+    );
     animation: cozy-float 8s ease-in-out infinite;
   }
 
@@ -363,7 +437,7 @@
       linear-gradient(135deg, rgba(101, 67, 33, 0.95), rgba(139, 69, 19, 0.9));
     backdrop-filter: blur(20px);
     border: 3px solid rgba(74, 55, 40, 0.6);
-    box-shadow: 
+    box-shadow:
       0 10px 40px rgba(0, 0, 0, 0.7),
       inset 0 1px 0 rgba(255, 255, 255, 0.1),
       inset 0 -2px 0 rgba(0, 0, 0, 0.3);
@@ -372,7 +446,11 @@
   /* Custom Auth Form Styling */
   .auth-input {
     @apply w-full px-4 py-3 rounded-xl transition-all duration-300 relative;
-    background: linear-gradient(135deg, rgba(74, 55, 40, 0.6), rgba(45, 24, 16, 0.8));
+    background: linear-gradient(
+      135deg,
+      rgba(74, 55, 40, 0.6),
+      rgba(45, 24, 16, 0.8)
+    );
     border: 1px solid rgba(210, 105, 30, 0.4);
     color: #f4f1e8;
     backdrop-filter: blur(8px);
@@ -387,13 +465,18 @@
     outline: none;
     border-color: rgba(205, 133, 63, 0.7);
     box-shadow: 0 0 15px rgba(205, 133, 63, 0.3);
-    background: linear-gradient(135deg, rgba(74, 55, 40, 0.8), rgba(45, 24, 16, 0.9));
+    background: linear-gradient(
+      135deg,
+      rgba(74, 55, 40, 0.8),
+      rgba(45, 24, 16, 0.9)
+    );
   }
 }
 
 /* Cozy Animations */
 @keyframes warm-glow {
-  0%, 100% {
+  0%,
+  100% {
     background-position: 0% 50%;
   }
   50% {
@@ -402,7 +485,9 @@
 }
 
 @keyframes cozy-pulse {
-  0%, 80%, 100% {
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.5;
   }
@@ -413,7 +498,8 @@
 }
 
 @keyframes cozy-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) rotate(0deg);
     opacity: 0.2;
   }
@@ -445,11 +531,14 @@
 }
 
 @keyframes hearth-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 5px rgba(210, 105, 30, 0.4);
   }
   50% {
-    box-shadow: 0 0 20px rgba(210, 105, 30, 0.7), 0 0 30px rgba(139, 69, 19, 0.5);
+    box-shadow:
+      0 0 20px rgba(210, 105, 30, 0.7),
+      0 0 30px rgba(139, 69, 19, 0.5);
   }
 }
 
@@ -488,7 +577,11 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: linear-gradient(180deg, rgba(45, 24, 16, 0.5), rgba(74, 55, 40, 0.5));
+  background: linear-gradient(
+    180deg,
+    rgba(45, 24, 16, 0.5),
+    rgba(74, 55, 40, 0.5)
+  );
   border-radius: 4px;
 }
 
@@ -508,7 +601,7 @@
   .chat-bubble-assistant {
     @apply max-w-[90%];
   }
-  
+
   .welcome-example {
     @apply p-3 text-sm;
   }
@@ -521,11 +614,11 @@
   .character-builder-container {
     @apply px-4 py-6;
   }
-  
+
   .character-builder-card {
     @apply p-6;
   }
-  
+
   .character-builder-title {
     @apply text-3xl;
   }
@@ -534,15 +627,15 @@
   .recipe-builder-grid {
     @apply grid-cols-1 gap-6;
   }
-  
+
   .recipe-form-section {
     @apply p-4;
   }
-  
+
   .dish-type-grid {
     @apply grid-cols-2 gap-2;
   }
-  
+
   .ingredient-tags {
     @apply text-xs px-2 py-1;
   }
@@ -551,11 +644,11 @@
   .header-nav-buttons {
     @apply space-x-2;
   }
-  
+
   .header-nav-button {
     @apply px-3 py-2 text-xs;
   }
-  
+
   .header-nav-button span {
     @apply hidden;
   }
@@ -571,15 +664,15 @@
   .character-builder-title {
     @apply text-2xl;
   }
-  
+
   .recipe-builder-title {
     @apply text-3xl;
   }
-  
+
   .dish-type-grid {
     @apply grid-cols-2;
   }
-  
+
   .profile-grid {
     @apply grid-cols-2 gap-3;
   }
@@ -597,7 +690,9 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible {
   @apply outline-none;
-  box-shadow: 0 0 0 2px rgba(210, 105, 30, 0.6), 0 0 20px rgba(139, 69, 19, 0.4);
+  box-shadow:
+    0 0 0 2px rgba(210, 105, 30, 0.6),
+    0 0 20px rgba(139, 69, 19, 0.4);
 }
 
 /* Custom notification animation */
@@ -639,12 +734,14 @@ select:focus-visible {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, 
-    rgba(101, 67, 33, 0.8) 0%, 
-    rgba(139, 69, 19, 0.9) 25%, 
-    rgba(160, 82, 45, 0.8) 50%, 
-    rgba(139, 69, 19, 0.9) 75%, 
-    rgba(101, 67, 33, 0.8) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(101, 67, 33, 0.8) 0%,
+    rgba(139, 69, 19, 0.9) 25%,
+    rgba(160, 82, 45, 0.8) 50%,
+    rgba(139, 69, 19, 0.9) 75%,
+    rgba(101, 67, 33, 0.8) 100%
+  );
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -655,35 +752,49 @@ select:focus-visible {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
-    rgba(74, 55, 40, 0.6) 0%, 
-    rgba(101, 67, 33, 0.8) 50%, 
-    rgba(74, 55, 40, 0.6) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(74, 55, 40, 0.6) 0%,
+    rgba(101, 67, 33, 0.8) 50%,
+    rgba(74, 55, 40, 0.6) 100%
+  );
 }
 
 /* Cottage window glow effect */
 .cottage-window {
-  background: radial-gradient(circle, 
-    rgba(255, 223, 0, 0.3) 0%, 
-    rgba(255, 140, 0, 0.2) 40%, 
-    rgba(210, 105, 30, 0.1) 70%, 
-    transparent 100%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 223, 0, 0.3) 0%,
+    rgba(255, 140, 0, 0.2) 40%,
+    rgba(210, 105, 30, 0.1) 70%,
+    transparent 100%
+  );
   animation: cottage-flicker 4s ease-in-out infinite;
 }
 
 @keyframes cottage-flicker {
-  0%, 100% { opacity: 0.8; }
-  25% { opacity: 1; }
-  50% { opacity: 0.9; }
-  75% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  75% {
+    opacity: 1;
+  }
 }
 
 @keyframes pulse-glow {
-  0%, 100% { 
+  0%,
+  100% {
     opacity: 0.7;
     transform: scale(1);
   }
-  50% { 
+  50% {
     opacity: 1;
     transform: scale(1.05);
   }
@@ -705,16 +816,22 @@ select:focus-visible {
 }
 
 @keyframes character-glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.2);
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(34, 197, 94, 0.5),
+      0 0 40px rgba(34, 197, 94, 0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.8), 0 0 60px rgba(34, 197, 94, 0.4);
+    box-shadow:
+      0 0 30px rgba(34, 197, 94, 0.8),
+      0 0 60px rgba(34, 197, 94, 0.4);
   }
 }
 
 @keyframes mystical-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px) translateX(0px) scale(1);
     opacity: 0.3;
   }
@@ -738,7 +855,9 @@ select:focus-visible {
 
 /* Smooth cozy transitions */
 * {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property:
+    color, background-color, border-color, text-decoration-color, fill, stroke,
+    opacity, box-shadow, transform, filter, backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 300ms;
 }

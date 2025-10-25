@@ -23,6 +23,7 @@ interface HeaderProps {
     name: string;
   };
   hideProfileButton?: boolean;
+  onShowTutorial?: () => void;
 }
 
 function Header({
@@ -33,6 +34,7 @@ function Header({
   setShowAuthModal: externalSetShowAuthModal,
   prefilledData,
   hideProfileButton = false,
+  onShowTutorial,
 }: HeaderProps) {
   const [internalShowAuthModal, setInternalShowAuthModal] = useState(false);
   const showAuthModal = externalShowAuthModal ?? internalShowAuthModal;
@@ -126,7 +128,7 @@ function Header({
       } catch (error) {
         console.error('Error loading prefill data:', error);
       }
-      
+
       // Fallback to passed prefilledData if localStorage is empty
       if (prefilledData) {
         if (prefilledData.name && prefilledData.name.trim() !== '') {
@@ -305,10 +307,10 @@ function Header({
         setUserAttributes(attributes);
         onAuthChange(true);
         setShowAuthModal(false);
-        
+
         // Clear prefill data from localStorage after successful account creation
         localStorage.removeItem('arcane_onboarding_prefill');
-        
+
         resetForm();
       }
     } catch (err: any) {
@@ -1178,6 +1180,32 @@ function Header({
                             Change Password
                           </button>
 
+                          {/* Tutorial Button */}
+                          {onShowTutorial && (
+                            <button
+                              onClick={() => {
+                                closeModal();
+                                onShowTutorial();
+                              }}
+                              className="btn-secondary w-full py-3 flex items-center justify-center hover:border-amber-500/50 hover:text-amber-300"
+                            >
+                              <svg
+                                className="w-5 h-5 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                                />
+                              </svg>
+                              Tutorial
+                            </button>
+                          )}
+
                           <div className="grid grid-cols-2 gap-3">
                             <button
                               onClick={handleSignOut}
@@ -1483,7 +1511,8 @@ function Header({
                         />
                         {!isNewUser && (
                           <p className="text-xs text-green-400 mt-1">
-                            New here? Just enter your email and create a password to get started! ✨
+                            New here? Just enter your email and create a
+                            password to get started! ✨
                           </p>
                         )}
                       </div>
@@ -1526,9 +1555,13 @@ function Header({
                           className={`btn-primary ${isNewUser ? 'flex-1' : 'w-full'}`}
                           disabled={isLoading}
                         >
-                          {isLoading 
-                            ? (isNewUser ? 'Creating Account...' : 'Checking...')
-                            : (isNewUser ? 'Join the Coven' : 'Continue')}
+                          {isLoading
+                            ? isNewUser
+                              ? 'Creating Account...'
+                              : 'Checking...'
+                            : isNewUser
+                              ? 'Join the Coven'
+                              : 'Continue'}
                         </button>
                       </div>
                     </form>

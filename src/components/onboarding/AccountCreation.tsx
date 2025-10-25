@@ -42,6 +42,7 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
             email: email,
             nickname: userName,
             picture: userAvatar,
+            'custom:tutorial_complete': 'false', // Initialize as false for new users
           },
         },
       });
@@ -115,7 +116,9 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
         onComplete();
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      setError(
+        err.message || 'Failed to sign in. Please check your credentials.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -127,19 +130,19 @@ const AccountCreation: React.FC<AccountCreationProps> = ({
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-gradient mb-4">
-            {needsConfirmation 
-              ? 'Confirm Your Email' 
-              : isLoginMode 
-              ? 'Welcome Back' 
-              : 'Join the Coven'}
+            {needsConfirmation
+              ? 'Confirm Your Email'
+              : isLoginMode
+                ? 'Welcome Back'
+                : 'Join the Coven'}
           </h1>
           <div className="w-24 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent mx-auto mb-6"></div>
           <p className="text-lg text-stone-300 leading-relaxed">
             {needsConfirmation
               ? 'Enter the confirmation code sent to your email'
               : isLoginMode
-              ? 'Sign in to continue your magical journey'
-              : 'Create your account to save your magical journey'}
+                ? 'Sign in to continue your magical journey'
+                : 'Create your account to save your magical journey'}
           </p>
         </div>
 

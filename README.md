@@ -1,12 +1,8 @@
-# Arcane Kitchen
+# Arcane Kitchen 🧙‍♀️✨
 
 <div align="center">
-  <img src="arcane_kitchen.png" alt="Arcane Kitchen" width="100%" style="border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);">
+  <img src="public/logo.png" alt="Arcane Kitchen Logo" width="300" style="border-radius: 10px;">
 </div>
-
-<p align="center"><em>Where culinary magic meets ancient wisdom</em></p>
-
----
 
 ## About Arcane Kitchen
 
