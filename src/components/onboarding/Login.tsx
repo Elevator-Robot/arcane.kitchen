@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { signIn, signOut, confirmSignUp, resendSignUpCode } from 'aws-amplify/auth';
+import {
+  signIn,
+  signOut,
+  confirmSignUp,
+  resendSignUpCode,
+} from 'aws-amplify/auth';
 
 interface LoginProps {
   onComplete: () => void;
@@ -52,18 +57,20 @@ const Login: React.FC<LoginProps> = ({ onComplete, onBack }) => {
     } catch (err: any) {
       // Log the error details to help debug
       console.error('Login error - Full details:', err);
-      
+
       // Still check for error-based unconfirmed state (just in case)
       const errorType = err.name || err.code || err.__type || '';
       const errorMessage = err.message || '';
-      
-      const isUnconfirmed = 
+
+      const isUnconfirmed =
         errorType.includes('UserNotConfirmedException') ||
         errorMessage.toLowerCase().includes('not confirmed') ||
         errorMessage.toLowerCase().includes('user is not confirmed');
 
       if (isUnconfirmed) {
-        console.log('User needs confirmation (from error) - showing confirmation form');
+        console.log(
+          'User needs confirmation (from error) - showing confirmation form'
+        );
         setNeedsConfirmation(true);
         setError('');
       } else {
@@ -136,8 +143,8 @@ const Login: React.FC<LoginProps> = ({ onComplete, onBack }) => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-gradient mb-4">
-            {needsConfirmation 
-              ? 'Confirm Your Email' 
+            {needsConfirmation
+              ? 'Confirm Your Email'
               : 'Welcome Back, Kitchen Witch'}
           </h1>
           <div className="w-24 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent mx-auto mb-6"></div>

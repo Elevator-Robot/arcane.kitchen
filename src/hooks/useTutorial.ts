@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { fetchUserAttributes, updateUserAttributes } from 'aws-amplify/auth';
 import { CURRENT_TEST_MODE } from '../utils/tutorialTestMode';
 
 export function useTutorial() {
@@ -9,6 +8,7 @@ export function useTutorial() {
 
   useEffect(() => {
     checkTutorialStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkTutorialStatus = async () => {
@@ -27,32 +27,10 @@ export function useTutorial() {
         return;
       }
 
-      const userAttributes = await fetchUserAttributes();
-      const tutorialComplete = userAttributes['custom:tutorial_complete'];
-
-      // If attribute doesn't exist, initialize it as 'false' (first login)
-      if (tutorialComplete === undefined || tutorialComplete === null) {
-        try {
-          await updateUserAttributes({
-            userAttributes: {
-              'custom:tutorial_complete': 'false',
-            },
-          });
-          // Show tutorial for first-time users
-          setShouldShowTutorial(true);
-          setHasChecked(true);
-        } catch (error) {
-          console.error('Failed to initialize tutorial attribute:', error);
-          // Show tutorial anyway - better safe than sorry
-          setShouldShowTutorial(true);
-          setHasChecked(true);
-        }
-      } else {
-        // Attribute exists - check its value
-        const isComplete = tutorialComplete === 'true';
-        setShouldShowTutorial(!isComplete);
-        setHasChecked(true);
-      }
+      // Tutorial is now session-only, not persisted to backend
+      // Show tutorial for all users on first visit to the session
+      setShouldShowTutorial(true);
+      setHasChecked(true);
     } catch (error) {
       console.error('Failed to check tutorial status:', error);
       // If we can't check, don't show tutorial to avoid blocking user

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { updateUserAttributes } from 'aws-amplify/auth';
 
 interface PostLoginTutorialProps {
   userName: string;
@@ -70,7 +69,6 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
   onComplete,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isCompleting, setIsCompleting] = useState(false);
   const [hasMarkedComplete, setHasMarkedComplete] = useState(false);
 
   const currentStep = TUTORIAL_STEPS[currentStepIndex];
@@ -81,24 +79,14 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
     if (hasMarkedComplete) {
       return;
     }
-    
+
     setHasMarkedComplete(true);
-    
-    try {
-      await updateUserAttributes({
-        userAttributes: {
-          'custom:tutorial_complete': 'true', // Cognito custom attributes are always strings
-        },
-      });
-    } catch (error) {
-      console.error('Failed to mark tutorial as complete:', error);
-      // Continue anyway - don't block the user
-    }
+    // Tutorial completion is now tracked in session only
+    // No backend persistence needed
   };
 
   const handleNext = async () => {
     if (isLastStep) {
-      setIsCompleting(true);
       await markTutorialComplete();
       onComplete();
     } else {
@@ -118,10 +106,18 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
         {/* Tutorial Modal - Clickable halves for navigation */}
         <div className="relative bg-gradient-to-br from-stone-800/95 via-green-900/40 to-amber-900/40 backdrop-blur-lg border-2 border-emerald-400/60 rounded-3xl p-6 md:p-10 shadow-2xl shadow-emerald-500/20">
           {/* Mystical corner decorations */}
-          <div className="absolute top-4 left-4 text-2xl opacity-30 pointer-events-none">✦</div>
-          <div className="absolute top-4 right-4 text-2xl opacity-30 pointer-events-none">✦</div>
-          <div className="absolute bottom-4 left-4 text-2xl opacity-30 pointer-events-none">✦</div>
-          <div className="absolute bottom-4 right-4 text-2xl opacity-30 pointer-events-none">✦</div>
+          <div className="absolute top-4 left-4 text-2xl opacity-30 pointer-events-none">
+            ✦
+          </div>
+          <div className="absolute top-4 right-4 text-2xl opacity-30 pointer-events-none">
+            ✦
+          </div>
+          <div className="absolute bottom-4 left-4 text-2xl opacity-30 pointer-events-none">
+            ✦
+          </div>
+          <div className="absolute bottom-4 right-4 text-2xl opacity-30 pointer-events-none">
+            ✦
+          </div>
 
           {/* Clickable navigation areas */}
           <div className="absolute inset-0 flex pointer-events-none z-10">
@@ -134,28 +130,48 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
               >
                 <div className="absolute left-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                   <div className="flex items-center space-x-2 bg-stone-800/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-stone-600/50">
-                    <svg className="w-5 h-5 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <svg
+                      className="w-5 h-5 text-stone-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
                     </svg>
                     <span className="text-sm text-stone-300">Previous</span>
                   </div>
                 </div>
               </div>
             )}
-            
+
             {/* Right half - Next */}
             <div
               onClick={handleNext}
               className={`${currentStepIndex > 0 ? 'w-1/2' : 'w-full'} cursor-pointer pointer-events-auto group`}
-              title={isLastStep ? "Complete tutorial" : "Next step"}
+              title={isLastStep ? 'Complete tutorial' : 'Next step'}
             >
               <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div className="flex items-center space-x-2 bg-emerald-800/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-emerald-600/50">
                   <span className="text-sm text-emerald-200">
                     {isLastStep ? 'Complete' : 'Next'}
                   </span>
-                  <svg className="w-5 h-5 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isLastStep ? "M5 13l4 4L19 7" : "M9 5l7 7-7 7"} />
+                  <svg
+                    className="w-5 h-5 text-emerald-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={isLastStep ? 'M5 13l4 4L19 7' : 'M9 5l7 7-7 7'}
+                    />
                   </svg>
                 </div>
               </div>
@@ -230,9 +246,9 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
             {/* Mystical Quote */}
             <div className="text-center pt-6 border-t border-stone-700/30">
               <p className="text-sm text-stone-400/80 italic max-w-2xl mx-auto leading-relaxed">
-                "The kitchen is a sacred space where mundane ingredients transform
-                into magical sustenance. Master these arts, and nourishment
-                becomes enchantment." 🕯️
+                "The kitchen is a sacred space where mundane ingredients
+                transform into magical sustenance. Master these arts, and
+                nourishment becomes enchantment." 🕯️
               </p>
             </div>
           </div>

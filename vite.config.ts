@@ -9,4 +9,9 @@ export default defineConfig({
     allowedHosts: ['localhost', 'c388-136-62-118-167.ngrok-free.app'],
   },
   plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+  },
 });

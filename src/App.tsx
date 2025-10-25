@@ -6,7 +6,6 @@ import RecipeBuilder from './components/RecipeBuilder';
 import OnboardingFlow from './components/OnboardingFlow';
 import PostLoginTutorial from './components/PostLoginTutorial';
 import { useOnboarding } from './hooks/useOnboarding';
-import { useTutorial } from './hooks/useTutorial';
 import { getDisplayName } from './utils/auth';
 import { CURRENT_TEST_MODE } from './utils/tutorialTestMode';
 
@@ -33,8 +32,6 @@ function App() {
           setIsAuthenticated(true);
           setUserAttributes({
             given_name: CURRENT_TEST_MODE.userName,
-            'custom:tutorial_complete':
-              CURRENT_TEST_MODE.tutorialComplete.toString(),
           });
         } else {
           setCurrentUser(null);

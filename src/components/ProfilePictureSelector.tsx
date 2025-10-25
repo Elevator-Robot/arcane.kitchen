@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 interface ProfilePictureSelectorProps {
   selectedProfilePicture?: string;
@@ -15,26 +15,29 @@ const ProfilePictureSelector: React.FC<ProfilePictureSelectorProps> = ({
   const [loading, setLoading] = useState(true);
 
   // List of available profile pictures based on your directory
-  const profilePictures = [
-    'witch1.png',
-    'witch2.png',
-    'witch3.png',
-    'wizard1.png',
-    'wizard2.png',
-    'wizard3.png',
-    'goblin1.png',
-    'goblin2.png',
-    'goblin3.png',
-    'troll1.png',
-    'troll2.png',
-    'troll3.png',
-  ];
+  const profilePictures = useMemo(
+    () => [
+      'witch1.png',
+      'witch2.png',
+      'witch3.png',
+      'wizard1.png',
+      'wizard2.png',
+      'wizard3.png',
+      'goblin1.png',
+      'goblin2.png',
+      'goblin3.png',
+      'troll1.png',
+      'troll2.png',
+      'troll3.png',
+    ],
+    []
+  );
 
   useEffect(() => {
     // Skip async verification - let images load naturally with onError handling
     setAvailableImages(profilePictures);
     setLoading(false);
-  }, []);
+  }, [profilePictures]);
 
   const getDisplayName = (filename: string) => {
     // Convert filename to display name

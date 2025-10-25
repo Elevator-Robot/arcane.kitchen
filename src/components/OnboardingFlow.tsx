@@ -7,12 +7,7 @@ import AccountCreation from './onboarding/AccountCreation';
 import Login from './onboarding/Login';
 import MysticalEffects from './MysticalEffects';
 
-type OnboardingStep =
-  | 'welcome'
-  | 'avatar'
-  | 'name'
-  | 'account'
-  | 'login';
+type OnboardingStep = 'welcome' | 'avatar' | 'name' | 'account' | 'login';
 
 interface OnboardingFlowProps {
   isAuthenticated: boolean;
