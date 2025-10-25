@@ -16,15 +16,9 @@ function App() {
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false); // Manual tutorial trigger
   const { isOnboardingRequired, completeOnboarding, onboardingData } =
     useOnboarding();
-  const {
-    shouldShowTutorial,
-    isLoading: tutorialLoading,
-    completeTutorial,
-    skipTutorial,
-    recheckTutorialStatus,
-  } = useTutorial();
 
   useEffect(() => {
     checkAuthStatus();
@@ -69,8 +63,6 @@ function App() {
   const handleAuthChange = async () => {
     setAuthLoading(true);
     await checkAuthStatus();
-    // Recheck tutorial status after auth changes (e.g., after account creation)
-    await recheckTutorialStatus();
   };
 
   // Show onboarding for first-time users
@@ -88,28 +80,21 @@ function App() {
     );
   }
 
-  // Show post-login tutorial for authenticated users who have completed onboarding but not the tutorial
-  if (
-    isAuthenticated &&
-    !authLoading &&
-    !tutorialLoading &&
-    shouldShowTutorial &&
-    userAttributes
-  ) {
+  // Show tutorial only when manually triggered
+  if (showTutorial && isAuthenticated && userAttributes) {
     const userName = getDisplayName(userAttributes, currentUser);
     return (
       <div className="min-h-screen cottage-interior relative">
         <MysticalEffects />
         <PostLoginTutorial
           userName={userName}
-          onComplete={completeTutorial}
-          onSkip={skipTutorial}
+          onComplete={() => setShowTutorial(false)}
         />
       </div>
     );
   }
 
-  // Only show main app to authenticated users who have completed onboarding and tutorial
+  // Only show main app to authenticated users who have completed onboarding
   return (
     <div className="min-h-screen cottage-interior relative">
       <MysticalEffects />
@@ -123,6 +108,7 @@ function App() {
             showAuthModal={showAuthModal}
             setShowAuthModal={setShowAuthModal}
             prefilledData={onboardingData}
+            onShowTutorial={() => setShowTutorial(true)}
           />
 
           <div className="flex flex-col h-screen">

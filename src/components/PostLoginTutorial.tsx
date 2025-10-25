@@ -4,7 +4,6 @@ import { updateUserAttributes } from 'aws-amplify/auth';
 interface PostLoginTutorialProps {
   userName: string;
   onComplete: () => void;
-  onSkip: () => void;
 }
 
 interface TutorialStep {
@@ -69,10 +68,8 @@ const TUTORIAL_STEPS: TutorialStep[] = [
 const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
   userName,
   onComplete,
-  onSkip,
 }) => {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [isSkipping, setIsSkipping] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [hasMarkedComplete, setHasMarkedComplete] = useState(false);
 
@@ -115,12 +112,6 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
     }
   };
 
-  const handleSkip = async () => {
-    setIsSkipping(true);
-    await markTutorialComplete();
-    onSkip();
-  };
-
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -143,15 +134,6 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
               the Arcane Kitchen
             </p>
           </div>
-
-          {/* Skip Tutorial Button */}
-          <button
-            onClick={handleSkip}
-            disabled={isSkipping}
-            className="absolute top-6 right-6 text-stone-400 hover:text-stone-200 transition-colors duration-200 text-sm underline disabled:opacity-50"
-          >
-            {isSkipping ? 'Skipping...' : 'Skip Tutorial'}
-          </button>
 
           {/* Step Progress Indicator */}
           <div className="flex justify-center space-x-3 mb-8">
