@@ -69,6 +69,8 @@ function App() {
   const handleAuthChange = async () => {
     setAuthLoading(true);
     await checkAuthStatus();
+    // Recheck tutorial status after auth changes (e.g., after account creation)
+    await recheckTutorialStatus();
   };
 
   // Show onboarding for first-time users

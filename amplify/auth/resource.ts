@@ -23,7 +23,7 @@ export const auth = defineAuth({
       mutable: true,
     },
     'custom:tutorial_complete': {
-      dataType: 'Boolean',
+      dataType: 'String', // Store as 'true' or 'false' string
       mutable: true,
     },
   },

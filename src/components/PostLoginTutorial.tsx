@@ -74,11 +74,19 @@ const PostLoginTutorial: React.FC<PostLoginTutorialProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isSkipping, setIsSkipping] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [hasMarkedComplete, setHasMarkedComplete] = useState(false);
 
   const currentStep = TUTORIAL_STEPS[currentStepIndex];
   const isLastStep = currentStepIndex === TUTORIAL_STEPS.length - 1;
 
   const markTutorialComplete = async () => {
+    // Prevent multiple calls
+    if (hasMarkedComplete) {
+      return;
+    }
+    
+    setHasMarkedComplete(true);
+    
     try {
       await updateUserAttributes({
         userAttributes: {
