@@ -49,3 +49,96 @@
     cursor: not-allowed;
   }
 }
+
+@layer components {
+  .auth-panel [data-amplify-authenticator] {
+    --amplify-components-authenticator-router-box-shadow: none;
+    --amplify-components-authenticator-router-border-width: 0;
+    --amplify-components-authenticator-router-background-color: transparent;
+    --amplify-components-tabs-item-active-border-color: #c84f31;
+    --amplify-components-tabs-item-active-color: #201a16;
+    --amplify-components-tabs-border-color: #eadfce;
+    --amplify-colors-brand-primary-10: #fff7ed;
+    --amplify-colors-brand-primary-60: #c84f31;
+    --amplify-colors-brand-primary-80: #ad442a;
+    --amplify-colors-brand-primary-90: #913720;
+    width: 100%;
+  }
+
+  .auth-panel [data-amplify-router] {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    width: 100%;
+  }
+
+  .auth-panel [data-amplify-container] {
+    width: 100%;
+  }
+
+  .auth-panel .amplify-tabs {
+    display: none;
+  }
+
+  .auth-panel .amplify-fieldset {
+    gap: 0.9rem;
+  }
+
+  .auth-panel .amplify-button--primary {
+    border-radius: 0.625rem;
+    font-weight: 700;
+    min-height: 2.75rem;
+  }
+
+  .auth-panel .amplify-button:not(.amplify-button--link) {
+    border-radius: 0.75rem;
+    min-height: 2.75rem;
+  }
+
+  .auth-panel .amplify-input {
+    border-radius: 0.625rem;
+    min-height: 2.75rem;
+  }
+
+  .auth-panel .amplify-heading {
+    letter-spacing: 0;
+  }
+
+  .confirmation-code-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .confirmation-code-panel {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .confirmation-code-input {
+    aspect-ratio: 1;
+    width: 100%;
+    min-width: 0;
+    border: 1px solid #d8cab8;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: #201a16;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    outline: none;
+    transition:
+      border-color 0.16s ease,
+      box-shadow 0.16s ease;
+  }
+
+  .confirmation-code-input:focus {
+    border-color: #c84f31;
+    box-shadow: 0 0 0 4px rgba(200, 79, 49, 0.12);
+  }
+
+  form[data-amplify-authenticator-confirmsignup]
+    .amplify-field:has(input[name='confirmation_code']) {
+    display: none;
+  }
+}

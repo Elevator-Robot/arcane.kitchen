@@ -1,9 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../amplify/data/resource';
+
+const client = generateClient<Schema>();
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
   currentUser: any;
   userAttributes?: any;
+  onRequestAuth?: () => void;
+  onSignOut?: () => void;
 }
 
 interface RecipeIngredientDraft {
@@ -23,34 +29,48 @@ interface RecipeDraft {
   ingredients: RecipeIngredientDraft[];
 }
 
-const featuredRecipes = [
+interface FeedRecipe {
+  id: string;
+  name: string;
+  author: string;
+  image: string;
+  time: string;
+  rating: string;
+  saves: string;
+  tags: string[];
+}
+
+const fallbackRecipes: FeedRecipe[] = [
   {
+    id: 'sample-orzo',
     name: 'Charred Lemon Orzo',
     author: 'Mina Park',
     image:
       'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=900&q=80',
     time: '28 min',
-    rating: 4.9,
+    rating: '4.9',
     saves: '12.4k',
     tags: ['Weeknight', 'Vegetarian'],
   },
   {
+    id: 'sample-chicken',
     name: 'Crisp Chile Honey Chicken',
     author: 'Theo Brooks',
     image:
       'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80',
     time: '45 min',
-    rating: 4.8,
+    rating: '4.8',
     saves: '9.1k',
     tags: ['Dinner', 'High Protein'],
   },
   {
+    id: 'sample-pavlova',
     name: 'Market Berry Pavlova',
     author: 'Evelyn Hart',
     image:
       'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80',
     time: '1 hr',
-    rating: 4.7,
+    rating: '4.7',
     saves: '6.8k',
     tags: ['Dessert', 'Seasonal'],
   },
@@ -99,15 +119,90 @@ const averageRating = (ratings: number[]) => {
     .replace('.0', '');
 };
 
+const getBackendRating = (ratings?: unknown[] | null) => {
+  const scores =
+    ratings
+      ?.map((rating) => {
+        if (
+          rating &&
+          typeof rating === 'object' &&
+          'score' in rating &&
+          typeof rating.score === 'number'
+        ) {
+          return rating.score;
+        }
+
+        if (typeof rating === 'number') return rating;
+        return null;
+      })
+      .filter((rating): rating is number => rating !== null) ?? [];
+
+  return averageRating(scores);
+};
+
 const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   isAuthenticated,
   currentUser,
   userAttributes,
+  onRequestAuth,
+  onSignOut,
 }) => {
   const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
+  const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>(fallbackRecipes);
   const [activeTag, setActiveTag] = useState('30-minute');
+  const [isLoadingFeed, setIsLoadingFeed] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishMessage, setPublishMessage] = useState('');
   const creatorName = getCreatorName(userAttributes, currentUser);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
+
+  const loadRecipes = useCallback(async () => {
+    if (!isAuthenticated) {
+      setFeedRecipes(fallbackRecipes);
+      return;
+    }
+
+    setIsLoadingFeed(true);
+
+    try {
+      const { data, errors } = await client.models.Recipe.list({
+        authMode: isAuthenticated ? 'userPool' : 'apiKey',
+      });
+
+      if (errors?.length) {
+        throw new Error(errors.map((error) => error.message).join(', '));
+      }
+
+      if (!data.length) {
+        setFeedRecipes(fallbackRecipes);
+        return;
+      }
+
+      setFeedRecipes(
+        data
+          .filter((recipe) => recipe.id && recipe.name)
+          .map((recipe) => ({
+            id: recipe.id as string,
+            name: recipe.name,
+            author: recipe.createdBy || 'Arcane cook',
+            image: recipe.imageUrl || defaultDraft.imageUrl,
+            time: recipe.prepTime || 'Prep time open',
+            rating: getBackendRating(recipe.ratings),
+            saves: 'New',
+            tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
+          }))
+      );
+    } catch (error) {
+      console.error('Failed to load recipes:', error);
+      setFeedRecipes(fallbackRecipes);
+    } finally {
+      setIsLoadingFeed(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    loadRecipes();
+  }, [loadRecipes]);
 
   const updateDraft = <K extends keyof RecipeDraft>(
     field: K,
@@ -173,9 +268,109 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
+  const publishRecipe = async () => {
+    if (!isAuthenticated || isPublishing) {
+      setPublishMessage('Log in to publish recipes.');
+      onRequestAuth?.();
+      return;
+    }
+
+    const cleanedIngredients = draft.ingredients.filter(
+      (ingredient) => ingredient.name.trim() !== ''
+    );
+
+    if (!draft.name.trim() || !cleanedIngredients.length) {
+      setPublishMessage('Add a recipe name and at least one ingredient.');
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishMessage('');
+
+    try {
+      const recipeResult = await client.models.Recipe.create({
+        name: draft.name.trim(),
+        description: draft.description.trim(),
+        createdBy: creatorName,
+        instructions: draft.instructions
+          .map((instruction) => instruction.trim())
+          .filter(Boolean),
+        prepTime: draft.prepTime.trim(),
+        tags: draft.tags,
+        imageUrl: draft.imageUrl.trim(),
+        ratings: [],
+      }, {
+        authMode: 'userPool',
+      });
+
+      if (recipeResult.errors?.length || !recipeResult.data) {
+        throw new Error(
+          recipeResult.errors?.map((error) => error.message).join(', ') ||
+            'Recipe could not be created.'
+        );
+      }
+
+      const createdRecipe = recipeResult.data;
+      if (!createdRecipe.id) {
+        throw new Error('Recipe was created without an id.');
+      }
+      const recipeId = createdRecipe.id;
+
+      await Promise.all(
+        cleanedIngredients.map(async (ingredient) => {
+          const ingredientResult = await client.models.Ingredient.create({
+            name: ingredient.name.trim(),
+          }, {
+            authMode: 'userPool',
+          });
+
+          if (ingredientResult.errors?.length || !ingredientResult.data) {
+            throw new Error(
+              ingredientResult.errors
+                ?.map((error) => error.message)
+                .join(', ') || 'Ingredient could not be created.'
+            );
+          }
+
+          const createdIngredient = ingredientResult.data;
+          if (!createdIngredient.id) {
+            throw new Error('Ingredient was created without an id.');
+          }
+          const ingredientId = createdIngredient.id;
+
+          const linkResult = await client.models.RecipeIngredient.create({
+            recipeId,
+            ingredientId,
+            quantity: {
+              amount: ingredient.amount.trim(),
+              unit: ingredient.unit.trim(),
+            },
+          }, {
+            authMode: 'userPool',
+          });
+
+          if (linkResult.errors?.length) {
+            throw new Error(
+              linkResult.errors.map((error) => error.message).join(', ')
+            );
+          }
+        })
+      );
+
+      setPublishMessage('Published to the shared recipe feed.');
+      await loadRecipes();
+    } catch (error) {
+      console.error('Failed to publish recipe:', error);
+      setPublishMessage('Publish failed. Check your sandbox deployment and auth.');
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#f7f3ec] text-[#201a16]">
-      <header className="sticky top-0 z-20 border-b border-[#e2d8ca] bg-[#f7f3ec]/92 backdrop-blur-xl">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(200,79,49,0.16),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(50,95,75,0.16),transparent_34%),linear-gradient(180deg,rgba(255,250,244,0.75),rgba(247,243,236,0.92))]" />
+      <header className="sticky top-0 z-20 border-b border-[#e2d8ca] bg-[#fffaf4]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#201a16] text-sm font-bold text-white">
@@ -186,7 +381,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 Arcane Kitchen
               </h1>
               <p className="text-xs text-[#74665a]">
-                Build, publish, and collect recipes
+                Explore recipes freely. Log in to create.
               </p>
             </div>
           </div>
@@ -207,31 +402,57 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ))}
           </nav>
 
-          <button className="rounded-lg bg-[#c84f31] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ad442a]">
-            {isAuthenticated ? 'Publish' : 'Preview as guest'}
-          </button>
+          <div className="flex items-center gap-2">
+            {onSignOut && (
+              <button
+                onClick={onSignOut}
+                className="rounded-lg border border-[#d6c7b7] bg-white px-4 py-2 text-sm font-semibold text-[#51463d] shadow-sm transition hover:bg-[#f0e8dc]"
+              >
+                Sign out
+              </button>
+            )}
+            <button
+              onClick={isAuthenticated ? publishRecipe : onRequestAuth}
+              disabled={isPublishing}
+              className="rounded-lg bg-[#c84f31] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ad442a] disabled:opacity-60"
+            >
+              {isPublishing
+                ? 'Publishing...'
+                : isAuthenticated
+                  ? 'Publish'
+                  : 'Log in to create'}
+            </button>
+          </div>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 md:h-[calc(100vh-65px)] md:grid-cols-[1.05fr_1.25fr_.9fr] md:px-6">
+      <div className="relative mx-auto grid max-w-7xl gap-5 px-4 py-5 md:h-[calc(100vh-65px)] md:grid-cols-[1.05fr_1.25fr_.9fr] md:px-6">
         <section
           id="discover"
-          className="min-h-0 overflow-hidden rounded-lg border border-[#e0d4c4] bg-white"
+          className="min-h-0 overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/88 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur"
         >
-          <div className="border-b border-[#eee5da] p-4">
+          <div className="border-b border-[#eee5da] bg-[#fffaf4] p-4">
             <p className="text-xs font-semibold uppercase text-[#c84f31]">
-              Live Feed
+              Public Feed
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-              What cooks are making
+              Explore what cooks are making
             </h2>
+            <p className="mt-2 text-sm leading-6 text-[#74665a]">
+              Browse the community recipe stream without an account.
+            </p>
+            {isLoadingFeed && (
+              <p className="mt-1 text-sm text-[#74665a]">
+                Loading shared recipes...
+              </p>
+            )}
           </div>
 
           <div className="space-y-3 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)]">
-            {featuredRecipes.map((recipe) => (
+            {feedRecipes.map((recipe) => (
               <article
-                key={recipe.name}
-                className="overflow-hidden rounded-lg border border-[#eee5da] bg-[#fffaf4]"
+                key={recipe.id}
+                className="overflow-hidden rounded-xl border border-[#eee5da] bg-[#fffaf4] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               >
                 <img
                   src={recipe.image}
@@ -274,23 +495,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         <section
           id="build"
-          className="min-h-0 overflow-hidden rounded-lg border border-[#e0d4c4] bg-white"
+          className="relative min-h-0 overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.12)] backdrop-blur"
         >
-          <div className="flex items-center justify-between border-b border-[#eee5da] p-4">
+          <div className="flex items-center justify-between border-b border-[#eee5da] bg-white p-4">
             <div>
               <p className="text-xs font-semibold uppercase text-[#c84f31]">
                 Recipe Studio
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-                Build a shareable post
+                Create a recipe post
               </h2>
+              {!isAuthenticated && (
+                <p className="mt-2 text-sm text-[#74665a]">
+                  Log in to unlock publishing.
+                </p>
+              )}
             </div>
             <div className="hidden rounded-lg bg-[#f7f3ec] px-3 py-2 text-sm text-[#74665a] sm:block">
               Creator: {creatorName}
             </div>
           </div>
 
-          <div className="grid gap-4 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)]">
+          <div className={`grid gap-4 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)] ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}>
+            {publishMessage && (
+              <div className="rounded-lg border border-[#e5d5c4] bg-[#fff7ed] px-3 py-2 text-sm text-[#6f4c36]">
+                {publishMessage}
+              </div>
+            )}
+
             <label className="grid gap-2">
               <span className="text-sm font-semibold">Recipe name</span>
               <input
@@ -429,12 +661,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </div>
             </div>
           </div>
+
+          {!isAuthenticated && (
+            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[#eadfce] bg-[#fffaf4]/96 p-5 text-center shadow-2xl backdrop-blur">
+              <p className="text-xs font-semibold uppercase text-[#c84f31]">
+                Account Required
+              </p>
+              <h3 className="mt-1 text-xl font-semibold tracking-normal">
+                Start publishing your own recipes
+              </h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#74665a]">
+                Log in to add ingredients, write steps, and post recipes to the
+                shared feed.
+              </p>
+              <button
+                onClick={onRequestAuth}
+                className="mt-4 rounded-lg bg-[#201a16] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#332922]"
+              >
+                Log in to create
+              </button>
+            </div>
+          )}
         </section>
 
         <aside className="grid min-h-0 gap-5 md:grid-rows-[auto_1fr]">
           <section
             id="saved"
-            className="rounded-lg border border-[#e0d4c4] bg-[#201a16] p-4 text-white"
+            className="rounded-xl border border-[#332922] bg-[#201a16] p-4 text-white shadow-[0_24px_70px_rgba(32,26,22,0.24)]"
           >
             <p className="text-xs font-semibold uppercase text-[#f2b49f]">
               Discovery
@@ -462,8 +715,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </section>
 
-          <section className="min-h-0 overflow-hidden rounded-lg border border-[#e0d4c4] bg-white">
-            <div className="border-b border-[#eee5da] p-4">
+          <section className="min-h-0 overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur">
+            <div className="border-b border-[#eee5da] bg-white p-4">
               <p className="text-xs font-semibold uppercase text-[#c84f31]">
                 Post Preview
               </p>

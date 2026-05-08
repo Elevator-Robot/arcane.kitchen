@@ -13,8 +13,8 @@ describe('RecipeBuilder Component', () => {
     render(<RecipeBuilder {...defaultRecipeBuilderProps} />);
 
     expect(screen.getByText('Arcane Kitchen')).toBeInTheDocument();
-    expect(screen.getByText('What cooks are making')).toBeInTheDocument();
-    expect(screen.getByText('Build a shareable post')).toBeInTheDocument();
+    expect(screen.getByText('Explore what cooks are making')).toBeInTheDocument();
+    expect(screen.getByText('Create a recipe post')).toBeInTheDocument();
     expect(screen.getByText('Ready for the feed')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Summer Tomato Toasts')).toBeInTheDocument();
   });
@@ -46,11 +46,12 @@ describe('RecipeBuilder Component', () => {
     expect(screen.getAllByLabelText('Ingredient')).toHaveLength(3);
   });
 
-  it('shows guest preview mode when the user is unauthenticated', () => {
+  it('prompts unauthenticated users to sign in before creating', () => {
     render(<RecipeBuilder {...unauthenticatedRecipeBuilderProps} />);
 
     expect(
-      screen.getByRole('button', { name: 'Preview as guest' })
+      screen.getAllByRole('button', { name: 'Log in to create' })[0]
     ).toBeInTheDocument();
+    expect(screen.getByText('Start publishing your own recipes')).toBeInTheDocument();
   });
 });

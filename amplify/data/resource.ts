@@ -14,14 +14,20 @@ const schema = a.schema({
       imageUrl: a.string(),
       ratings: a.json().array(),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated(),
+      allow.publicApiKey().to(['read']),
+    ]),
 
   Ingredient: a
     .model({
       id: a.id(),
       name: a.string().required(),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated(),
+      allow.publicApiKey().to(['read']),
+    ]),
 
   RecipeIngredient: a
     .model({
@@ -30,13 +36,19 @@ const schema = a.schema({
       ingredientId: a.id().required(),
       quantity: a.json().required(),
     })
-    .authorization((allow) => [allow.authenticated()]),
+    .authorization((allow) => [
+      allow.authenticated(),
+      allow.publicApiKey().to(['read']),
+    ]),
 });
 
 export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'userPool',
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
   },
 });
 
