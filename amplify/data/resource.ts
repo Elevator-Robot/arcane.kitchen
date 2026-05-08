@@ -1,45 +1,49 @@
 import { defineData, a } from '@aws-amplify/backend';
 import { ClientSchema } from '@aws-amplify/backend';
 
+const Quantity = a.customType({
+  amount: a.float().required(),
+  unit: a.string().required(),
+});
+
+const Rating = a.customType({
+  userId: a.string().required(),
+  score: a.integer().required(),
+});
+
 const schema = a.schema({
-  // Simple recipe model for MVP
   Recipe: a
     .model({
       id: a.id(),
-      title: a.string().required(),
+      name: a.string().required(),
       description: a.string(),
-      ingredients: a.string().array(),
+      createdBy: a.string().required(),
       instructions: a.string().array(),
       prepTime: a.string(),
-      cookTime: a.string(),
-      servings: a.integer(),
-
-      // Metadata
-      createdAt: a.date(),
-      updatedAt: a.date(),
-      isPublic: a.boolean().default(false),
+      tags: a.string().array(),
+      imageUrl: a.string(),
+      ratings: a.ref('Rating').array(),
     })
-    .authorization((allow) => [
-      allow.owner(),
-      allow.authenticated().to(['read']),
-    ]),
+    .authorization((allow) => [allow.authenticated()]),
 
-  // Basic AI conversation for cooking assistance
-  sousChef: a
-    .conversation({
-      aiModel: a.ai.model('Amazon Nova Pro'),
-      systemPrompt: `You are a helpful cooking assistant for Arcane Kitchen. 
-    You help users with recipes, cooking techniques, and ingredient questions.
-    
-    Keep your responses practical and friendly. Focus on:
-    - Recipe suggestions and modifications
-    - Cooking techniques and tips
-    - Ingredient substitutions
-    - Basic cooking questions
-    
-    Be encouraging and make cooking accessible for everyone.`,
+  Ingredient: a
+    .model({
+      id: a.id(),
+      name: a.string().required(),
     })
-    .authorization((allow) => allow.owner()),
+    .authorization((allow) => [allow.authenticated()]),
+
+  RecipeIngredient: a
+    .model({
+      id: a.id(),
+      recipeId: a.id().required(),
+      ingredientId: a.id().required(),
+      quantity: a.ref('Quantity').required(),
+    })
+    .authorization((allow) => [allow.authenticated()]),
+
+  Quantity,
+  Rating,
 });
 
 export const data = defineData({

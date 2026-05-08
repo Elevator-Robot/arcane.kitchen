@@ -1,5 +1,4 @@
-import React, { useState, useCallback } from 'react';
-import { useMessages } from '../hooks/useMessages';
+import React, { useMemo, useState } from 'react';
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
@@ -7,412 +6,528 @@ interface RecipeBuilderProps {
   userAttributes?: any;
 }
 
-interface RecipeForm {
-  dishType: string;
-  mainIngredients: string[];
-  cuisineStyle: string;
-  dietaryRestrictions: string[];
-  difficulty: string;
-  cookingTime: string;
-  servings: string;
-  occasion: string;
-  customPrompt: string;
+interface RecipeIngredientDraft {
+  id: number;
+  name: string;
+  amount: string;
+  unit: string;
 }
 
-const DISH_TYPES = [
-  { id: 'appetizer', name: 'Appetizer', icon: '🥗' },
-  { id: 'soup', name: 'Soup & Stew', icon: '🍲' },
-  { id: 'main', name: 'Main Course', icon: '🍽️' },
-  { id: 'side', name: 'Side Dish', icon: '🥬' },
-  { id: 'dessert', name: 'Dessert', icon: '🧁' },
-  { id: 'beverage', name: 'Beverage', icon: '🍵' },
-  { id: 'bread', name: 'Bread & Baking', icon: '🍞' },
-  { id: 'preserve', name: 'Preserves', icon: '🫙' },
+interface RecipeDraft {
+  name: string;
+  description: string;
+  prepTime: string;
+  tags: string[];
+  imageUrl: string;
+  instructions: string[];
+  ingredients: RecipeIngredientDraft[];
+}
+
+const featuredRecipes = [
+  {
+    name: 'Charred Lemon Orzo',
+    author: 'Mina Park',
+    image:
+      'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=900&q=80',
+    time: '28 min',
+    rating: 4.9,
+    saves: '12.4k',
+    tags: ['Weeknight', 'Vegetarian'],
+  },
+  {
+    name: 'Crisp Chile Honey Chicken',
+    author: 'Theo Brooks',
+    image:
+      'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80',
+    time: '45 min',
+    rating: 4.8,
+    saves: '9.1k',
+    tags: ['Dinner', 'High Protein'],
+  },
+  {
+    name: 'Market Berry Pavlova',
+    author: 'Evelyn Hart',
+    image:
+      'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80',
+    time: '1 hr',
+    rating: 4.7,
+    saves: '6.8k',
+    tags: ['Dessert', 'Seasonal'],
+  },
 ];
 
-const CUISINE_STYLES = [
-  'Traditional European',
-  'Mediterranean',
-  'Asian Fusion',
-  'Latin American',
-  'Middle Eastern',
-  'African',
-  'Nordic',
-  'American Comfort',
-  'Fusion Experimental',
-];
-
-const DIETARY_OPTIONS = [
+const trendingTags = [
+  '30-minute',
+  'Dinner party',
+  'Meal prep',
   'Vegetarian',
-  'Vegan',
-  'Gluten-Free',
-  'Dairy-Free',
-  'Low-Carb',
-  'Keto',
-  'Paleo',
-  'Raw Food',
-  'Nut-Free',
-  'Soy-Free',
+  'One pan',
+  'High protein',
 ];
 
-const COOKING_TIMES = [
-  '15 minutes',
-  '30 minutes',
-  '1 hour',
-  '2 hours',
-  '3+ hours',
-  'All day slow cook',
-];
+const defaultDraft: RecipeDraft = {
+  name: 'Summer Tomato Toasts',
+  description:
+    'A bright, shareable recipe with crisp bread, marinated tomatoes, whipped ricotta, and basil oil.',
+  prepTime: '20 min',
+  tags: ['Seasonal', 'Vegetarian'],
+  imageUrl:
+    'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=900&q=80',
+  ingredients: [
+    { id: 1, name: 'Sourdough slices', amount: '4', unit: 'pieces' },
+    { id: 2, name: 'Cherry tomatoes', amount: '2', unit: 'cups' },
+    { id: 3, name: 'Ricotta', amount: '3/4', unit: 'cup' },
+  ],
+  instructions: [
+    'Toast the sourdough until deeply golden and crisp at the edges.',
+    'Toss tomatoes with olive oil, salt, pepper, and a splash of vinegar.',
+    'Spread ricotta on each toast, spoon tomatoes over the top, and finish with basil oil.',
+  ],
+};
+
+const getCreatorName = (userAttributes?: any, currentUser?: any) => {
+  if (userAttributes?.nickname) return userAttributes.nickname;
+  if (userAttributes?.email) return userAttributes.email.split('@')[0];
+  if (currentUser?.username) return currentUser.username;
+  return 'Guest cook';
+};
+
+const averageRating = (ratings: number[]) => {
+  if (!ratings.length) return 'New';
+  return (ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length)
+    .toFixed(1)
+    .replace('.0', '');
+};
 
 const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   isAuthenticated,
   currentUser,
   userAttributes,
 }) => {
-  const { handleSendMessage } = useMessages();
-  const [recipeForm, setRecipeForm] = useState<RecipeForm>({
-    dishType: '',
-    mainIngredients: [],
-    cuisineStyle: '',
-    dietaryRestrictions: [],
-    difficulty: 'intermediate',
-    cookingTime: '',
-    servings: '4',
-    occasion: '',
-    customPrompt: '',
-  });
-  const [generatedRecipe, setGeneratedRecipe] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
+  const [activeTag, setActiveTag] = useState('30-minute');
+  const creatorName = getCreatorName(userAttributes, currentUser);
+  const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
 
-  const updateForm = (field: keyof RecipeForm, value: any) => {
-    setRecipeForm((prev) => ({ ...prev, [field]: value }));
+  const updateDraft = <K extends keyof RecipeDraft>(
+    field: K,
+    value: RecipeDraft[K]
+  ) => {
+    setDraft((previous) => ({ ...previous, [field]: value }));
   };
 
-  const toggleArrayItem = (
-    field: 'mainIngredients' | 'dietaryRestrictions',
-    item: string
+  const updateIngredient = (
+    id: number,
+    field: keyof RecipeIngredientDraft,
+    value: string
   ) => {
-    setRecipeForm((prev) => ({
-      ...prev,
-      [field]: prev[field].includes(item)
-        ? prev[field].filter((i: string) => i !== item)
-        : [...prev[field], item],
+    setDraft((previous) => ({
+      ...previous,
+      ingredients: previous.ingredients.map((ingredient) =>
+        ingredient.id === id ? { ...ingredient, [field]: value } : ingredient
+      ),
     }));
   };
 
-  const handleGenerate = useCallback(async () => {
-    if (!isAuthenticated || isGenerating) return;
+  const addIngredient = () => {
+    setDraft((previous) => ({
+      ...previous,
+      ingredients: [
+        ...previous.ingredients,
+        { id: Date.now(), name: '', amount: '', unit: '' },
+      ],
+    }));
+  };
 
-    setIsGenerating(true);
-    setGeneratedRecipe(null);
+  const removeIngredient = (id: number) => {
+    setDraft((previous) => ({
+      ...previous,
+      ingredients: previous.ingredients.filter(
+        (ingredient) => ingredient.id !== id
+      ),
+    }));
+  };
 
-    // Build a contextual prompt
-    let prompt = `Create a ${recipeForm.dishType || 'delicious'} recipe`;
+  const updateInstruction = (index: number, value: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      instructions: previous.instructions.map((instruction, instructionIndex) =>
+        instructionIndex === index ? value : instruction
+      ),
+    }));
+  };
 
-    if (recipeForm.mainIngredients.length > 0) {
-      prompt += ` featuring ${recipeForm.mainIngredients.join(', ')}`;
-    }
+  const addInstruction = () => {
+    setDraft((previous) => ({
+      ...previous,
+      instructions: [...previous.instructions, ''],
+    }));
+  };
 
-    if (recipeForm.cuisineStyle) {
-      prompt += ` in ${recipeForm.cuisineStyle} style`;
-    }
-
-    if (recipeForm.occasion) {
-      prompt += ` perfect for ${recipeForm.occasion.toLowerCase()}`;
-    }
-
-    if (recipeForm.cookingTime) {
-      prompt += ` that takes about ${recipeForm.cookingTime} to prepare`;
-    }
-
-    if (recipeForm.servings) {
-      prompt += ` and serves ${recipeForm.servings} people`;
-    }
-
-    if (recipeForm.dietaryRestrictions.length > 0) {
-      prompt += `. Make it ${recipeForm.dietaryRestrictions.join(' and ').toLowerCase()}`;
-    }
-
-    if (recipeForm.difficulty) {
-      prompt += `. Difficulty level should be ${recipeForm.difficulty}`;
-    }
-
-    // Use magical specialty from user profile
-    const magicalSpecialty = userAttributes?.['custom:magicalSpecialty'];
-    if (magicalSpecialty) {
-      const specialtyMap: Record<string, string> = {
-        healing: 'with nourishing and healing properties',
-        protection: 'with protective and cleansing ingredients',
-        abundance: 'that brings prosperity and satisfaction',
-        love: 'with romantic and heart-warming qualities',
-        wisdom: 'that enhances clarity and mental focus',
-        strength: 'that provides energy and vitality',
-      };
-      prompt += ` ${specialtyMap[magicalSpecialty] || ''}`;
-    }
-
-    if (recipeForm.customPrompt) {
-      prompt += `. Additional requirements: ${recipeForm.customPrompt}`;
-    }
-
-    prompt +=
-      '. Please provide a complete recipe with ingredients list, step-by-step instructions, cooking tips, and any magical/mystical touches that fit the arcane kitchen theme.';
-
-    try {
-      // Use the existing message system for AI interaction
-      await handleSendMessage(prompt, isAuthenticated, currentUser);
-      // Note: The actual recipe will appear in the message system
-      // For now, we'll show a placeholder while the AI responds
-      setGeneratedRecipe(
-        'Recipe is being conjured by your kitchen assistant...'
-      );
-    } catch (error) {
-      console.error('Recipe generation failed:', error);
-      setGeneratedRecipe(
-        'The mystical energies are clouded. Please try again.'
-      );
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [
-    recipeForm,
-    userAttributes,
-    isAuthenticated,
-    currentUser,
-    handleSendMessage,
-    isGenerating,
-  ]);
-
-  const resetForm = () => {
-    setRecipeForm({
-      dishType: '',
-      mainIngredients: [],
-      cuisineStyle: '',
-      dietaryRestrictions: [],
-      difficulty: 'intermediate',
-      cookingTime: '',
-      servings: '4',
-      occasion: '',
-      customPrompt: '',
-    });
-    setGeneratedRecipe(null);
+  const toggleTag = (tag: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      tags: previous.tags.includes(tag)
+        ? previous.tags.filter((item) => item !== tag)
+        : [...previous.tags, tag],
+    }));
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 p-6">
-      <div className="flex-1 max-w-6xl mx-auto w-full">
-        <div className="recipe-builder-grid grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-          {/* Recipe Form */}
-          <div className="space-y-6">
-            <div className="recipe-form-section bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-4 md:p-6">
-              <h2 className="text-2xl font-bold text-stone-200 mb-6">
-                Craft Your Recipe
-              </h2>
+    <main className="min-h-screen bg-[#f7f3ec] text-[#201a16]">
+      <header className="sticky top-0 z-20 border-b border-[#e2d8ca] bg-[#f7f3ec]/92 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#201a16] text-sm font-bold text-white">
+              AK
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold tracking-normal">
+                Arcane Kitchen
+              </h1>
+              <p className="text-xs text-[#74665a]">
+                Build, publish, and collect recipes
+              </p>
+            </div>
+          </div>
 
-              {/* Dish Type */}
-              <div className="mb-6">
-                <label className="block text-stone-300 font-medium mb-3">
-                  What are you creating?
-                </label>
-                <div className="dish-type-grid grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {DISH_TYPES.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => updateForm('dishType', type.id)}
-                      className={`p-3 rounded-xl text-center transition-all duration-300 ${
-                        recipeForm.dishType === type.id
-                          ? 'bg-emerald-600/40 border-2 border-emerald-400/60'
-                          : 'bg-stone-700/40 border-2 border-stone-600/30 hover:border-emerald-400/40'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{type.icon}</div>
-                      <div className="text-xs text-stone-300">{type.name}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <nav className="hidden items-center gap-1 rounded-full bg-white p-1 text-sm shadow-sm md:flex">
+            {['Discover', 'Build', 'Saved'].map((item) => (
+              <a
+                key={item}
+                href={`#${item.toLowerCase()}`}
+                className={`rounded-full px-4 py-2 ${
+                  item === 'Build'
+                    ? 'bg-[#201a16] text-white'
+                    : 'text-[#6e6258] hover:bg-[#f0e8dc]'
+                }`}
+              >
+                {item}
+              </a>
+            ))}
+          </nav>
 
-              {/* Main Ingredients */}
-              <div className="mb-6">
-                <label className="block text-stone-300 font-medium mb-3">
-                  Key Ingredients
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., chicken, herbs, tomatoes..."
-                  className="chat-input w-full"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                      const ingredient = e.currentTarget.value.trim();
-                      if (!recipeForm.mainIngredients.includes(ingredient)) {
-                        toggleArrayItem('mainIngredients', ingredient);
-                      }
-                      e.currentTarget.value = '';
-                    }
-                  }}
+          <button className="rounded-lg bg-[#c84f31] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ad442a]">
+            {isAuthenticated ? 'Publish' : 'Preview as guest'}
+          </button>
+        </div>
+      </header>
+
+      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 md:h-[calc(100vh-65px)] md:grid-cols-[1.05fr_1.25fr_.9fr] md:px-6">
+        <section
+          id="discover"
+          className="min-h-0 overflow-hidden rounded-lg border border-[#e0d4c4] bg-white"
+        >
+          <div className="border-b border-[#eee5da] p-4">
+            <p className="text-xs font-semibold uppercase text-[#c84f31]">
+              Live Feed
+            </p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
+              What cooks are making
+            </h2>
+          </div>
+
+          <div className="space-y-3 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)]">
+            {featuredRecipes.map((recipe) => (
+              <article
+                key={recipe.name}
+                className="overflow-hidden rounded-lg border border-[#eee5da] bg-[#fffaf4]"
+              >
+                <img
+                  src={recipe.image}
+                  alt={recipe.name}
+                  className="h-36 w-full object-cover"
                 />
-                {recipeForm.mainIngredients.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {recipeForm.mainIngredients.map((ingredient) => (
+                <div className="p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold tracking-normal">
+                        {recipe.name}
+                      </h3>
+                      <p className="text-sm text-[#74665a]">
+                        by {recipe.author}
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-white px-2 py-1 text-sm font-semibold text-[#201a16] shadow-sm">
+                      {recipe.rating}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-[#74665a]">
+                    <span>{recipe.time}</span>
+                    <span>{recipe.saves} saves</span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {recipe.tags.map((tag) => (
                       <span
-                        key={ingredient}
-                        className="px-3 py-1 bg-emerald-400/30 text-emerald-200 rounded-full text-sm cursor-pointer hover:bg-red-400/30 hover:text-red-200 transition-colors"
-                        onClick={() =>
-                          toggleArrayItem('mainIngredients', ingredient)
-                        }
+                        key={tag}
+                        className="rounded-full bg-white px-2.5 py-1 text-xs text-[#74665a]"
                       >
-                        {ingredient} ×
+                        {tag}
                       </span>
                     ))}
                   </div>
-                )}
-              </div>
-
-              {/* Cuisine Style */}
-              <div className="mb-6">
-                <label className="block text-stone-300 font-medium mb-3">
-                  Cuisine Style
-                </label>
-                <select
-                  value={recipeForm.cuisineStyle}
-                  onChange={(e) => updateForm('cuisineStyle', e.target.value)}
-                  className="chat-input w-full"
-                >
-                  <option value="">Select cuisine style...</option>
-                  {CUISINE_STYLES.map((style) => (
-                    <option key={style} value={style}>
-                      {style}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Quick Options Row */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-stone-300 font-medium mb-2">
-                    Cooking Time
-                  </label>
-                  <select
-                    value={recipeForm.cookingTime}
-                    onChange={(e) => updateForm('cookingTime', e.target.value)}
-                    className="chat-input w-full"
-                  >
-                    <option value="">Any time</option>
-                    {COOKING_TIMES.map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
                 </div>
-                <div>
-                  <label className="block text-stone-300 font-medium mb-2">
-                    Servings
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={recipeForm.servings}
-                    onChange={(e) => updateForm('servings', e.target.value)}
-                    className="chat-input w-full"
-                  />
-                </div>
-              </div>
+              </article>
+            ))}
+          </div>
+        </section>
 
-              {/* Dietary Restrictions */}
-              <div className="mb-6">
-                <label className="block text-stone-300 font-medium mb-3">
-                  Dietary Considerations
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {DIETARY_OPTIONS.map((diet) => (
-                    <button
-                      key={diet}
-                      onClick={() =>
-                        toggleArrayItem('dietaryRestrictions', diet)
-                      }
-                      className={`px-3 py-1 rounded-full text-sm transition-all duration-300 ${
-                        recipeForm.dietaryRestrictions.includes(diet)
-                          ? 'bg-amber-400/30 text-amber-200'
-                          : 'bg-stone-700/50 text-stone-300 hover:bg-stone-600/50'
-                      }`}
-                    >
-                      {diet}
-                    </button>
-                  ))}
-                </div>
-              </div>
+        <section
+          id="build"
+          className="min-h-0 overflow-hidden rounded-lg border border-[#e0d4c4] bg-white"
+        >
+          <div className="flex items-center justify-between border-b border-[#eee5da] p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase text-[#c84f31]">
+                Recipe Studio
+              </p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-normal">
+                Build a shareable post
+              </h2>
+            </div>
+            <div className="hidden rounded-lg bg-[#f7f3ec] px-3 py-2 text-sm text-[#74665a] sm:block">
+              Creator: {creatorName}
+            </div>
+          </div>
 
-              {/* Custom Notes */}
-              <div className="mb-6">
-                <label className="block text-stone-300 font-medium mb-3">
-                  Special Requests or Notes
-                </label>
-                <textarea
-                  value={recipeForm.customPrompt}
-                  onChange={(e) => updateForm('customPrompt', e.target.value)}
-                  placeholder="Any special requirements, flavor preferences, or cooking methods you'd like to include..."
-                  className="chat-input w-full h-20 resize-none"
+          <div className="grid gap-4 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)]">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold">Recipe name</span>
+              <input
+                value={draft.name}
+                onChange={(event) => updateDraft('name', event.target.value)}
+                className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold">Description</span>
+              <textarea
+                value={draft.description}
+                onChange={(event) =>
+                  updateDraft('description', event.target.value)
+                }
+                className="h-20 resize-none rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+              />
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">Prep time</span>
+                <input
+                  value={draft.prepTime}
+                  onChange={(event) =>
+                    updateDraft('prepTime', event.target.value)
+                  }
+                  className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
                 />
-              </div>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">Image URL</span>
+                <input
+                  value={draft.imageUrl}
+                  onChange={(event) =>
+                    updateDraft('imageUrl', event.target.value)
+                  }
+                  className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+                />
+              </label>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex space-x-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Ingredients</h3>
                 <button
-                  onClick={handleGenerate}
-                  disabled={!isAuthenticated || isGenerating}
-                  className={`btn-primary flex-1 ${
-                    isGenerating ? 'opacity-75 cursor-not-allowed' : ''
+                  onClick={addIngredient}
+                  className="rounded-md border border-[#d6c7b7] px-3 py-1.5 text-sm font-semibold hover:bg-[#f7f3ec]"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="grid gap-2">
+                {draft.ingredients.map((ingredient) => (
+                  <div
+                    key={ingredient.id}
+                    className="grid grid-cols-[.7fr_.9fr_1fr_auto] gap-2"
+                  >
+                    <input
+                      aria-label="Amount"
+                      value={ingredient.amount}
+                      onChange={(event) =>
+                        updateIngredient(
+                          ingredient.id,
+                          'amount',
+                          event.target.value
+                        )
+                      }
+                      className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                    />
+                    <input
+                      aria-label="Unit"
+                      value={ingredient.unit}
+                      onChange={(event) =>
+                        updateIngredient(
+                          ingredient.id,
+                          'unit',
+                          event.target.value
+                        )
+                      }
+                      className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                    />
+                    <input
+                      aria-label="Ingredient"
+                      value={ingredient.name}
+                      onChange={(event) =>
+                        updateIngredient(
+                          ingredient.id,
+                          'name',
+                          event.target.value
+                        )
+                      }
+                      className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                    />
+                    <button
+                      onClick={() => removeIngredient(ingredient.id)}
+                      className="rounded-lg border border-[#dbcdbd] px-3 text-sm text-[#74665a] hover:bg-[#f7f3ec]"
+                      aria-label="Remove ingredient"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Instructions</h3>
+                <button
+                  onClick={addInstruction}
+                  className="rounded-md border border-[#d6c7b7] px-3 py-1.5 text-sm font-semibold hover:bg-[#f7f3ec]"
+                >
+                  Add step
+                </button>
+              </div>
+              <div className="grid gap-2">
+                {draft.instructions.map((instruction, index) => (
+                  <label
+                    key={`${index}-${instruction.slice(0, 8)}`}
+                    className="grid grid-cols-[2rem_1fr] items-start gap-2"
+                  >
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f0e8dc] text-sm font-semibold">
+                      {index + 1}
+                    </span>
+                    <textarea
+                      value={instruction}
+                      onChange={(event) =>
+                        updateInstruction(index, event.target.value)
+                      }
+                      className="h-16 resize-none rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside className="grid min-h-0 gap-5 md:grid-rows-[auto_1fr]">
+          <section
+            id="saved"
+            className="rounded-lg border border-[#e0d4c4] bg-[#201a16] p-4 text-white"
+          >
+            <p className="text-xs font-semibold uppercase text-[#f2b49f]">
+              Discovery
+            </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-normal">
+              Trending collections
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {trendingTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => {
+                    setActiveTag(tag);
+                    toggleTag(tag);
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-sm transition ${
+                    activeTag === tag
+                      ? 'bg-white text-[#201a16]'
+                      : 'bg-white/10 text-white hover:bg-white/18'
                   }`}
                 >
-                  {isGenerating ? (
-                    <span className="flex items-center justify-center">
-                      <div className="loading-dots mr-2">
-                        <div></div>
-                        <div></div>
-                        <div></div>
-                      </div>
-                      Conjuring Recipe...
-                    </span>
-                  ) : (
-                    '🔮 Create Recipe'
-                  )}
+                  {tag}
                 </button>
-                <button onClick={resetForm} className="btn-secondary px-6">
-                  Reset
-                </button>
-              </div>
+              ))}
             </div>
-          </div>
+          </section>
 
-          {/* Recipe Preview/Results */}
-          <div className="space-y-6">
-            <div className="bg-gradient-to-br from-stone-800/40 via-green-900/20 to-amber-900/20 backdrop-blur-lg border border-green-400/30 rounded-2xl p-6 min-h-[400px]">
-              <h2 className="text-2xl font-bold text-stone-200 mb-6">
-                Your Mystical Recipe
+          <section className="min-h-0 overflow-hidden rounded-lg border border-[#e0d4c4] bg-white">
+            <div className="border-b border-[#eee5da] p-4">
+              <p className="text-xs font-semibold uppercase text-[#c84f31]">
+                Post Preview
+              </p>
+              <h2 className="mt-1 text-xl font-semibold tracking-normal">
+                Ready for the feed
               </h2>
-
-              {generatedRecipe ? (
-                <div className="prose prose-stone prose-invert max-w-none">
-                  <div className="whitespace-pre-wrap text-stone-300">
-                    {generatedRecipe}
+            </div>
+            <div className="overflow-y-auto p-4 md:max-h-[calc(100vh-334px)]">
+              <article className="overflow-hidden rounded-lg border border-[#eee5da] bg-[#fffaf4]">
+                <img
+                  src={draft.imageUrl}
+                  alt={draft.name || 'Recipe preview'}
+                  className="h-48 w-full object-cover"
+                />
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-semibold tracking-normal">
+                        {draft.name || 'Untitled recipe'}
+                      </h3>
+                      <p className="mt-1 text-sm text-[#74665a]">
+                        by {creatorName}
+                      </p>
+                    </div>
+                    <span className="rounded-md bg-white px-2 py-1 text-sm font-semibold shadow-sm">
+                      {rating}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[#51463d]">
+                    {draft.description}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-[#f0e8dc] px-3 py-1 text-xs font-semibold text-[#51463d]">
+                      {draft.prepTime}
+                    </span>
+                    {draft.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-[#f0e8dc] px-3 py-1 text-xs font-semibold text-[#51463d]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-4 border-t border-[#eee5da] pt-4">
+                    <h4 className="text-sm font-semibold">Ingredient list</h4>
+                    <ul className="mt-2 space-y-1 text-sm text-[#51463d]">
+                      {draft.ingredients
+                        .filter((ingredient) => ingredient.name)
+                        .map((ingredient) => (
+                          <li key={ingredient.id}>
+                            {ingredient.amount} {ingredient.unit}{' '}
+                            {ingredient.name}
+                          </li>
+                        ))}
+                    </ul>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center text-stone-400 italic py-16">
-                  <div className="text-6xl mb-4">🪄</div>
-                  <p>
-                    Your recipe will materialize here once you cast the spell...
-                  </p>
-                </div>
-              )}
+              </article>
             </div>
-          </div>
-        </div>
+          </section>
+        </aside>
       </div>
-    </div>
+    </main>
   );
 };
 
