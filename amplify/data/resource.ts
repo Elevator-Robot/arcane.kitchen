@@ -1,16 +1,6 @@
 import { defineData, a } from '@aws-amplify/backend';
 import { ClientSchema } from '@aws-amplify/backend';
 
-const Quantity = a.customType({
-  amount: a.float().required(),
-  unit: a.string().required(),
-});
-
-const Rating = a.customType({
-  userId: a.string().required(),
-  score: a.integer().required(),
-});
-
 const schema = a.schema({
   Recipe: a
     .model({
@@ -22,7 +12,7 @@ const schema = a.schema({
       prepTime: a.string(),
       tags: a.string().array(),
       imageUrl: a.string(),
-      ratings: a.ref('Rating').array(),
+      ratings: a.json().array(),
     })
     .authorization((allow) => [allow.authenticated()]),
 
@@ -38,12 +28,9 @@ const schema = a.schema({
       id: a.id(),
       recipeId: a.id().required(),
       ingredientId: a.id().required(),
-      quantity: a.ref('Quantity').required(),
+      quantity: a.json().required(),
     })
     .authorization((allow) => [allow.authenticated()]),
-
-  Quantity,
-  Rating,
 });
 
 export const data = defineData({
