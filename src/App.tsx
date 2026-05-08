@@ -213,6 +213,20 @@ function App() {
     setShowAuth(false);
   }, [refreshAuthState]);
 
+  const submitAuthFormOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    const form = target.closest('form');
+
+    if (!form) return;
+
+    event.preventDefault();
+    form.requestSubmit();
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f3ec]">
       <RecipeBuilder
@@ -275,7 +289,7 @@ function App() {
                   Close
                 </button>
 
-                <div className="auth-panel">
+                <div className="auth-panel" onKeyDown={submitAuthFormOnEnter}>
                   <Authenticator
                     socialProviders={['google']}
                     hideSignUp
