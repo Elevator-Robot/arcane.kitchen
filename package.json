@@ -10,7 +10,7 @@
     "lint:fix": "eslint . --ext ts,tsx --fix",
     "lint:strict": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write .",
-    "deploy:sandbox": "node --require ./scripts/node-localstorage-shim.cjs ./node_modules/.bin/ampx sandbox --once",
+    "deploy:sandbox": "node ./scripts/deploy-sandbox.cjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",

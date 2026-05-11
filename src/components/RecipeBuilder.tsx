@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
+import { getUrl, uploadData } from 'aws-amplify/storage';
 import type { Schema } from '../../amplify/data/resource';
 
 const client = generateClient<Schema>();
@@ -40,42 +42,6 @@ interface FeedRecipe {
   tags: string[];
 }
 
-const fallbackRecipes: FeedRecipe[] = [
-  {
-    id: 'sample-orzo',
-    name: 'Charred Lemon Orzo',
-    author: 'Mina Park',
-    image:
-      'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=900&q=80',
-    time: '28 min',
-    rating: '4.9',
-    saves: '12.4k',
-    tags: ['Weeknight', 'Vegetarian'],
-  },
-  {
-    id: 'sample-chicken',
-    name: 'Crisp Chile Honey Chicken',
-    author: 'Theo Brooks',
-    image:
-      'https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&w=900&q=80',
-    time: '45 min',
-    rating: '4.8',
-    saves: '9.1k',
-    tags: ['Dinner', 'High Protein'],
-  },
-  {
-    id: 'sample-pavlova',
-    name: 'Market Berry Pavlova',
-    author: 'Evelyn Hart',
-    image:
-      'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=900&q=80',
-    time: '1 hr',
-    rating: '4.7',
-    saves: '6.8k',
-    tags: ['Dessert', 'Seasonal'],
-  },
-];
-
 const trendingTags = [
   '30-minute',
   'Dinner party',
@@ -85,14 +51,16 @@ const trendingTags = [
   'High protein',
 ];
 
+const fallbackRecipeImage =
+  'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=900&q=80';
+
 const defaultDraft: RecipeDraft = {
   name: 'Summer Tomato Toasts',
   description:
     'A bright, shareable recipe with crisp bread, marinated tomatoes, whipped ricotta, and basil oil.',
   prepTime: '20 min',
   tags: ['Seasonal', 'Vegetarian'],
-  imageUrl:
-    'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=900&q=80',
+  imageUrl: '',
   ingredients: [
     { id: 1, name: 'Sourdough slices', amount: '4', unit: 'pieces' },
     { id: 2, name: 'Cherry tomatoes', amount: '2', unit: 'cups' },
@@ -104,6 +72,46 @@ const defaultDraft: RecipeDraft = {
     'Spread ricotta on each toast, spoon tomatoes over the top, and finish with basil oil.',
   ],
 };
+
+const isRemoteUrl = (value?: string | null) =>
+  Boolean(value && /^https?:\/\//i.test(value));
+
+const getRecipeImageSource = async (imageUrl?: string | null) => {
+  if (!imageUrl) return fallbackRecipeImage;
+  if (isRemoteUrl(imageUrl)) return imageUrl;
+
+  try {
+    const { url } = await getUrl({
+      path: imageUrl,
+      options: {
+        expiresIn: 60 * 60,
+      },
+    });
+
+    return url.toString();
+  } catch (error) {
+    console.error('Failed to resolve recipe image:', error);
+    return fallbackRecipeImage;
+  }
+};
+
+const getRecipeImagePath = (file: File) => {
+  const extension =
+    file.name
+      .split('.')
+      .pop()
+      ?.toLowerCase()
+      .replace(/[^a-z0-9]/g, '') || 'jpg';
+  const id =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}`;
+
+  return `recipe-images/${id}.${extension}`;
+};
+
+const hasStorageConfig = () =>
+  Boolean((Amplify.getConfig() as { Storage?: unknown }).Storage);
 
 const getCreatorName = (userAttributes?: any, currentUser?: any) => {
   if (userAttributes?.nickname) return userAttributes.nickname;
@@ -148,25 +156,24 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   onSignOut,
 }) => {
   const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
-  const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>(fallbackRecipes);
+  const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('30-minute');
-  const [isLoadingFeed, setIsLoadingFeed] = useState(false);
+  const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
+  const [feedMessage, setFeedMessage] = useState('');
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
   const creatorName = getCreatorName(userAttributes, currentUser);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
 
   const loadRecipes = useCallback(async () => {
-    if (!isAuthenticated) {
-      setFeedRecipes(fallbackRecipes);
-      return;
-    }
-
     setIsLoadingFeed(true);
+    setFeedMessage('');
 
     try {
       const { data, errors } = await client.models.Recipe.list({
-        authMode: isAuthenticated ? 'userPool' : 'apiKey',
+        authMode: isAuthenticated ? 'userPool' : 'identityPool',
       });
 
       if (errors?.length) {
@@ -174,27 +181,31 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
 
       if (!data.length) {
-        setFeedRecipes(fallbackRecipes);
+        setFeedRecipes([]);
+        setFeedMessage('No recipes have been published yet.');
         return;
       }
 
-      setFeedRecipes(
+      const recipes = await Promise.all(
         data
           .filter((recipe) => recipe.id && recipe.name)
-          .map((recipe) => ({
+          .map(async (recipe) => ({
             id: recipe.id as string,
             name: recipe.name,
             author: recipe.createdBy || 'Arcane cook',
-            image: recipe.imageUrl || defaultDraft.imageUrl,
+            image: await getRecipeImageSource(recipe.imageUrl),
             time: recipe.prepTime || 'Prep time open',
             rating: getBackendRating(recipe.ratings),
             saves: 'New',
             tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
           }))
       );
+
+      setFeedRecipes(recipes);
     } catch (error) {
       console.error('Failed to load recipes:', error);
-      setFeedRecipes(fallbackRecipes);
+      setFeedRecipes([]);
+      setFeedMessage('Recipes are unavailable right now.');
     } finally {
       setIsLoadingFeed(false);
     }
@@ -203,6 +214,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   useEffect(() => {
     loadRecipes();
   }, [loadRecipes]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   const updateDraft = <K extends keyof RecipeDraft>(
     field: K,
@@ -268,6 +287,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
+  const updateImageFile = (file?: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setPublishMessage('Choose an image file for the recipe photo.');
+      return;
+    }
+
+    setSelectedImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+    setDraft((previous) => ({ ...previous, imageUrl: '' }));
+    setPublishMessage('');
+  };
+
   const publishRecipe = async () => {
     if (!isAuthenticated || isPublishing) {
       setPublishMessage('Log in to publish recipes.');
@@ -284,10 +317,32 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return;
     }
 
+    if (selectedImageFile && !hasStorageConfig()) {
+      setPublishMessage(
+        'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.'
+      );
+      return;
+    }
+
     setIsPublishing(true);
     setPublishMessage('');
 
     try {
+      let imageUrl = draft.imageUrl.trim();
+
+      if (selectedImageFile) {
+        imageUrl = getRecipeImagePath(selectedImageFile);
+
+        await uploadData({
+          path: imageUrl,
+          data: selectedImageFile,
+          options: {
+            contentType: selectedImageFile.type || 'image/jpeg',
+            preventOverwrite: true,
+          },
+        }).result;
+      }
+
       const recipeResult = await client.models.Recipe.create({
         name: draft.name.trim(),
         description: draft.description.trim(),
@@ -297,7 +352,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           .filter(Boolean),
         prepTime: draft.prepTime.trim(),
         tags: draft.tags,
-        imageUrl: draft.imageUrl.trim(),
+        imageUrl,
         ratings: [],
       }, {
         authMode: 'userPool',
@@ -341,10 +396,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           const linkResult = await client.models.RecipeIngredient.create({
             recipeId,
             ingredientId,
-            quantity: {
+            quantity: JSON.stringify({
               amount: ingredient.amount.trim(),
               unit: ingredient.unit.trim(),
-            },
+            }),
           }, {
             authMode: 'userPool',
           });
@@ -361,7 +416,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       await loadRecipes();
     } catch (error) {
       console.error('Failed to publish recipe:', error);
-      setPublishMessage('Publish failed. Check your sandbox deployment and auth.');
+      const message =
+        error instanceof Error && error.message.includes('Missing bucket name')
+          ? 'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.'
+          : 'Publish failed. Check your sandbox deployment and auth.';
+
+      setPublishMessage(message);
     } finally {
       setIsPublishing(false);
     }
@@ -371,7 +431,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     <main className="min-h-screen bg-[#f7f3ec] text-[#201a16]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(200,79,49,0.16),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(50,95,75,0.16),transparent_34%),linear-gradient(180deg,rgba(255,250,244,0.75),rgba(247,243,236,0.92))]" />
       <header className="sticky top-0 z-20 border-b border-[#e2d8ca] bg-[#fffaf4]/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#201a16] text-sm font-bold text-white">
               AK
@@ -426,10 +486,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         </div>
       </header>
 
-      <div className="relative mx-auto grid max-w-7xl gap-5 px-4 py-5 md:h-[calc(100vh-65px)] md:grid-cols-[1.05fr_1.25fr_.9fr] md:px-6">
+      <div className="relative mx-auto grid w-full max-w-[1800px] gap-4 px-4 py-4 lg:h-[calc(100vh-65px)] lg:grid-cols-[minmax(280px,0.95fr)_minmax(420px,1.25fr)] lg:px-6 xl:grid-cols-[minmax(300px,0.9fr)_minmax(500px,1.35fr)_minmax(340px,1fr)]">
         <section
           id="discover"
-          className="min-h-0 overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/88 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur"
+          className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/88 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur"
         >
           <div className="border-b border-[#eee5da] bg-[#fffaf4] p-4">
             <p className="text-xs font-semibold uppercase text-[#c84f31]">
@@ -448,8 +508,27 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             )}
           </div>
 
-          <div className="space-y-3 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)]">
-            {feedRecipes.map((recipe) => (
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+            {isLoadingFeed ? (
+              <div className="grid gap-3">
+                {[0, 1, 2].map((item) => (
+                  <div
+                    key={item}
+                    className="overflow-hidden rounded-xl border border-[#eee5da] bg-[#fffaf4]"
+                  >
+                    <div className="h-40 animate-pulse bg-[#eadfce]" />
+                    <div className="grid gap-3 p-3">
+                      <div className="h-5 w-2/3 animate-pulse rounded bg-[#eadfce]" />
+                      <div className="h-4 w-1/2 animate-pulse rounded bg-[#f0e8dc]" />
+                      <div className="flex gap-2">
+                        <div className="h-6 w-20 animate-pulse rounded-full bg-[#f0e8dc]" />
+                        <div className="h-6 w-24 animate-pulse rounded-full bg-[#f0e8dc]" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : feedRecipes.length ? feedRecipes.map((recipe) => (
               <article
                 key={recipe.id}
                 className="overflow-hidden rounded-xl border border-[#eee5da] bg-[#fffaf4] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
@@ -457,7 +536,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <img
                   src={recipe.image}
                   alt={recipe.name}
-                  className="h-36 w-full object-cover"
+                  className="h-40 w-full object-cover"
                 />
                 <div className="p-3">
                   <div className="flex items-start justify-between gap-3">
@@ -489,13 +568,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
                 </div>
               </article>
-            ))}
+            )) : (
+              <div className="rounded-xl border border-dashed border-[#d8cab8] bg-[#fffaf4] p-6 text-center">
+                <p className="text-sm font-semibold text-[#51463d]">
+                  {feedMessage || 'No recipes to show yet.'}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[#74665a]">
+                  Published recipes will appear here as the community starts
+                  sharing.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
         <section
           id="build"
-          className="relative min-h-0 overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.12)] backdrop-blur"
+          className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.12)] backdrop-blur"
         >
           <div className="flex items-center justify-between border-b border-[#eee5da] bg-white p-4">
             <div>
@@ -516,7 +605,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </div>
 
-          <div className={`grid gap-4 overflow-y-auto p-4 md:max-h-[calc(100vh-170px)] ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}>
+          <div className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}>
             {publishMessage && (
               <div className="rounded-lg border border-[#e5d5c4] bg-[#fff7ed] px-3 py-2 text-sm text-[#6f4c36]">
                 {publishMessage}
@@ -543,7 +632,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               />
             </label>
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+            <div className="grid min-w-0 gap-3">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">Prep time</span>
                 <input
@@ -554,15 +643,26 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
                 />
               </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-semibold">Image URL</span>
-                <input
-                  value={draft.imageUrl}
-                  onChange={(event) =>
-                    updateDraft('imageUrl', event.target.value)
-                  }
-                  className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
-                />
+              <label className="grid min-w-0 gap-2">
+                <span className="text-sm font-semibold">Recipe photo</span>
+                <span className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] p-2 transition focus-within:border-[#c84f31] focus-within:ring-4 focus-within:ring-[#c84f31]/10">
+                  <span className="rounded-md bg-[#201a16] px-3 py-1.5 text-sm font-semibold text-white">
+                    Choose photo
+                  </span>
+                  <span className="min-w-0 truncate text-sm text-[#74665a]">
+                    {selectedImageFile
+                      ? selectedImageFile.name
+                      : 'No photo selected'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      updateImageFile(event.target.files?.[0])
+                    }
+                    className="sr-only"
+                  />
+                </span>
               </label>
             </div>
 
@@ -580,51 +680,58 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.ingredients.map((ingredient) => (
                   <div
                     key={ingredient.id}
-                    className="grid grid-cols-[.7fr_.9fr_1fr_auto] gap-2"
+                    className="grid min-w-0 gap-2 rounded-xl border border-[#eee5da] bg-[#fffaf4] p-2"
                   >
-                    <input
-                      aria-label="Amount"
-                      value={ingredient.amount}
-                      onChange={(event) =>
-                        updateIngredient(
-                          ingredient.id,
-                          'amount',
-                          event.target.value
-                        )
-                      }
-                      className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
-                    />
-                    <input
-                      aria-label="Unit"
-                      value={ingredient.unit}
-                      onChange={(event) =>
-                        updateIngredient(
-                          ingredient.id,
-                          'unit',
-                          event.target.value
-                        )
-                      }
-                      className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
-                    />
-                    <input
-                      aria-label="Ingredient"
-                      value={ingredient.name}
-                      onChange={(event) =>
-                        updateIngredient(
-                          ingredient.id,
-                          'name',
-                          event.target.value
-                        )
-                      }
-                      className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
-                    />
-                    <button
-                      onClick={() => removeIngredient(ingredient.id)}
-                      className="rounded-lg border border-[#dbcdbd] px-3 text-sm text-[#74665a] hover:bg-[#f7f3ec]"
-                      aria-label="Remove ingredient"
-                    >
-                      x
-                    </button>
+                    <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
+                      <input
+                        aria-label="Ingredient"
+                        value={ingredient.name}
+                        onChange={(event) =>
+                          updateIngredient(
+                            ingredient.id,
+                            'name',
+                            event.target.value
+                          )
+                        }
+                        placeholder="Ingredient"
+                        className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                      />
+                      <button
+                        onClick={() => removeIngredient(ingredient.id)}
+                        className="h-10 w-10 rounded-lg border border-[#dbcdbd] text-sm font-semibold text-[#74665a] hover:bg-[#f7f3ec]"
+                        aria-label="Remove ingredient"
+                      >
+                        x
+                      </button>
+                    </div>
+                    <div className="grid min-w-0 grid-cols-2 gap-2">
+                      <input
+                        aria-label="Amount"
+                        value={ingredient.amount}
+                        onChange={(event) =>
+                          updateIngredient(
+                            ingredient.id,
+                            'amount',
+                            event.target.value
+                          )
+                        }
+                        placeholder="Amount"
+                        className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                      />
+                      <input
+                        aria-label="Unit"
+                        value={ingredient.unit}
+                        onChange={(event) =>
+                          updateIngredient(
+                            ingredient.id,
+                            'unit',
+                            event.target.value
+                          )
+                        }
+                        placeholder="Unit"
+                        className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -644,7 +751,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.instructions.map((instruction, index) => (
                   <label
                     key={`${index}-${instruction.slice(0, 8)}`}
-                    className="grid grid-cols-[2rem_1fr] items-start gap-2"
+                    className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-start gap-2"
                   >
                     <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f0e8dc] text-sm font-semibold">
                       {index + 1}
@@ -684,7 +791,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )}
         </section>
 
-        <aside className="grid min-h-0 gap-5 md:grid-rows-[auto_1fr]">
+        <aside className="grid min-h-0 gap-4 lg:col-span-2 xl:col-span-1 xl:grid-rows-[auto_minmax(0,1fr)]">
           <section
             id="saved"
             className="rounded-xl border border-[#332922] bg-[#201a16] p-4 text-white shadow-[0_24px_70px_rgba(32,26,22,0.24)]"
@@ -715,7 +822,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </section>
 
-          <section className="min-h-0 overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur">
             <div className="border-b border-[#eee5da] bg-white p-4">
               <p className="text-xs font-semibold uppercase text-[#c84f31]">
                 Post Preview
@@ -724,10 +831,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 Ready for the feed
               </h2>
             </div>
-            <div className="overflow-y-auto p-4 md:max-h-[calc(100vh-334px)]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <article className="overflow-hidden rounded-lg border border-[#eee5da] bg-[#fffaf4]">
                 <img
-                  src={draft.imageUrl}
+                  src={imagePreviewUrl}
                   alt={draft.name || 'Recipe preview'}
                   className="h-48 w-full object-cover"
                 />

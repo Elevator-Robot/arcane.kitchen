@@ -291,7 +291,6 @@ function App() {
 
                 <div className="auth-panel" onKeyDown={submitAuthFormOnEnter}>
                   <Authenticator
-                    socialProviders={['google']}
                     hideSignUp
                     components={{
                       SignIn: {

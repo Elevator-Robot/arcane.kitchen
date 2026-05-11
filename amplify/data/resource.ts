@@ -16,7 +16,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.authenticated(),
-      allow.publicApiKey().to(['read']),
+      allow.guest().to(['read']),
     ]),
 
   Ingredient: a
@@ -26,7 +26,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.authenticated(),
-      allow.publicApiKey().to(['read']),
+      allow.guest().to(['read']),
     ]),
 
   RecipeIngredient: a
@@ -38,7 +38,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.authenticated(),
-      allow.publicApiKey().to(['read']),
+      allow.guest().to(['read']),
     ]),
 });
 
@@ -46,9 +46,6 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'userPool',
-    apiKeyAuthorizationMode: {
-      expiresInDays: 30,
-    },
   },
 });
 
