@@ -6,7 +6,7 @@ export const auth = defineAuth({
   },
   userAttributes: {
     nickname: {
-      required: true,
+      required: false,
       mutable: true,
     },
     // Store character preferences in user profile
