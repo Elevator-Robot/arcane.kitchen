@@ -5,6 +5,23 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --theme-bg: #2b1732;
+    --theme-bg-soft: #3a2144;
+    --theme-surface: #fff8ef;
+    --theme-surface-alt: #f8efe3;
+    --theme-text: #211923;
+    --theme-text-muted: #6e6270;
+    --theme-border: #d4bfd1;
+    --theme-border-strong: #bb9fba;
+    --theme-plum: #6f2b6a;
+    --theme-plum-strong: #55204f;
+    --theme-pine: #2f5a43;
+    --theme-pine-strong: #234333;
+    --theme-focus: rgba(111, 43, 106, 0.18);
+    --theme-overlay: rgba(25, 17, 28, 0.64);
+  }
+
   html {
     font-family:
       Inter,
@@ -20,8 +37,8 @@
   body {
     min-height: 100vh;
     margin: 0;
-    background: #f7f3ec;
-    color: #201a16;
+    background: var(--theme-bg);
+    color: var(--theme-text);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
@@ -51,17 +68,103 @@
 }
 
 @layer components {
+  .ak-bg {
+    background: var(--theme-bg);
+    color: var(--theme-text);
+  }
+
+  .ak-page-glow {
+    background:
+      radial-gradient(circle at 18% 8%, rgba(173, 95, 191, 0.24), transparent 34%),
+      radial-gradient(circle at 82% 14%, rgba(79, 54, 117, 0.22), transparent 36%),
+      linear-gradient(180deg, rgba(255, 248, 239, 0.78), rgba(43, 23, 50, 0.92));
+  }
+
+  .ak-surface {
+    background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
+    border-color: var(--theme-border);
+  }
+
+  .ak-surface-alt {
+    background: var(--theme-surface-alt);
+    border-color: color-mix(in srgb, var(--theme-border) 85%, white 15%);
+  }
+
+  .ak-card {
+    border: 1px solid var(--theme-border);
+    background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
+    box-shadow: 0 24px 70px rgba(48, 26, 44, 0.1);
+    backdrop-filter: blur(10px);
+  }
+
+  .ak-header {
+    background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
+    border-color: var(--theme-border);
+  }
+
+  .ak-pill-nav {
+    background: var(--theme-surface);
+    box-shadow: 0 8px 18px rgba(47, 34, 48, 0.08);
+  }
+
+  .ak-input {
+    border: 1px solid var(--theme-border);
+    background: color-mix(in srgb, var(--theme-surface) 90%, white 10%);
+    color: var(--theme-text);
+  }
+
+  .ak-input:focus,
+  .ak-input:focus-within {
+    border-color: var(--theme-plum);
+    box-shadow: 0 0 0 4px var(--theme-focus);
+  }
+
+  .ak-button-primary {
+    background: linear-gradient(
+      135deg,
+      var(--theme-plum),
+      color-mix(in srgb, var(--theme-plum) 75%, var(--theme-pine) 25%)
+    );
+    color: #fff;
+  }
+
+  .ak-button-primary:hover {
+    background: linear-gradient(135deg, var(--theme-plum-strong), var(--theme-pine));
+  }
+
+  .ak-button-secondary {
+    background: var(--theme-surface);
+    border: 1px solid var(--theme-border-strong);
+    color: var(--theme-text);
+  }
+
+  .ak-button-secondary:hover {
+    background: var(--theme-bg-soft);
+  }
+
+  .ak-muted {
+    color: var(--theme-text-muted);
+  }
+
+  .ak-accent {
+    color: var(--theme-plum);
+  }
+
+  .ak-overlay {
+    background: var(--theme-overlay);
+  }
+
   .auth-panel [data-amplify-authenticator] {
     --amplify-components-authenticator-router-box-shadow: none;
     --amplify-components-authenticator-router-border-width: 0;
     --amplify-components-authenticator-router-background-color: transparent;
-    --amplify-components-tabs-item-active-border-color: #c84f31;
-    --amplify-components-tabs-item-active-color: #201a16;
-    --amplify-components-tabs-border-color: #eadfce;
-    --amplify-colors-brand-primary-10: #fff7ed;
-    --amplify-colors-brand-primary-60: #c84f31;
-    --amplify-colors-brand-primary-80: #ad442a;
-    --amplify-colors-brand-primary-90: #913720;
+    --amplify-components-tabs-item-active-border-color: var(--theme-plum);
+    --amplify-components-tabs-item-active-color: var(--theme-text);
+    --amplify-components-tabs-border-color: var(--theme-border);
+    --amplify-colors-brand-primary-10: var(--theme-surface-alt);
+    --amplify-colors-brand-primary-60: var(--theme-plum);
+    --amplify-colors-brand-primary-80: var(--theme-plum-strong);
+    --amplify-colors-brand-primary-90: #43183f;
     width: 100%;
   }
 
@@ -85,9 +188,25 @@
   }
 
   .auth-panel .amplify-button--primary {
-    border-radius: 0.625rem;
-    font-weight: 700;
-    min-height: 2.75rem;
+    background: linear-gradient(
+      135deg,
+      var(--theme-plum),
+      color-mix(in srgb, var(--theme-plum) 75%, var(--theme-pine) 25%)
+    );
+    color: #fff;
+    border: 0;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    min-height: 0;
+    padding: 0.5rem 1rem;
+    transition: background 0.2s ease;
+  }
+
+  .auth-panel .amplify-button--primary:hover {
+    background: linear-gradient(135deg, var(--theme-plum-strong), var(--theme-pine));
   }
 
   .auth-panel .amplify-button:not(.amplify-button--link) {
@@ -119,10 +238,10 @@
     aspect-ratio: 1;
     width: 100%;
     min-width: 0;
-    border: 1px solid #d8cab8;
+    border: 1px solid var(--theme-border);
     border-radius: 0.75rem;
-    background: #fff;
-    color: #201a16;
+    background: var(--theme-surface);
+    color: var(--theme-text);
     text-align: center;
     font-size: 1.25rem;
     font-weight: 700;
@@ -133,12 +252,27 @@
   }
 
   .confirmation-code-input:focus {
-    border-color: #c84f31;
-    box-shadow: 0 0 0 4px rgba(200, 79, 49, 0.12);
+    border-color: var(--theme-plum);
+    box-shadow: 0 0 0 4px var(--theme-focus);
   }
 
   form[data-amplify-authenticator-confirmsignup]
-    .amplify-field:has(input[name='confirmation_code']) {
+    input[name='confirmation_code'] {
+    display: none;
+  }
+
+  form[data-amplify-authenticator-confirmsignup]
+    label[for='confirmation_code'] {
+    display: none;
+  }
+
+  form[data-amplify-authenticator-confirmsignup]
+    .amplify-fieldset__legend {
+    display: none;
+  }
+
+  form[data-amplify-authenticator-confirmsignup]
+    .amplify-label {
     display: none;
   }
 }

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Authenticator, Text } from '@aws-amplify/ui-react';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
+  autoSignIn,
+  confirmSignUp,
   fetchUserAttributes,
   getCurrentUser,
   signIn,
@@ -15,6 +17,11 @@ const authFormFields = {
     username: {
       placeholder: 'you@example.com',
       label: 'Email',
+    },
+  },
+  confirmSignUp: {
+    confirmation_code: {
+      labelHidden: true,
     },
   },
 };
@@ -41,6 +48,7 @@ const authServices = {
           username,
           password,
           options: {
+            autoSignIn: true,
             userAttributes: {
               email: username,
               nickname: defaultNickname,
@@ -66,6 +74,22 @@ const authServices = {
         throw signUpError;
       }
     }
+  },
+
+  async handleConfirmSignUp(input: any) {
+    const username = input.username?.trim().toLowerCase();
+    const confirmationCode = input.confirmation_code;
+
+    const result = await confirmSignUp({
+      username,
+      confirmationCode,
+    });
+
+    if (result.isSignUpComplete) {
+      return await autoSignIn();
+    }
+
+    return result as any;
   },
 };
 
@@ -201,6 +225,12 @@ function App() {
     refreshAuthState();
   }, [refreshAuthState]);
 
+  useEffect(() => {
+    if (showAuth && isAuthenticated) {
+      setShowAuth(false);
+    }
+  }, [isAuthenticated, showAuth]);
+
   const handleSignOut = async () => {
     await amplifySignOut();
     setCurrentUser(null);
@@ -228,7 +258,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f3ec]">
+    <div className="ak-bg min-h-screen">
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         currentUser={currentUser}
@@ -238,14 +268,14 @@ function App() {
       />
 
       {showAuth && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#201a16]/62 px-4 py-6 backdrop-blur-md sm:py-10">
+        <div className="ak-overlay fixed inset-0 z-50 overflow-y-auto px-4 py-6 backdrop-blur-md sm:py-10">
           <div className="mx-auto flex min-h-full w-full max-w-5xl items-center justify-center">
-            <div className="relative grid w-full overflow-hidden rounded-3xl border border-white/45 bg-[#fffaf4] shadow-[0_30px_90px_rgba(32,26,22,0.35)] md:grid-cols-[0.95fr_1fr]">
-              <section className="relative hidden min-h-[620px] bg-[#201a16] p-8 text-white md:block">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(242,180,159,0.28),transparent_32%),linear-gradient(145deg,rgba(200,79,49,0.18),transparent_55%)]" />
+            <div className="relative grid w-full overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-[0_30px_90px_rgba(34,18,36,0.35)] md:grid-cols-[0.95fr_1fr]">
+              <section className="relative hidden min-h-[620px] bg-[var(--theme-pine-strong)] p-8 text-white md:block">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(111,43,106,0.34),transparent_32%),linear-gradient(145deg,rgba(111,43,106,0.2),transparent_55%)]" />
                 <div className="relative flex h-full flex-col justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase text-[#f2b49f]">
+                    <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-plum)_45%,white_55%)]">
                       Member Kitchen
                     </p>
                     <h2 className="mt-4 text-4xl font-semibold tracking-normal">
@@ -257,7 +287,7 @@ function App() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-white/12 bg-white/8 p-4 backdrop-blur">
+                  <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur">
                     <p className="text-sm font-semibold">After logging in</p>
                     <div className="mt-4 grid gap-3 text-sm text-white/72">
                       <span>Publish recipes into the shared feed</span>
@@ -270,13 +300,13 @@ function App() {
 
               <section className="max-h-[calc(100vh-3rem)] overflow-y-auto p-5 sm:p-7 md:max-h-[calc(100vh-5rem)]">
                 <div className="mb-5 pr-14 md:hidden">
-                  <p className="text-xs font-semibold uppercase text-[#c84f31]">
+                  <p className="text-xs font-semibold uppercase ak-accent">
                     Member Kitchen
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-normal">
                     Share recipes people want to save
                   </h2>
-                  <p className="mt-2 text-sm leading-6 text-[#74665a]">
+                  <p className="ak-muted mt-2 text-sm leading-6">
                     Log in to publish recipes, save favorites, and build your
                     collection.
                   </p>
@@ -284,14 +314,13 @@ function App() {
 
                 <button
                   onClick={() => setShowAuth(false)}
-                  className="absolute right-4 top-4 rounded-full border border-[#e2d8ca] bg-white/90 px-4 py-2 text-sm font-semibold text-[#51463d] shadow-sm transition hover:bg-[#f0e8dc]"
+                  className="ak-button-secondary absolute right-4 top-4 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition"
                 >
                   Close
                 </button>
 
                 <div className="auth-panel" onKeyDown={submitAuthFormOnEnter}>
                   <Authenticator
-                    socialProviders={['google']}
                     hideSignUp
                     components={{
                       SignIn: {

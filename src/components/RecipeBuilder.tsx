@@ -428,33 +428,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   return (
-    <main className="min-h-screen bg-[#f7f3ec] text-[#201a16]">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_18%_8%,rgba(200,79,49,0.16),transparent_30%),radial-gradient(circle_at_82%_14%,rgba(50,95,75,0.16),transparent_34%),linear-gradient(180deg,rgba(255,250,244,0.75),rgba(247,243,236,0.92))]" />
-      <header className="sticky top-0 z-20 border-b border-[#e2d8ca] bg-[#fffaf4]/90 backdrop-blur-xl">
+    <main className="ak-bg min-h-screen">
+      <div className="ak-page-glow pointer-events-none fixed inset-0" />
+      <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-[#201a16] text-sm font-bold text-white">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-[var(--theme-pine-strong)] text-sm font-bold text-white">
               AK
             </div>
             <div>
               <h1 className="text-lg font-semibold tracking-normal">
                 Arcane Kitchen
               </h1>
-              <p className="text-xs text-[#74665a]">
+              <p className="ak-muted text-xs">
                 Explore recipes freely. Log in to create.
               </p>
             </div>
           </div>
 
-          <nav className="hidden items-center gap-1 rounded-full bg-white p-1 text-sm shadow-sm md:flex">
+          <nav className="ak-pill-nav hidden items-center gap-1 rounded-full p-1 text-sm md:flex">
             {['Discover', 'Build', 'Saved'].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
                 className={`rounded-full px-4 py-2 ${
                   item === 'Build'
-                    ? 'bg-[#201a16] text-white'
-                    : 'text-[#6e6258] hover:bg-[#f0e8dc]'
+                    ? 'bg-[var(--theme-pine)] text-white'
+                    : 'ak-muted hover:bg-[var(--theme-bg-soft)]'
                 }`}
               >
                 {item}
@@ -466,7 +466,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             {onSignOut && (
               <button
                 onClick={onSignOut}
-                className="rounded-lg border border-[#d6c7b7] bg-white px-4 py-2 text-sm font-semibold text-[#51463d] shadow-sm transition hover:bg-[#f0e8dc]"
+                className="ak-button-secondary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
               >
                 Sign out
               </button>
@@ -474,7 +474,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <button
               onClick={isAuthenticated ? publishRecipe : onRequestAuth}
               disabled={isPublishing}
-              className="rounded-lg bg-[#c84f31] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#ad442a] disabled:opacity-60"
+              className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition disabled:opacity-60"
             >
               {isPublishing
                 ? 'Publishing...'
@@ -489,20 +489,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       <div className="relative mx-auto grid w-full max-w-[1800px] gap-4 px-4 py-4 lg:h-[calc(100vh-65px)] lg:grid-cols-[minmax(280px,0.95fr)_minmax(420px,1.25fr)] lg:px-6 xl:grid-cols-[minmax(300px,0.9fr)_minmax(500px,1.35fr)_minmax(340px,1fr)]">
         <section
           id="discover"
-          className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/88 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur"
+          className="ak-card flex min-h-0 flex-col overflow-hidden rounded-xl"
         >
-          <div className="border-b border-[#eee5da] bg-[#fffaf4] p-4">
-            <p className="text-xs font-semibold uppercase text-[#c84f31]">
+          <div className="ak-surface-alt border-b p-4">
+            <p className="ak-accent text-xs font-semibold uppercase">
               Public Feed
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal">
               Explore what cooks are making
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#74665a]">
+            <p className="ak-muted mt-2 text-sm leading-6">
               Browse the community recipe stream without an account.
             </p>
             {isLoadingFeed && (
-              <p className="mt-1 text-sm text-[#74665a]">
+              <p className="ak-muted mt-1 text-sm">
                 Loading shared recipes...
               </p>
             )}
@@ -514,15 +514,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {[0, 1, 2].map((item) => (
                   <div
                     key={item}
-                    className="overflow-hidden rounded-xl border border-[#eee5da] bg-[#fffaf4]"
+                    className="ak-surface-alt overflow-hidden rounded-xl border"
                   >
-                    <div className="h-40 animate-pulse bg-[#eadfce]" />
+                    <div className="h-40 animate-pulse bg-[var(--theme-border)]" />
                     <div className="grid gap-3 p-3">
-                      <div className="h-5 w-2/3 animate-pulse rounded bg-[#eadfce]" />
-                      <div className="h-4 w-1/2 animate-pulse rounded bg-[#f0e8dc]" />
+                      <div className="h-5 w-2/3 animate-pulse rounded bg-[var(--theme-border)]" />
+                      <div className="h-4 w-1/2 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
                       <div className="flex gap-2">
-                        <div className="h-6 w-20 animate-pulse rounded-full bg-[#f0e8dc]" />
-                        <div className="h-6 w-24 animate-pulse rounded-full bg-[#f0e8dc]" />
+                        <div className="h-6 w-20 animate-pulse rounded-full bg-[var(--theme-bg-soft)]" />
+                        <div className="h-6 w-24 animate-pulse rounded-full bg-[var(--theme-bg-soft)]" />
                       </div>
                     </div>
                   </div>
@@ -531,7 +531,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : feedRecipes.length ? feedRecipes.map((recipe) => (
               <article
                 key={recipe.id}
-                className="overflow-hidden rounded-xl border border-[#eee5da] bg-[#fffaf4] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               >
                 <img
                   src={recipe.image}
@@ -544,15 +544,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="text-base font-semibold tracking-normal">
                         {recipe.name}
                       </h3>
-                      <p className="text-sm text-[#74665a]">
+                      <p className="ak-muted text-sm">
                         by {recipe.author}
                       </p>
                     </div>
-                    <div className="rounded-md bg-white px-2 py-1 text-sm font-semibold text-[#201a16] shadow-sm">
+                    <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
                       {recipe.rating}
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-xs text-[#74665a]">
+                  <div className="ak-muted mt-3 flex items-center justify-between text-xs">
                     <span>{recipe.time}</span>
                     <span>{recipe.saves} saves</span>
                   </div>
@@ -560,7 +560,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     {recipe.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-white px-2.5 py-1 text-xs text-[#74665a]"
+                        className="ak-muted rounded-full bg-[var(--theme-surface)] px-2.5 py-1 text-xs"
                       >
                         {tag}
                       </span>
@@ -569,11 +569,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
               </article>
             )) : (
-              <div className="rounded-xl border border-dashed border-[#d8cab8] bg-[#fffaf4] p-6 text-center">
-                <p className="text-sm font-semibold text-[#51463d]">
+              <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
+                <p className="text-sm font-semibold text-[var(--theme-text)]">
                   {feedMessage || 'No recipes to show yet.'}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-[#74665a]">
+                <p className="ak-muted mt-2 text-sm leading-6">
                   Published recipes will appear here as the community starts
                   sharing.
                 </p>
@@ -584,30 +584,30 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         <section
           id="build"
-          className="relative flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.12)] backdrop-blur"
+          className="ak-card relative flex min-h-0 flex-col overflow-hidden rounded-xl"
         >
-          <div className="flex items-center justify-between border-b border-[#eee5da] bg-white p-4">
+          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
             <div>
-              <p className="text-xs font-semibold uppercase text-[#c84f31]">
+              <p className="ak-accent text-xs font-semibold uppercase">
                 Recipe Studio
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal">
                 Create a recipe post
               </h2>
               {!isAuthenticated && (
-                <p className="mt-2 text-sm text-[#74665a]">
+                <p className="ak-muted mt-2 text-sm">
                   Log in to unlock publishing.
                 </p>
               )}
             </div>
-            <div className="hidden rounded-lg bg-[#f7f3ec] px-3 py-2 text-sm text-[#74665a] sm:block">
+            <div className="ak-button-primary hidden rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm sm:block">
               Creator: {creatorName}
             </div>
           </div>
 
           <div className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}>
             {publishMessage && (
-              <div className="rounded-lg border border-[#e5d5c4] bg-[#fff7ed] px-3 py-2 text-sm text-[#6f4c36]">
+              <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-plum-strong)]">
                 {publishMessage}
               </div>
             )}
@@ -617,7 +617,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <input
                 value={draft.name}
                 onChange={(event) => updateDraft('name', event.target.value)}
-                className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+                className="ak-input rounded-lg px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -628,7 +628,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 onChange={(event) =>
                   updateDraft('description', event.target.value)
                 }
-                className="h-20 resize-none rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -640,16 +640,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   onChange={(event) =>
                     updateDraft('prepTime', event.target.value)
                   }
-                  className="rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+                  className="ak-input rounded-lg px-3 py-2 outline-none transition"
                 />
               </label>
               <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-semibold">Recipe photo</span>
-                <span className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] p-2 transition focus-within:border-[#c84f31] focus-within:ring-4 focus-within:ring-[#c84f31]/10">
-                  <span className="rounded-md bg-[#201a16] px-3 py-1.5 text-sm font-semibold text-white">
+                <span className="ak-input grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg p-2 transition">
+                  <span className="rounded-md bg-[var(--theme-pine)] px-3 py-1.5 text-sm font-semibold text-white">
                     Choose photo
                   </span>
-                  <span className="min-w-0 truncate text-sm text-[#74665a]">
+                  <span className="ak-muted min-w-0 truncate text-sm">
                     {selectedImageFile
                       ? selectedImageFile.name
                       : 'No photo selected'}
@@ -671,7 +671,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <h3 className="text-sm font-semibold">Ingredients</h3>
                 <button
                   onClick={addIngredient}
-                  className="rounded-md border border-[#d6c7b7] px-3 py-1.5 text-sm font-semibold hover:bg-[#f7f3ec]"
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
                 >
                   Add
                 </button>
@@ -680,7 +680,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.ingredients.map((ingredient) => (
                   <div
                     key={ingredient.id}
-                    className="grid min-w-0 gap-2 rounded-xl border border-[#eee5da] bg-[#fffaf4] p-2"
+                    className="ak-surface-alt grid min-w-0 gap-2 rounded-xl border p-2"
                   >
                     <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
                       <input
@@ -694,11 +694,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="Ingredient"
-                        className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                       />
                       <button
                         onClick={() => removeIngredient(ingredient.id)}
-                        className="h-10 w-10 rounded-lg border border-[#dbcdbd] text-sm font-semibold text-[#74665a] hover:bg-[#f7f3ec]"
+                        className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
                         aria-label="Remove ingredient"
                       >
                         x
@@ -716,7 +716,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="Amount"
-                        className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                       />
                       <input
                         aria-label="Unit"
@@ -729,7 +729,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="Unit"
-                        className="min-w-0 rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none focus:border-[#c84f31]"
+                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                       />
                     </div>
                   </div>
@@ -742,7 +742,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <h3 className="text-sm font-semibold">Instructions</h3>
                 <button
                   onClick={addInstruction}
-                  className="rounded-md border border-[#d6c7b7] px-3 py-1.5 text-sm font-semibold hover:bg-[#f7f3ec]"
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
                 >
                   Add step
                 </button>
@@ -753,7 +753,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     key={`${index}-${instruction.slice(0, 8)}`}
                     className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-start gap-2"
                   >
-                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f0e8dc] text-sm font-semibold">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-bg-soft)] text-sm font-semibold">
                       {index + 1}
                     </span>
                     <textarea
@@ -761,7 +761,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       onChange={(event) =>
                         updateInstruction(index, event.target.value)
                       }
-                      className="h-16 resize-none rounded-lg border border-[#dbcdbd] bg-[#fffdf9] px-3 py-2 text-sm outline-none transition focus:border-[#c84f31] focus:ring-4 focus:ring-[#c84f31]/10"
+                      className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
                     />
                   </label>
                 ))}
@@ -770,20 +770,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </div>
 
           {!isAuthenticated && (
-            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[#eadfce] bg-[#fffaf4]/96 p-5 text-center shadow-2xl backdrop-blur">
-              <p className="text-xs font-semibold uppercase text-[#c84f31]">
+            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface)_96%,transparent)] p-5 text-center shadow-2xl backdrop-blur">
+              <p className="ak-accent text-xs font-semibold uppercase">
                 Account Required
               </p>
               <h3 className="mt-1 text-xl font-semibold tracking-normal">
                 Start publishing your own recipes
               </h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#74665a]">
+              <p className="ak-muted mx-auto mt-2 max-w-sm text-sm leading-6">
                 Log in to add ingredients, write steps, and post recipes to the
                 shared feed.
               </p>
               <button
                 onClick={onRequestAuth}
-                className="mt-4 rounded-lg bg-[#201a16] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#332922]"
+                className="mt-4 rounded-lg bg-[var(--theme-pine)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-pine-strong)]"
               >
                 Log in to create
               </button>
@@ -794,9 +794,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         <aside className="grid min-h-0 gap-4 lg:col-span-2 xl:col-span-1 xl:grid-rows-[auto_minmax(0,1fr)]">
           <section
             id="saved"
-            className="rounded-xl border border-[#332922] bg-[#201a16] p-4 text-white shadow-[0_24px_70px_rgba(32,26,22,0.24)]"
+            className="rounded-xl border border-[var(--theme-pine)] bg-[var(--theme-pine-strong)] p-4 text-white shadow-[0_24px_70px_rgba(19,35,28,0.28)]"
           >
-            <p className="text-xs font-semibold uppercase text-[#f2b49f]">
+            <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-plum)_42%,white_58%)]">
               Discovery
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-normal">
@@ -812,7 +812,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   }}
                   className={`rounded-full px-3 py-1.5 text-sm transition ${
                     activeTag === tag
-                      ? 'bg-white text-[#201a16]'
+                      ? 'bg-white text-[var(--theme-pine-strong)]'
                       : 'bg-white/10 text-white hover:bg-white/18'
                   }`}
                 >
@@ -822,9 +822,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </section>
 
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[#e0d4c4] bg-white/92 shadow-[0_24px_70px_rgba(70,45,28,0.10)] backdrop-blur">
-            <div className="border-b border-[#eee5da] bg-white p-4">
-              <p className="text-xs font-semibold uppercase text-[#c84f31]">
+          <section className="ak-card flex min-h-0 flex-col overflow-hidden rounded-xl">
+            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
+              <p className="ak-accent text-xs font-semibold uppercase">
                 Post Preview
               </p>
               <h2 className="mt-1 text-xl font-semibold tracking-normal">
@@ -832,7 +832,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </h2>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <article className="overflow-hidden rounded-lg border border-[#eee5da] bg-[#fffaf4]">
+              <article className="ak-surface-alt overflow-hidden rounded-lg border">
                 <img
                   src={imagePreviewUrl}
                   alt={draft.name || 'Recipe preview'}
@@ -844,33 +844,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="text-xl font-semibold tracking-normal">
                         {draft.name || 'Untitled recipe'}
                       </h3>
-                      <p className="mt-1 text-sm text-[#74665a]">
+                      <p className="ak-muted mt-1 text-sm">
                         by {creatorName}
                       </p>
                     </div>
-                    <span className="rounded-md bg-white px-2 py-1 text-sm font-semibold shadow-sm">
+                    <span className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold shadow-sm">
                       {rating}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#51463d]">
+                  <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
                     {draft.description}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[#f0e8dc] px-3 py-1 text-xs font-semibold text-[#51463d]">
+                    <span className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm">
                       {draft.prepTime}
                     </span>
                     {draft.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-[#f0e8dc] px-3 py-1 text-xs font-semibold text-[#51463d]"
+                        className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
                       >
                         {tag}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-4 border-t border-[#eee5da] pt-4">
+                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
                     <h4 className="text-sm font-semibold">Ingredient list</h4>
-                    <ul className="mt-2 space-y-1 text-sm text-[#51463d]">
+                    <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
                       {draft.ingredients
                         .filter((ingredient) => ingredient.name)
                         .map((ingredient) => (
