@@ -153,7 +153,9 @@
   }
 
   .ak-button-secondary:hover {
-    background: var(--theme-bg-soft);
+    background: color-mix(in srgb, var(--theme-surface-alt) 82%, white 18%);
+    border-color: var(--theme-plum);
+    color: var(--theme-plum-strong);
   }
 
   .ak-muted {
