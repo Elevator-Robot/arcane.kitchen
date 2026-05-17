@@ -195,6 +195,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [discoverQuery, setDiscoverQuery] = useState('');
+  const [savedTag, setSavedTag] = useState('All');
+  const [savedQuery, setSavedQuery] = useState('');
   const [currentView, setCurrentView] =
     useState<RecipeBuilderView>(getInitialRecipeBuilderView);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
@@ -405,7 +407,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     return feedRecipes.filter((recipe) => {
       const matchesTag =
-        activeTag === 'All' || recipe.tags.some((tag) => tag === activeTag);
+        activeTag === 'All'
+          ? true
+          : activeTag === 'My recipes'
+            ? Boolean(currentUserId) && recipe.ownerId === currentUserId
+            : recipe.tags.some((tag) => tag === activeTag);
 
       if (!query) return matchesTag;
 
@@ -420,12 +426,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       return matchesTag && haystack.includes(query);
     });
-  }, [activeTag, discoverQuery, feedRecipes]);
+  }, [activeTag, currentUserId, discoverQuery, feedRecipes]);
 
   const favoriteRecipes = useMemo(
     () => feedRecipes.filter((recipe) => favoriteRecipeIds.has(recipe.id)),
     [favoriteRecipeIds, feedRecipes]
   );
+
+  const visibleFavoriteRecipes = useMemo(() => {
+    const query = savedQuery.trim().toLowerCase();
+
+    return favoriteRecipes.filter((recipe) => {
+      const matchesTag =
+        savedTag === 'All' || recipe.tags.some((tag) => tag === savedTag);
+
+      if (!query) return matchesTag;
+
+      const haystack = [
+        recipe.name,
+        recipe.author,
+        recipe.description,
+        recipe.tags.join(' '),
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return matchesTag && haystack.includes(query);
+    });
+  }, [favoriteRecipes, savedQuery, savedTag]);
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
@@ -814,14 +842,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <div className="ak-surface border-b px-4 py-3">
             <div className="flex flex-wrap gap-2">
-              {['All', ...trendingTags].map((tag) => (
+              {['All', 'My recipes', ...trendingTags].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
                     activeTag === tag
                       ? 'bg-[var(--theme-plum)] text-white'
-                      : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-bg-soft)]'
+                      : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-plum-strong)]'
                   }`}
                 >
                   {tag}
@@ -1161,44 +1189,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             currentView === 'Build'
               ? 'grid lg:col-start-2 lg:row-start-1 lg:grid-rows-[minmax(0,1fr)]'
               : currentView === 'Saved'
-                ? 'grid lg:grid-rows-[auto_minmax(0,1fr)]'
+                ? 'grid'
                 : 'hidden'
           }`}
         >
-          <section
-            id="saved"
-            className={`rounded-xl border border-[var(--theme-pine)] bg-[var(--theme-pine-strong)] p-4 text-white shadow-[0_24px_70px_rgba(19,35,28,0.28)] ${
-              currentView === 'Saved' ? 'min-h-[280px]' : 'hidden'
-            }`}
-          >
-            <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-plum)_42%,white_58%)]">
-              Discovery
-            </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-normal">
-              {currentView === 'Saved' ? 'Saved collections' : 'Trending collections'}
-              </h2>
-              {currentView === 'Saved' && (
-                <p className="mt-2 text-sm text-white/80">
-                  Save recipes from Discover to build your personal cookbook.
-                </p>
-              )}
-            <div className="mt-4 flex flex-wrap gap-2">
-              {trendingTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    className={`rounded-full px-3 py-1.5 text-sm transition ${
-                      activeTag === tag
-                        ? 'bg-white text-[var(--theme-pine-strong)]'
-                      : 'bg-white/10 text-white hover:bg-white/18'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </section>
-
           <section
             className={`ak-card min-h-0 overflow-hidden rounded-xl ${
               currentView === 'Saved' ? 'flex flex-col' : 'hidden'
@@ -1210,12 +1204,36 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 Recipes you loved
               </h2>
               <p className="ak-muted mt-2 text-sm">
-                {favoriteRecipes.length} saved recipe{favoriteRecipes.length === 1 ? '' : 's'}
+                {visibleFavoriteRecipes.length} of {favoriteRecipes.length} saved recipe
+                {favoriteRecipes.length === 1 ? '' : 's'}
               </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <input
+                  value={savedQuery}
+                  onChange={(event) => setSavedQuery(event.target.value)}
+                  placeholder="Search saved recipes"
+                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {['All', ...trendingTags].map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setSavedTag(tag)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      savedTag === tag
+                        ? 'bg-[var(--theme-plum)] text-white'
+                        : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-plum-strong)]'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-              {favoriteRecipes.length ? (
-                favoriteRecipes.map((recipe) => (
+              {visibleFavoriteRecipes.length ? (
+                visibleFavoriteRecipes.map((recipe) => (
                   <article
                     key={recipe.id}
                     className="ak-surface-alt overflow-hidden rounded-xl border"
@@ -1262,10 +1280,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               ) : (
                 <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
                   <p className="text-sm font-semibold text-[var(--theme-text)]">
-                    No favorites yet.
+                    {favoriteRecipes.length
+                      ? 'No saved recipes match this filter.'
+                      : 'No favorites yet.'}
                   </p>
                   <p className="ak-muted mt-2 text-sm leading-6">
-                    Tap a heart in Discover and your saved recipes will appear here.
+                    {favoriteRecipes.length
+                      ? 'Try another search term or switch to a different tag.'
+                      : 'Tap a heart in Discover and your saved recipes will appear here.'}
                   </p>
                 </div>
               )}
