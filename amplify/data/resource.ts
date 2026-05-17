@@ -40,6 +40,14 @@ const schema = a.schema({
       allow.authenticated(),
       allow.guest().to(['read']),
     ]),
+
+  Favorite: a
+    .model({
+      id: a.id(),
+      userId: a.string().required(),
+      recipeId: a.id().required(),
+    })
+    .authorization((allow) => [allow.ownerDefinedIn('userId')]),
 });
 
 export const data = defineData({

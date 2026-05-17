@@ -6,6 +6,7 @@ import type { Schema } from '../../amplify/data/resource';
 
 const client = generateClient<Schema>();
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
+const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
 type RecipeBuilderView = 'Discover' | 'Build' | 'Saved';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
@@ -19,6 +20,25 @@ const getInitialRecipeBuilderView = (): RecipeBuilderView => {
 
   return 'Discover';
 };
+
+const getInitialFavoriteRecipeIds = (): Set<string> => {
+  if (typeof window === 'undefined') return new Set();
+
+  try {
+    const saved = window.localStorage.getItem(RECIPE_BUILDER_FAVORITES_KEY);
+    if (!saved) return new Set();
+
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return new Set();
+
+    return new Set(parsed.filter((value): value is string => typeof value === 'string'));
+  } catch {
+    return new Set();
+  }
+};
+
+const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
+  currentUser?.userId || userAttributes?.sub || null;
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
@@ -181,11 +201,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [publishMessage, setPublishMessage] = useState('');
   const [feedMessage, setFeedMessage] = useState('');
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
+    getInitialFavoriteRecipeIds
+  );
+  const [pendingFavoriteRecipeIds, setPendingFavoriteRecipeIds] = useState<Set<string>>(
     () => new Set()
   );
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
   const creatorName = getCreatorName(userAttributes, currentUser);
+  const currentUserId = getCurrentUserId(currentUser, userAttributes);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
 
   const loadRecipes = useCallback(async () => {
@@ -241,6 +265,71 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(RECIPE_BUILDER_VIEW_KEY, currentView);
   }, [currentView]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUserId) return;
+
+    const loadFavorites = async () => {
+      try {
+        const { data, errors } = await client.models.Favorite.list({
+          filter: {
+            userId: {
+              eq: currentUserId,
+            },
+          },
+          authMode: 'userPool',
+        });
+
+        if (errors?.length) {
+          throw new Error(errors.map((error) => error.message).join(', '));
+        }
+
+        const backendIds = new Set(
+          data
+            .map((favorite) => favorite.recipeId)
+            .filter((recipeId): recipeId is string => Boolean(recipeId))
+        );
+
+        if (typeof window !== 'undefined') {
+          const localIds = getInitialFavoriteRecipeIds();
+
+          for (const recipeId of localIds) {
+            if (backendIds.has(recipeId)) continue;
+
+            const favoriteId = `${currentUserId}::${recipeId}`;
+            const result = await client.models.Favorite.create(
+              {
+                id: favoriteId,
+                userId: currentUserId,
+                recipeId,
+              },
+              { authMode: 'userPool' }
+            );
+
+            if (!result.errors?.length) {
+              backendIds.add(recipeId);
+            }
+          }
+
+          window.localStorage.removeItem(RECIPE_BUILDER_FAVORITES_KEY);
+        }
+
+        setFavoriteRecipeIds(backendIds);
+      } catch (error) {
+        console.error('Failed to load favorites:', error);
+      }
+    };
+
+    loadFavorites();
+  }, [currentUserId, isAuthenticated]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || (isAuthenticated && currentUserId)) return;
+    window.localStorage.setItem(
+      RECIPE_BUILDER_FAVORITES_KEY,
+      JSON.stringify([...favoriteRecipeIds])
+    );
+  }, [currentUserId, favoriteRecipeIds, isAuthenticated]);
 
   useEffect(() => {
     return () => {
@@ -326,6 +415,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return matchesTag && haystack.includes(query);
     });
   }, [activeTag, discoverQuery, feedRecipes]);
+
+  const favoriteRecipes = useMemo(
+    () => feedRecipes.filter((recipe) => favoriteRecipeIds.has(recipe.id)),
+    [favoriteRecipeIds, feedRecipes]
+  );
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
@@ -467,18 +561,75 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   };
 
-  const toggleFavoriteRecipe = (recipeId: string) => {
+  const toggleFavoriteRecipe = async (recipeId: string) => {
+    if (pendingFavoriteRecipeIds.has(recipeId)) return;
+
+    if (!isAuthenticated || !currentUserId) {
+      onRequestAuth?.();
+      return;
+    }
+
+    const isFavorited = favoriteRecipeIds.has(recipeId);
+    const favoriteId = `${currentUserId}::${recipeId}`;
+
+    setPendingFavoriteRecipeIds((previous) => {
+      const next = new Set(previous);
+      next.add(recipeId);
+      return next;
+    });
+
     setFavoriteRecipeIds((previous) => {
       const next = new Set(previous);
-
-      if (next.has(recipeId)) {
+      if (isFavorited) {
         next.delete(recipeId);
       } else {
         next.add(recipeId);
       }
-
       return next;
     });
+
+    try {
+      if (isFavorited) {
+        const result = await client.models.Favorite.delete(
+          { id: favoriteId },
+          { authMode: 'userPool' }
+        );
+
+        if (result.errors?.length) {
+          throw new Error(result.errors.map((error) => error.message).join(', '));
+        }
+      } else {
+        const result = await client.models.Favorite.create(
+          {
+            id: favoriteId,
+            userId: currentUserId,
+            recipeId,
+          },
+          { authMode: 'userPool' }
+        );
+
+        if (result.errors?.length) {
+          throw new Error(result.errors.map((error) => error.message).join(', '));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update favorite:', error);
+      setFavoriteRecipeIds((previous) => {
+        const next = new Set(previous);
+        if (isFavorited) {
+          next.add(recipeId);
+        } else {
+          next.delete(recipeId);
+        }
+        return next;
+      });
+    } finally {
+      setPendingFavoriteRecipeIds((previous) => {
+        const next = new Set(previous);
+        next.delete(recipeId);
+        return next;
+      });
+    }
   };
 
   return (
@@ -657,8 +808,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <button
                         type="button"
                         onClick={() => toggleFavoriteRecipe(recipe.id)}
+                        disabled={pendingFavoriteRecipeIds.has(recipe.id)}
                         aria-label={`Favorite ${recipe.name}`}
-                        className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition ${
+                        className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(recipe.id)
                             ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
                             : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
@@ -921,7 +1073,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             currentView === 'Build'
               ? 'grid lg:col-start-2 lg:row-start-1 lg:grid-rows-[minmax(0,1fr)]'
               : currentView === 'Saved'
-                ? 'grid'
+                ? 'grid lg:grid-rows-[auto_minmax(0,1fr)]'
                 : 'hidden'
           }`}
         >
@@ -956,6 +1108,79 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   {tag}
                 </button>
               ))}
+            </div>
+          </section>
+
+          <section
+            className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+              currentView === 'Saved' ? 'flex flex-col' : 'hidden'
+            }`}
+          >
+            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
+              <p className="ak-accent text-xs font-semibold uppercase">Favorites</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-normal">
+                Recipes you loved
+              </h2>
+              <p className="ak-muted mt-2 text-sm">
+                {favoriteRecipes.length} saved recipe{favoriteRecipes.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              {favoriteRecipes.length ? (
+                favoriteRecipes.map((recipe) => (
+                  <article
+                    key={recipe.id}
+                    className="ak-surface-alt overflow-hidden rounded-xl border"
+                  >
+                    <img
+                      src={recipe.image}
+                      alt={recipe.name}
+                      className="h-36 w-full object-cover"
+                    />
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-base font-semibold tracking-normal">
+                            {recipe.name}
+                          </h3>
+                          <p className="ak-muted text-sm">by {recipe.author}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleFavoriteRecipe(recipe.id)}
+                          disabled={pendingFavoriteRecipeIds.has(recipe.id)}
+                          aria-label={`Remove ${recipe.name} from favorites`}
+                          className="grid h-8 w-8 place-items-center rounded-full border border-[var(--theme-plum)] bg-[var(--theme-plum)] text-sm text-white transition hover:bg-[var(--theme-plum-strong)] disabled:opacity-60"
+                        >
+                          ♥
+                        </button>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
+                        {recipe.description}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {recipe.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
+                  <p className="text-sm font-semibold text-[var(--theme-text)]">
+                    No favorites yet.
+                  </p>
+                  <p className="ak-muted mt-2 text-sm leading-6">
+                    Tap a heart in Discover and your saved recipes will appear here.
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 
