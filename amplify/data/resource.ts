@@ -6,16 +6,19 @@ const schema = a.schema({
     .model({
       id: a.id(),
       name: a.string().required(),
+      ownerId: a.string().required(),
       description: a.string(),
       createdBy: a.string().required(),
       instructions: a.string().array(),
       prepTime: a.string(),
       tags: a.string().array(),
       imageUrl: a.string(),
+      recipeNameKey: a.string(),
+      recipeFingerprint: a.string(),
       ratings: a.json().array(),
     })
     .authorization((allow) => [
-      allow.authenticated(),
+      allow.ownerDefinedIn('ownerId'),
       allow.guest().to(['read']),
     ]),
 
@@ -40,6 +43,14 @@ const schema = a.schema({
       allow.authenticated(),
       allow.guest().to(['read']),
     ]),
+
+  Favorite: a
+    .model({
+      id: a.id(),
+      userId: a.string().required(),
+      recipeId: a.id().required(),
+    })
+    .authorization((allow) => [allow.ownerDefinedIn('userId')]),
 });
 
 export const data = defineData({
