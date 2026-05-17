@@ -221,6 +221,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   onRequestAuth,
   onSignOut,
 }) => {
+  const isTabLocked = (tab: RecipeBuilderView) =>
+    !isAuthenticated && (tab === 'Build' || tab === 'Saved');
+
+  const openView = (tab: RecipeBuilderView) => {
+    if (isTabLocked(tab)) {
+      onRequestAuth?.();
+      return;
+    }
+
+    setCurrentView(tab);
+  };
+
   const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
@@ -306,6 +318,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(RECIPE_BUILDER_VIEW_KEY, currentView);
   }, [currentView]);
+
+  useEffect(() => {
+    if (!isAuthenticated && (currentView === 'Build' || currentView === 'Saved')) {
+      setCurrentView('Discover');
+    }
+  }, [currentView, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated || !currentUserId) return;
@@ -821,7 +839,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   return (
-    <main className="ak-bg h-screen overflow-hidden">
+    <main className="ak-bg flex h-screen flex-col overflow-hidden">
       <div className="ak-page-glow pointer-events-none fixed inset-0" />
       <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-3 lg:px-6">
@@ -843,14 +861,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             {['Discover', 'Build', 'Saved'].map((item) => (
               <button
                 key={item}
-                onClick={() => setCurrentView(item as 'Discover' | 'Build' | 'Saved')}
+                onClick={() => openView(item as RecipeBuilderView)}
                 className={`rounded-full px-4 py-2 font-semibold transition-colors ${
                   item === currentView
                     ? 'bg-[var(--theme-pine)] text-white'
-                    : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
+                    : isTabLocked(item as RecipeBuilderView)
+                      ? 'text-[var(--theme-text-muted)] opacity-60'
+                      : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
                 }`}
               >
                 {item}
+                {isTabLocked(item as RecipeBuilderView) ? ' *' : ''}
               </button>
             ))}
           </nav>
@@ -877,7 +898,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       </header>
 
       <div
-        className={`relative mx-auto grid w-full max-w-[1800px] gap-4 px-4 py-4 lg:h-[calc(100vh-65px)] lg:px-6 ${
+        className={`relative mx-auto grid w-full max-w-[1800px] flex-1 min-h-0 gap-4 px-4 py-4 lg:px-6 ${
           currentView === 'Build'
             ? 'lg:grid-cols-[minmax(560px,1.4fr)_minmax(380px,0.9fr)]'
             : ''
@@ -887,14 +908,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           {['Discover', 'Build', 'Saved'].map((item) => (
             <button
               key={item}
-              onClick={() => setCurrentView(item as 'Discover' | 'Build' | 'Saved')}
+              onClick={() => openView(item as RecipeBuilderView)}
               className={`rounded-full px-3 py-2 font-semibold transition-colors ${
                 item === currentView
                   ? 'bg-[var(--theme-pine)] text-white'
-                  : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
+                  : isTabLocked(item as RecipeBuilderView)
+                    ? 'text-[var(--theme-text-muted)] opacity-60'
+                    : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
               }`}
             >
               {item}
+              {isTabLocked(item as RecipeBuilderView) ? ' *' : ''}
             </button>
           ))}
         </div>
@@ -1521,6 +1545,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </section>
         </aside>
       </div>
+      <footer className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface-alt)_92%,transparent)] px-4 py-2 text-center text-xs text-[var(--theme-text-muted)] backdrop-blur-sm">
+        Crafted by{' '}
+        <a
+          href="https://elevatorrobot.com"
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-[var(--theme-plum-strong)] hover:text-[var(--theme-plum)]"
+        >
+          Elevator Robot
+        </a>
+      </footer>
     </main>
   );
 };
