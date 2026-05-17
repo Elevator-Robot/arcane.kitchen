@@ -258,7 +258,7 @@ function App() {
   };
 
   return (
-    <div className="ak-bg min-h-screen">
+    <div className="ak-bg h-screen overflow-hidden">
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         currentUser={currentUser}

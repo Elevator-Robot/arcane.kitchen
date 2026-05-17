@@ -428,7 +428,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   return (
-    <main className="ak-bg min-h-screen">
+    <main className="ak-bg h-screen overflow-hidden">
       <div className="ak-page-glow pointer-events-none fixed inset-0" />
       <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-3 lg:px-6">
@@ -451,10 +451,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
-                className={`rounded-full px-4 py-2 ${
+                className={`rounded-full px-4 py-2 font-semibold transition-colors ${
                   item === 'Build'
                     ? 'bg-[var(--theme-pine)] text-white'
-                    : 'ak-muted hover:bg-[var(--theme-bg-soft)]'
+                    : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
                 }`}
               >
                 {item}
@@ -753,7 +753,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     key={`${index}-${instruction.slice(0, 8)}`}
                     className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-start gap-2"
                   >
-                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-bg-soft)] text-sm font-semibold">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-surface)] text-sm font-semibold text-[var(--theme-plum-strong)] ring-1 ring-[var(--theme-border)]">
                       {index + 1}
                     </span>
                     <textarea
