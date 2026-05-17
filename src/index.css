@@ -98,7 +98,7 @@
   }
 
   .ak-header {
-    background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
+    background: color-mix(in srgb, var(--theme-surface-alt) 92%, transparent);
     border-color: var(--theme-border);
   }
 

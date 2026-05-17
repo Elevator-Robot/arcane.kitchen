@@ -13,6 +13,8 @@ const schema = a.schema({
       prepTime: a.string(),
       tags: a.string().array(),
       imageUrl: a.string(),
+      recipeNameKey: a.string(),
+      recipeFingerprint: a.string(),
       ratings: a.json().array(),
     })
     .authorization((allow) => [

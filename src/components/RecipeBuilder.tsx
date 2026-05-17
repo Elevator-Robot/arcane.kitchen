@@ -109,6 +109,36 @@ const defaultDraft: RecipeDraft = {
   ],
 };
 
+const normalizeText = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const buildRecipeFingerprint = (draft: RecipeDraft) => {
+  const ingredientParts = draft.ingredients
+    .map((ingredient) =>
+      [ingredient.name, ingredient.amount, ingredient.unit]
+        .map((value) => normalizeText(value))
+        .join('|')
+    )
+    .filter((part) => part.replace(/\|/g, '').length > 0)
+    .sort();
+
+  const instructionParts = draft.instructions
+    .map((instruction) => normalizeText(instruction))
+    .filter(Boolean);
+
+  const tagParts = draft.tags.map((tag) => normalizeText(tag)).filter(Boolean).sort();
+
+  return [
+    normalizeText(draft.name),
+    normalizeText(draft.description),
+    normalizeText(draft.prepTime),
+    ingredientParts.join('||'),
+    instructionParts.join('||'),
+    tagParts.join('||'),
+  ].join('###');
+};
+
+const DEFAULT_RECIPE_FINGERPRINT = buildRecipeFingerprint(defaultDraft);
+
 const isRemoteUrl = (value?: string | null) =>
   Boolean(value && /^https?:\/\//i.test(value));
 
@@ -206,6 +236,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     () => new Set()
   );
   const [publishMessage, setPublishMessage] = useState('');
+  const [publishMessageTone, setPublishMessageTone] = useState<'error' | 'success'>(
+    'error'
+  );
   const [feedMessage, setFeedMessage] = useState('');
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
     getInitialFavoriteRecipeIds
@@ -438,7 +471,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     return favoriteRecipes.filter((recipe) => {
       const matchesTag =
-        savedTag === 'All' || recipe.tags.some((tag) => tag === savedTag);
+        savedTag === 'All'
+          ? true
+          : savedTag === 'My recipes'
+            ? Boolean(currentUserId) && recipe.ownerId === currentUserId
+            : recipe.tags.some((tag) => tag === savedTag);
 
       if (!query) return matchesTag;
 
@@ -453,13 +490,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       return matchesTag && haystack.includes(query);
     });
-  }, [favoriteRecipes, savedQuery, savedTag]);
+  }, [currentUserId, favoriteRecipes, savedQuery, savedTag]);
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
       setPublishMessage('Choose an image file for the recipe photo.');
+      setPublishMessageTone('error');
       return;
     }
 
@@ -467,11 +505,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setImagePreviewUrl(URL.createObjectURL(file));
     setDraft((previous) => ({ ...previous, imageUrl: '' }));
     setPublishMessage('');
+    setPublishMessageTone('error');
   };
 
   const publishRecipe = async () => {
     if (!isAuthenticated || !currentUserId || isPublishing) {
       setPublishMessage('Log in to publish recipes.');
+      setPublishMessageTone('error');
       onRequestAuth?.();
       return;
     }
@@ -482,6 +522,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     if (!draft.name.trim() || !cleanedIngredients.length) {
       setPublishMessage('Add a recipe name and at least one ingredient.');
+      setPublishMessageTone('error');
+      return;
+    }
+
+    const recipeFingerprint = buildRecipeFingerprint(draft);
+    const recipeNameKey = normalizeText(draft.name);
+
+    if (recipeFingerprint === DEFAULT_RECIPE_FINGERPRINT) {
+      setPublishMessage(
+        'Customize the starter recipe before publishing so the feed stays unique.'
+      );
+      setPublishMessageTone('error');
       return;
     }
 
@@ -489,13 +541,51 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setPublishMessage(
         'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.'
       );
+      setPublishMessageTone('error');
       return;
     }
 
     setIsPublishing(true);
     setPublishMessage('');
+    setPublishMessageTone('error');
 
     try {
+      const duplicateCheck = await client.models.Recipe.list({
+        filter: {
+          ownerId: { eq: currentUserId },
+          recipeFingerprint: { eq: recipeFingerprint },
+        },
+        authMode: 'userPool',
+      });
+
+      if (duplicateCheck.errors?.length) {
+        throw new Error(duplicateCheck.errors.map((error) => error.message).join(', '));
+      }
+
+      if (duplicateCheck.data.length) {
+        setPublishMessage('You already published this recipe. Try a new variation.');
+        setPublishMessageTone('error');
+        return;
+      }
+
+      const nameDuplicateCheck = await client.models.Recipe.list({
+        filter: {
+          ownerId: { eq: currentUserId },
+          recipeNameKey: { eq: recipeNameKey },
+        },
+        authMode: 'userPool',
+      });
+
+      if (nameDuplicateCheck.errors?.length) {
+        throw new Error(nameDuplicateCheck.errors.map((error) => error.message).join(', '));
+      }
+
+      if (nameDuplicateCheck.data.length) {
+        setPublishMessage('You already have a recipe with this name. Rename it to publish.');
+        setPublishMessageTone('error');
+        return;
+      }
+
       let imageUrl = draft.imageUrl.trim();
 
       if (selectedImageFile) {
@@ -522,6 +612,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         prepTime: draft.prepTime.trim(),
         tags: draft.tags,
         imageUrl,
+        recipeNameKey,
+        recipeFingerprint,
         ratings: [],
       }, {
         authMode: 'userPool',
@@ -582,6 +674,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
 
       setPublishMessage('Published to the shared recipe feed.');
+      setPublishMessageTone('success');
       await loadRecipes();
     } catch (error) {
       console.error('Failed to publish recipe:', error);
@@ -591,6 +684,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           : 'Publish failed. Check your sandbox deployment and auth.';
 
       setPublishMessage(message);
+      setPublishMessageTone('error');
     } finally {
       setIsPublishing(false);
     }
@@ -816,9 +910,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               Public Feed
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal">Browse recipes</h2>
-            <p className="ak-muted mt-2 text-sm leading-6">
-              Search and filter community recipes without signing in.
-            </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
               <input
                 value={discoverQuery}
@@ -855,9 +946,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
             {isLoadingFeed ? (
-              <div className="grid gap-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2].map((item) => (
                   <div
                     key={item}
@@ -875,87 +966,91 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
                 ))}
               </div>
-            ) : visibleFeedRecipes.length ? visibleFeedRecipes.map((recipe) => (
-              <article
-                key={recipe.id}
-                className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <img
-                  src={recipe.image}
-                  alt={recipe.name}
-                  className="h-40 w-full object-cover"
-                />
-                <div className="p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-semibold tracking-normal">
-                        {recipe.name}
-                      </h3>
-                      <p className="ak-muted text-sm">
-                        by {recipe.author}
+            ) : visibleFeedRecipes.length ? (
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleFeedRecipes.map((recipe) => (
+                  <article
+                    key={recipe.id}
+                    className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                  >
+                    <img
+                      src={recipe.image}
+                      alt={recipe.name}
+                      className="h-40 w-full object-cover"
+                    />
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-base font-semibold tracking-normal">
+                            {recipe.name}
+                          </h3>
+                          <p className="ak-muted text-sm">
+                            by {recipe.author}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleFavoriteRecipe(recipe.id)}
+                            disabled={pendingFavoriteRecipeIds.has(recipe.id)}
+                            aria-label={`Favorite ${recipe.name}`}
+                            className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
+                              favoriteRecipeIds.has(recipe.id)
+                                ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
+                                : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
+                            }`}
+                          >
+                            {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
+                          </button>
+                          <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
+                            {recipe.rating}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="ak-muted mt-3 flex items-center justify-between text-xs">
+                        <span>{recipe.time}</span>
+                        <span>{recipe.saves} saves</span>
+                      </div>
+                      {isAuthenticated && recipe.ownerId === currentUserId && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => deleteRecipe(recipe.id, recipe.ownerId)}
+                            disabled={deletingRecipeIds.has(recipe.id)}
+                            className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
+                              deletingRecipeIds.has(recipe.id)
+                                ? 'w-28 px-2.5'
+                                : armedDeleteRecipeIds.has(recipe.id)
+                                  ? 'w-36 px-3'
+                                  : 'w-28 px-3'
+                            }`}
+                          >
+                            {deletingRecipeIds.has(recipe.id)
+                              ? 'Deleting...'
+                              : armedDeleteRecipeIds.has(recipe.id)
+                                ? 'Delete permanently'
+                                : 'Delete recipe'}
+                          </button>
+                        </div>
+                      )}
+                      <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
+                        {recipe.description}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleFavoriteRecipe(recipe.id)}
-                        disabled={pendingFavoriteRecipeIds.has(recipe.id)}
-                        aria-label={`Favorite ${recipe.name}`}
-                        className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
-                          favoriteRecipeIds.has(recipe.id)
-                            ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
-                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
-                        }`}
-                      >
-                        {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
-                      </button>
-                      <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
-                        {recipe.rating}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {recipe.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                          >
+                            {tag}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  <div className="ak-muted mt-3 flex items-center justify-between text-xs">
-                    <span>{recipe.time}</span>
-                    <span>{recipe.saves} saves</span>
-                  </div>
-                  {isAuthenticated && recipe.ownerId === currentUserId && (
-                    <div className="mt-3">
-                      <button
-                        type="button"
-                        onClick={() => deleteRecipe(recipe.id, recipe.ownerId)}
-                        disabled={deletingRecipeIds.has(recipe.id)}
-                        className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
-                          deletingRecipeIds.has(recipe.id)
-                            ? 'w-28 px-2.5'
-                            : armedDeleteRecipeIds.has(recipe.id)
-                              ? 'w-36 px-3'
-                              : 'w-28 px-3'
-                        }`}
-                      >
-                        {deletingRecipeIds.has(recipe.id)
-                          ? 'Deleting...'
-                          : armedDeleteRecipeIds.has(recipe.id)
-                            ? 'Delete permanently'
-                            : 'Delete recipe'}
-                      </button>
-                    </div>
-                  )}
-                  <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
-                    {recipe.description}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {recipe.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </article>
-            )) : (
+                  </article>
+                ))}
+              </div>
+            ) : (
               <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
                 <p className="text-sm font-semibold text-[var(--theme-text)]">
                   {feedMessage || 'No matching recipes right now.'}
@@ -976,7 +1071,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               : 'hidden'
           }`}
         >
-          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
+          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
             <div>
               <p className="ak-accent text-xs font-semibold uppercase">
                 Recipe Studio
@@ -997,7 +1092,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <div className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}>
             {publishMessage && (
-              <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-plum-strong)]">
+              <div
+                className={`rounded-lg border px-3 py-2 text-sm ${
+                  publishMessageTone === 'error'
+                    ? 'border-[#e5b3b3] bg-[#fff1f1] text-[#8f1d1d]'
+                    : 'border-[#b7d9c8] bg-[#edf9f2] text-[#1f6b42]'
+                }`}
+              >
                 {publishMessage}
               </div>
             )}
@@ -1205,7 +1306,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               currentView === 'Saved' ? 'flex flex-col' : 'hidden'
             }`}
           >
-            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
+            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
               <p className="ak-accent text-xs font-semibold uppercase">Favorites</p>
               <h2 className="mt-1 text-xl font-semibold tracking-normal">
                 Recipes you loved
@@ -1223,7 +1324,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 />
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                {['All', ...trendingTags].map((tag) => (
+                {['All', 'My recipes', ...trendingTags].map((tag) => (
                   <button
                     key={tag}
                     onClick={() => setSavedTag(tag)}
@@ -1238,52 +1339,89 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 ))}
               </div>
             </div>
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
               {visibleFavoriteRecipes.length ? (
-                visibleFavoriteRecipes.map((recipe) => (
-                  <article
-                    key={recipe.id}
-                    className="ak-surface-alt overflow-hidden rounded-xl border"
-                  >
-                    <img
-                      src={recipe.image}
-                      alt={recipe.name}
-                      className="h-36 w-full object-cover"
-                    />
-                    <div className="p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-base font-semibold tracking-normal">
-                            {recipe.name}
-                          </h3>
-                          <p className="ak-muted text-sm">by {recipe.author}</p>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {visibleFavoriteRecipes.map((recipe) => (
+                    <article
+                      key={recipe.id}
+                      className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    >
+                      <img
+                        src={recipe.image}
+                        alt={recipe.name}
+                        className="h-36 w-full object-cover"
+                      />
+                      <div className="p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-base font-semibold tracking-normal">
+                              {recipe.name}
+                            </h3>
+                            <p className="ak-muted text-sm">by {recipe.author}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleFavoriteRecipe(recipe.id)}
+                              disabled={pendingFavoriteRecipeIds.has(recipe.id)}
+                              aria-label={`Favorite ${recipe.name}`}
+                              className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
+                                favoriteRecipeIds.has(recipe.id)
+                                  ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
+                                  : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
+                              }`}
+                            >
+                              {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
+                            </button>
+                            <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
+                              {recipe.rating}
+                            </div>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleFavoriteRecipe(recipe.id)}
-                          disabled={pendingFavoriteRecipeIds.has(recipe.id)}
-                          aria-label={`Remove ${recipe.name} from favorites`}
-                          className="grid h-8 w-8 place-items-center rounded-full border border-[var(--theme-plum)] bg-[var(--theme-plum)] text-sm text-white transition hover:bg-[var(--theme-plum-strong)] disabled:opacity-60"
-                        >
-                          ♥
-                        </button>
+                        <div className="ak-muted mt-3 flex items-center justify-between text-xs">
+                          <span>{recipe.time}</span>
+                          <span>{recipe.saves} saves</span>
+                        </div>
+                        {isAuthenticated && recipe.ownerId === currentUserId && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => deleteRecipe(recipe.id, recipe.ownerId)}
+                              disabled={deletingRecipeIds.has(recipe.id)}
+                              className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
+                                deletingRecipeIds.has(recipe.id)
+                                  ? 'w-28 px-2.5'
+                                  : armedDeleteRecipeIds.has(recipe.id)
+                                    ? 'w-36 px-3'
+                                    : 'w-28 px-3'
+                              }`}
+                            >
+                              {deletingRecipeIds.has(recipe.id)
+                                ? 'Deleting...'
+                                : armedDeleteRecipeIds.has(recipe.id)
+                                  ? 'Delete permanently'
+                                  : 'Delete recipe'}
+                            </button>
+                          </div>
+                        )}
+                        <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
+                          {recipe.description}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {recipe.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                      <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
-                        {recipe.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {recipe.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </article>
-                ))
+                    </article>
+                  ))}
+                </div>
               ) : (
                 <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
                   <p className="text-sm font-semibold text-[var(--theme-text)]">
@@ -1306,7 +1444,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               currentView === 'Build' ? 'flex flex-col' : 'hidden'
             }`}
           >
-            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
+            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="ak-accent text-xs font-semibold uppercase">
