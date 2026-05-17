@@ -35,6 +35,7 @@ interface FeedRecipe {
   id: string;
   name: string;
   author: string;
+  description: string;
   image: string;
   time: string;
   rating: string;
@@ -157,7 +158,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
-  const [activeTag, setActiveTag] = useState('30-minute');
+  const [activeTag, setActiveTag] = useState('All');
+  const [discoverQuery, setDiscoverQuery] = useState('');
+  const [currentView, setCurrentView] = useState<'Discover' | 'Build' | 'Saved'>(
+    'Discover'
+  );
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
@@ -193,6 +198,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             id: recipe.id as string,
             name: recipe.name,
             author: recipe.createdBy || 'Arcane cook',
+            description: recipe.description || 'No description yet.',
             image: await getRecipeImageSource(recipe.imageUrl),
             time: recipe.prepTime || 'Prep time open',
             rating: getBackendRating(recipe.ratings),
@@ -278,14 +284,27 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
-  const toggleTag = (tag: string) => {
-    setDraft((previous) => ({
-      ...previous,
-      tags: previous.tags.includes(tag)
-        ? previous.tags.filter((item) => item !== tag)
-        : [...previous.tags, tag],
-    }));
-  };
+  const visibleFeedRecipes = useMemo(() => {
+    const query = discoverQuery.trim().toLowerCase();
+
+    return feedRecipes.filter((recipe) => {
+      const matchesTag =
+        activeTag === 'All' || recipe.tags.some((tag) => tag === activeTag);
+
+      if (!query) return matchesTag;
+
+      const haystack = [
+        recipe.name,
+        recipe.author,
+        recipe.description,
+        recipe.tags.join(' '),
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return matchesTag && haystack.includes(query);
+    });
+  }, [activeTag, discoverQuery, feedRecipes]);
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
@@ -448,17 +467,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <nav className="ak-pill-nav hidden items-center gap-1 rounded-full p-1 text-sm md:flex">
             {['Discover', 'Build', 'Saved'].map((item) => (
-              <a
+              <button
                 key={item}
-                href={`#${item.toLowerCase()}`}
+                onClick={() => setCurrentView(item as 'Discover' | 'Build' | 'Saved')}
                 className={`rounded-full px-4 py-2 font-semibold transition-colors ${
-                  item === 'Build'
+                  item === currentView
                     ? 'bg-[var(--theme-pine)] text-white'
                     : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
                 }`}
               >
                 {item}
-              </a>
+              </button>
             ))}
           </nav>
 
@@ -486,26 +505,77 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         </div>
       </header>
 
-      <div className="relative mx-auto grid w-full max-w-[1800px] gap-4 px-4 py-4 lg:h-[calc(100vh-65px)] lg:grid-cols-[minmax(280px,0.95fr)_minmax(420px,1.25fr)] lg:px-6 xl:grid-cols-[minmax(300px,0.9fr)_minmax(500px,1.35fr)_minmax(340px,1fr)]">
+      <div
+        className={`relative mx-auto grid w-full max-w-[1800px] gap-4 px-4 py-4 lg:h-[calc(100vh-65px)] lg:px-6 ${
+          currentView === 'Build'
+            ? 'lg:grid-cols-[minmax(560px,1.4fr)_minmax(380px,0.9fr)]'
+            : ''
+        }`}
+      >
+        <div className="ak-pill-nav flex items-center gap-1 rounded-full p-1 text-sm md:hidden">
+          {['Discover', 'Build', 'Saved'].map((item) => (
+            <button
+              key={item}
+              onClick={() => setCurrentView(item as 'Discover' | 'Build' | 'Saved')}
+              className={`rounded-full px-3 py-2 font-semibold transition-colors ${
+                item === currentView
+                  ? 'bg-[var(--theme-pine)] text-white'
+                  : 'text-[var(--theme-text)] hover:bg-[var(--theme-plum)] hover:text-white'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+
         <section
           id="discover"
-          className="ak-card flex min-h-0 flex-col overflow-hidden rounded-xl"
+          className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+            currentView === 'Discover' ? 'flex flex-col' : 'hidden'
+          }`}
         >
           <div className="ak-surface-alt border-b p-4">
             <p className="ak-accent text-xs font-semibold uppercase">
               Public Feed
             </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-              Explore what cooks are making
-            </h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal">Browse recipes</h2>
             <p className="ak-muted mt-2 text-sm leading-6">
-              Browse the community recipe stream without an account.
+              Search and filter community recipes without signing in.
             </p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <input
+                value={discoverQuery}
+                onChange={(event) => setDiscoverQuery(event.target.value)}
+                placeholder="Search by name, creator, or tag"
+                className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
+              />
+              <p className="ak-muted text-xs sm:text-right">
+                {visibleFeedRecipes.length} of {feedRecipes.length} recipes
+              </p>
+            </div>
             {isLoadingFeed && (
               <p className="ak-muted mt-1 text-sm">
                 Loading shared recipes...
               </p>
             )}
+          </div>
+
+          <div className="ak-surface border-b px-4 py-3">
+            <div className="flex flex-wrap gap-2">
+              {['All', ...trendingTags].map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setActiveTag(tag)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    activeTag === tag
+                      ? 'bg-[var(--theme-plum)] text-white'
+                      : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-bg-soft)]'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
@@ -528,7 +598,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
                 ))}
               </div>
-            ) : feedRecipes.length ? feedRecipes.map((recipe) => (
+            ) : visibleFeedRecipes.length ? visibleFeedRecipes.map((recipe) => (
               <article
                 key={recipe.id}
                 className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
@@ -556,6 +626,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <span>{recipe.time}</span>
                     <span>{recipe.saves} saves</span>
                   </div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
+                    {recipe.description}
+                  </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {recipe.tags.map((tag) => (
                       <span
@@ -571,11 +644,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             )) : (
               <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
                 <p className="text-sm font-semibold text-[var(--theme-text)]">
-                  {feedMessage || 'No recipes to show yet.'}
+                  {feedMessage || 'No matching recipes right now.'}
                 </p>
                 <p className="ak-muted mt-2 text-sm leading-6">
-                  Published recipes will appear here as the community starts
-                  sharing.
+                  Try another search term or switch to a different tag.
                 </p>
               </div>
             )}
@@ -584,7 +656,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         <section
           id="build"
-          className="ak-card relative flex min-h-0 flex-col overflow-hidden rounded-xl"
+          className={`ak-card relative min-h-0 overflow-hidden rounded-xl ${
+            currentView === 'Build'
+              ? 'flex flex-col lg:col-start-1 lg:row-start-1'
+              : 'hidden'
+          }`}
         >
           <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
             <div>
@@ -791,28 +867,40 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )}
         </section>
 
-        <aside className="grid min-h-0 gap-4 lg:col-span-2 xl:col-span-1 xl:grid-rows-[auto_minmax(0,1fr)]">
+        <aside
+          className={`min-h-0 gap-4 ${
+            currentView === 'Build'
+              ? 'grid lg:col-start-2 lg:row-start-1 lg:grid-rows-[minmax(0,1fr)]'
+              : currentView === 'Saved'
+                ? 'grid'
+                : 'hidden'
+          }`}
+        >
           <section
             id="saved"
-            className="rounded-xl border border-[var(--theme-pine)] bg-[var(--theme-pine-strong)] p-4 text-white shadow-[0_24px_70px_rgba(19,35,28,0.28)]"
+            className={`rounded-xl border border-[var(--theme-pine)] bg-[var(--theme-pine-strong)] p-4 text-white shadow-[0_24px_70px_rgba(19,35,28,0.28)] ${
+              currentView === 'Saved' ? 'min-h-[280px]' : 'hidden'
+            }`}
           >
             <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-plum)_42%,white_58%)]">
               Discovery
             </p>
-            <h2 className="mt-1 text-xl font-semibold tracking-normal">
-              Trending collections
-            </h2>
+              <h2 className="mt-1 text-xl font-semibold tracking-normal">
+              {currentView === 'Saved' ? 'Saved collections' : 'Trending collections'}
+              </h2>
+              {currentView === 'Saved' && (
+                <p className="mt-2 text-sm text-white/80">
+                  Save recipes from Discover to build your personal cookbook.
+                </p>
+              )}
             <div className="mt-4 flex flex-wrap gap-2">
               {trendingTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => {
-                    setActiveTag(tag);
-                    toggleTag(tag);
-                  }}
-                  className={`rounded-full px-3 py-1.5 text-sm transition ${
-                    activeTag === tag
-                      ? 'bg-white text-[var(--theme-pine-strong)]'
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                    className={`rounded-full px-3 py-1.5 text-sm transition ${
+                      activeTag === tag
+                        ? 'bg-white text-[var(--theme-pine-strong)]'
                       : 'bg-white/10 text-white hover:bg-white/18'
                   }`}
                 >
@@ -822,7 +910,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </section>
 
-          <section className="ak-card flex min-h-0 flex-col overflow-hidden rounded-xl">
+          <section
+            className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+              currentView === 'Build' ? 'flex flex-col' : 'hidden'
+            }`}
+          >
             <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
               <p className="ak-accent text-xs font-semibold uppercase">
                 Post Preview
