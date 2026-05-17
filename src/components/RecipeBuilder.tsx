@@ -5,6 +5,20 @@ import { getUrl, uploadData } from 'aws-amplify/storage';
 import type { Schema } from '../../amplify/data/resource';
 
 const client = generateClient<Schema>();
+const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
+type RecipeBuilderView = 'Discover' | 'Build' | 'Saved';
+
+const getInitialRecipeBuilderView = (): RecipeBuilderView => {
+  if (typeof window === 'undefined') return 'Discover';
+
+  const savedView = window.localStorage.getItem(RECIPE_BUILDER_VIEW_KEY);
+
+  if (savedView === 'Discover' || savedView === 'Build' || savedView === 'Saved') {
+    return savedView;
+  }
+
+  return 'Discover';
+};
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
@@ -160,13 +174,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [discoverQuery, setDiscoverQuery] = useState('');
-  const [currentView, setCurrentView] = useState<'Discover' | 'Build' | 'Saved'>(
-    'Discover'
-  );
+  const [currentView, setCurrentView] =
+    useState<RecipeBuilderView>(getInitialRecipeBuilderView);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
   const [feedMessage, setFeedMessage] = useState('');
+  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
   const creatorName = getCreatorName(userAttributes, currentUser);
@@ -220,6 +236,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   useEffect(() => {
     loadRecipes();
   }, [loadRecipes]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(RECIPE_BUILDER_VIEW_KEY, currentView);
+  }, [currentView]);
 
   useEffect(() => {
     return () => {
@@ -446,6 +467,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   };
 
+  const toggleFavoriteRecipe = (recipeId: string) => {
+    setFavoriteRecipeIds((previous) => {
+      const next = new Set(previous);
+
+      if (next.has(recipeId)) {
+        next.delete(recipeId);
+      } else {
+        next.add(recipeId);
+      }
+
+      return next;
+    });
+  };
+
   return (
     <main className="ak-bg h-screen overflow-hidden">
       <div className="ak-page-glow pointer-events-none fixed inset-0" />
@@ -618,8 +653,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         by {recipe.author}
                       </p>
                     </div>
-                    <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
-                      {recipe.rating}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleFavoriteRecipe(recipe.id)}
+                        aria-label={`Favorite ${recipe.name}`}
+                        className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition ${
+                          favoriteRecipeIds.has(recipe.id)
+                            ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
+                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
+                        }`}
+                      >
+                        {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
+                      </button>
+                      <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
+                        {recipe.rating}
+                      </div>
                     </div>
                   </div>
                   <div className="ak-muted mt-3 flex items-center justify-between text-xs">
@@ -633,7 +682,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     {recipe.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="ak-muted rounded-full bg-[var(--theme-surface)] px-2.5 py-1 text-xs"
+                        className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
                       >
                         {tag}
                       </span>
