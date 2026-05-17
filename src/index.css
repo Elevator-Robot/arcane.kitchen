@@ -132,6 +132,20 @@
     background: linear-gradient(135deg, var(--theme-plum-strong), var(--theme-pine));
   }
 
+  .ak-button-danger {
+    background-image: linear-gradient(
+      135deg,
+      var(--theme-plum),
+      color-mix(in srgb, var(--theme-plum) 75%, var(--theme-pine) 25%)
+    );
+    background-color: transparent;
+    color: #fff;
+  }
+
+  .ak-button-danger:hover {
+    background-image: linear-gradient(135deg, #d94a4a, #8f1d1d);
+  }
+
   .ak-button-secondary {
     background: var(--theme-surface);
     border: 1px solid var(--theme-border-strong);

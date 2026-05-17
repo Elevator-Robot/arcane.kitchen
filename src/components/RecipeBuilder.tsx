@@ -67,6 +67,7 @@ interface RecipeDraft {
 
 interface FeedRecipe {
   id: string;
+  ownerId: string;
   name: string;
   author: string;
   description: string;
@@ -198,6 +199,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     useState<RecipeBuilderView>(getInitialRecipeBuilderView);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [deletingRecipeIds, setDeletingRecipeIds] = useState<Set<string>>(() => new Set());
+  const [armedDeleteRecipeIds, setArmedDeleteRecipeIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [publishMessage, setPublishMessage] = useState('');
   const [feedMessage, setFeedMessage] = useState('');
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
@@ -236,6 +241,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           .filter((recipe) => recipe.id && recipe.name)
           .map(async (recipe) => ({
             id: recipe.id as string,
+            ownerId: recipe.ownerId || '',
             name: recipe.name,
             author: recipe.createdBy || 'Arcane cook',
             description: recipe.description || 'No description yet.',
@@ -436,7 +442,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const publishRecipe = async () => {
-    if (!isAuthenticated || isPublishing) {
+    if (!isAuthenticated || !currentUserId || isPublishing) {
       setPublishMessage('Log in to publish recipes.');
       onRequestAuth?.();
       return;
@@ -479,6 +485,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       const recipeResult = await client.models.Recipe.create({
         name: draft.name.trim(),
+        ownerId: currentUserId,
         description: draft.description.trim(),
         createdBy: creatorName,
         instructions: draft.instructions
@@ -625,6 +632,65 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       });
     } finally {
       setPendingFavoriteRecipeIds((previous) => {
+        const next = new Set(previous);
+        next.delete(recipeId);
+        return next;
+      });
+    }
+  };
+
+  const deleteRecipe = async (recipeId: string, recipeOwnerId: string) => {
+    if (!isAuthenticated || !currentUserId) {
+      onRequestAuth?.();
+      return;
+    }
+
+    if (recipeOwnerId !== currentUserId) {
+      return;
+    }
+
+    if (deletingRecipeIds.has(recipeId)) return;
+
+    if (!armedDeleteRecipeIds.has(recipeId)) {
+      setArmedDeleteRecipeIds((previous) => {
+        const next = new Set(previous);
+        next.add(recipeId);
+        return next;
+      });
+      return;
+    }
+
+    setDeletingRecipeIds((previous) => {
+      const next = new Set(previous);
+      next.add(recipeId);
+      return next;
+    });
+
+    try {
+      const result = await client.models.Recipe.delete(
+        { id: recipeId },
+        { authMode: 'userPool' }
+      );
+
+      if (result.errors?.length) {
+        throw new Error(result.errors.map((error) => error.message).join(', '));
+      }
+
+      setFeedRecipes((previous) => previous.filter((recipe) => recipe.id !== recipeId));
+      setFavoriteRecipeIds((previous) => {
+        const next = new Set(previous);
+        next.delete(recipeId);
+        return next;
+      });
+      setArmedDeleteRecipeIds((previous) => {
+        const next = new Set(previous);
+        next.delete(recipeId);
+        return next;
+      });
+    } catch (error) {
+      console.error('Failed to delete recipe:', error);
+    } finally {
+      setDeletingRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
         return next;
@@ -827,6 +893,28 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <span>{recipe.time}</span>
                     <span>{recipe.saves} saves</span>
                   </div>
+                  {isAuthenticated && recipe.ownerId === currentUserId && (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => deleteRecipe(recipe.id, recipe.ownerId)}
+                        disabled={deletingRecipeIds.has(recipe.id)}
+                        className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
+                          deletingRecipeIds.has(recipe.id)
+                            ? 'w-28 px-2.5'
+                            : armedDeleteRecipeIds.has(recipe.id)
+                              ? 'w-36 px-3'
+                              : 'w-28 px-3'
+                        }`}
+                      >
+                        {deletingRecipeIds.has(recipe.id)
+                          ? 'Deleting...'
+                          : armedDeleteRecipeIds.has(recipe.id)
+                            ? 'Delete permanently'
+                            : 'Delete recipe'}
+                      </button>
+                    </div>
+                  )}
                   <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
                     {recipe.description}
                   </p>

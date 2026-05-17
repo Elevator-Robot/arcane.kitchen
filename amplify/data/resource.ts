@@ -6,6 +6,7 @@ const schema = a.schema({
     .model({
       id: a.id(),
       name: a.string().required(),
+      ownerId: a.string().required(),
       description: a.string(),
       createdBy: a.string().required(),
       instructions: a.string().array(),
@@ -15,7 +16,7 @@ const schema = a.schema({
       ratings: a.json().array(),
     })
     .authorization((allow) => [
-      allow.authenticated(),
+      allow.ownerDefinedIn('ownerId'),
       allow.guest().to(['read']),
     ]),
 
