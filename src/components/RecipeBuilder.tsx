@@ -161,7 +161,7 @@ const getRecipeImageSource = async (imageUrl?: string | null) => {
   }
 };
 
-const getRecipeImagePath = (file: File) => {
+const getRecipeImagePaths = (file: File) => {
   const extension =
     file.name
       .split('.')
@@ -173,7 +173,10 @@ const getRecipeImagePath = (file: File) => {
       ? crypto.randomUUID()
       : `${Date.now()}`;
 
-  return `recipe-images/${id}.${extension}`;
+  return {
+    raw: `recipe-images/raw/${id}.${extension}`,
+    processed: `recipe-images/processed/${id}.jpg`,
+  };
 };
 
 const hasStorageConfig = () =>
@@ -607,10 +610,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       let imageUrl = draft.imageUrl.trim();
 
       if (selectedImageFile) {
-        imageUrl = getRecipeImagePath(selectedImageFile);
+        const imagePaths = getRecipeImagePaths(selectedImageFile);
+        imageUrl = imagePaths.processed;
 
         await uploadData({
-          path: imageUrl,
+          path: imagePaths.raw,
           data: selectedImageFile,
           options: {
             contentType: selectedImageFile.type || 'image/jpeg',
