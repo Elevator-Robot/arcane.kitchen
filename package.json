@@ -11,6 +11,7 @@
     "lint:strict": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write .",
     "deploy:sandbox": "node ./scripts/deploy-sandbox.cjs",
+    "destroy:sandbox": "node ./scripts/destroy-sandbox.cjs",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
