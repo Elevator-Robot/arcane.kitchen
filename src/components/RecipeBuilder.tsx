@@ -270,7 +270,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     try {
       const { data, errors } = await client.models.Recipe.list({
-        authMode: 'identityPool',
+        authMode: isAuthenticated ? 'userPool' : 'identityPool',
       });
 
       if (errors?.length) {
@@ -308,7 +308,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     } finally {
       setIsLoadingFeed(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     loadRecipes();

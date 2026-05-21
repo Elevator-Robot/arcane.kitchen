@@ -19,6 +19,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.ownerDefinedIn('ownerId'),
+      allow.authenticated().to(['read']),
       allow.guest().to(['read']),
     ]),
 
