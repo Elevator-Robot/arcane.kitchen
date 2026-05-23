@@ -3,6 +3,11 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
+import dayjs from 'dayjs';
+import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
 
 const client = generateClient<Schema>();
@@ -85,15 +90,6 @@ interface RecipeQuantity {
   unit?: string;
 }
 
-const trendingTags = [
-  '30-minute',
-  'Dinner party',
-  'Meal prep',
-  'Vegetarian',
-  'One pan',
-  'High protein',
-];
-
 const fallbackRecipeImage =
   'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=900&q=80';
 
@@ -101,7 +97,7 @@ const defaultDraft: RecipeDraft = {
   name: 'Summer Tomato Toasts',
   description:
     'A bright, shareable recipe with crisp bread, marinated tomatoes, whipped ricotta, and basil oil.',
-  prepTime: '20 min',
+  prepTime: '00:20',
   tags: ['Seasonal', 'Vegetarian'],
   imageUrl: '',
   ingredients: [
@@ -293,6 +289,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
+  const [newTagValue, setNewTagValue] = useState('');
   const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
@@ -302,12 +299,37 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setFeedMessage('');
 
     try {
-      const { data, errors } = await client.models.Recipe.list({
-        authMode: isAuthenticated ? 'userPool' : 'identityPool',
-      });
+      const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
+        ? ['userPool', 'identityPool']
+        : ['identityPool'];
+
+      let data: Awaited<ReturnType<typeof client.models.Recipe.list>>['data'] = [];
+      let errors: Awaited<ReturnType<typeof client.models.Recipe.list>>['errors'] = undefined;
+
+      for (const authMode of authModes) {
+        const result = await client.models.Recipe.list({ authMode });
+        data = result.data;
+        errors = result.errors;
+
+        if (!errors?.length) break;
+
+        const isNotAuthorized = errors.some((error) =>
+          error.message.toLowerCase().includes('not authorized')
+        );
+
+        if (!isNotAuthorized || authMode === authModes[authModes.length - 1]) {
+          break;
+        }
+      }
 
       if (errors?.length) {
-        throw new Error(errors.map((error) => error.message).join(', '));
+        const errorMessage = errors.map((error) => error.message).join(', ');
+        if (errorMessage.toLowerCase().includes('not authorized')) {
+          setFeedMessage('Recipes are unavailable until the backend auth rules are deployed.');
+          return;
+        }
+
+        throw new Error(errorMessage);
       }
 
       if (!data.length) {
@@ -336,8 +358,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       setFeedRecipes(recipes);
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.toLowerCase().includes('not authorized')
+      ) {
+        setFeedMessage('Recipes are unavailable until the backend auth rules are deployed.');
+        return;
+      }
+
       console.error('Failed to load recipes:', error);
-      setFeedRecipes([]);
       setFeedMessage('Recipes are unavailable right now.');
     } finally {
       setIsLoadingFeed(false);
@@ -497,6 +526,29 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
+  const addTag = () => {
+    const normalizedTag = newTagValue.trim();
+    if (!normalizedTag) return;
+
+    const exists = draft.tags.some(
+      (tag) => tag.toLowerCase() === normalizedTag.toLowerCase()
+    );
+    if (exists) {
+      setNewTagValue('');
+      return;
+    }
+
+    updateDraft('tags', [...draft.tags, normalizedTag]);
+    setNewTagValue('');
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    updateDraft(
+      'tags',
+      draft.tags.filter((tag) => tag !== tagToRemove)
+    );
+  };
+
   const removeInstruction = (index: number) => {
     setDraft((previous) => ({
       ...previous,
@@ -531,6 +583,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return matchesTag && haystack.includes(query);
     });
   }, [activeTag, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes]);
+
+  const availableFilterTags = useMemo(() => {
+    const uniqueTags = new Set<string>();
+
+    for (const recipe of feedRecipes) {
+      for (const tag of recipe.tags) {
+        const normalizedTag = tag.trim();
+        if (normalizedTag) uniqueTags.add(normalizedTag);
+      }
+    }
+
+    return Array.from(uniqueTags).sort((left, right) => left.localeCompare(right));
+  }, [feedRecipes]);
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
@@ -713,9 +778,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         })
       );
 
+      const optimisticRecipe: FeedRecipe = {
+        id: recipeId,
+        ownerId: currentUserId,
+        name: draft.name.trim(),
+        author: creatorName,
+        description: draft.description.trim() || 'No description yet.',
+        image: await getRecipeImageSource(imageUrl),
+        time: draft.prepTime.trim() || 'Prep time open',
+        rating: 'New',
+        saves: 'New',
+        tags: draft.tags,
+        instructions: draft.instructions
+          .map((instruction) => instruction.trim())
+          .filter(Boolean),
+      };
+
+      setFeedRecipes((previous) => [
+        optimisticRecipe,
+        ...previous.filter((recipe) => recipe.id !== recipeId),
+      ]);
+
       setPublishMessage('Published to the shared recipe feed.');
       setPublishMessageTone('success');
       await loadRecipes();
+      setActiveTag('All');
+      setDiscoverQuery('');
+      setExpandedRecipeId(null);
       setCurrentView('Discover');
     } catch (error) {
       console.error('Failed to publish recipe:', error);
@@ -1052,7 +1141,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <div className={`ak-surface border-b px-4 py-3 ${expandedRecipe ? 'hidden' : ''}`}>
             <div className="flex flex-wrap gap-2">
-              {['All', 'Favorites', 'My recipes', ...trendingTags].map((tag) => (
+              {['All', 'Favorites', 'My recipes', ...availableFilterTags].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
@@ -1396,13 +1485,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">Prep time</span>
-                <input
-                  value={draft.prepTime}
-                  onChange={(event) =>
-                    updateDraft('prepTime', event.target.value)
-                  }
-                  className="ak-input rounded-lg px-3 py-2 outline-none transition"
-                />
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
+                  <MobileTimePicker
+                    ampm={false}
+                    minutesStep={5}
+                    value={draft.prepTime ? dayjs(`2000-01-01T${draft.prepTime}`) : null}
+                    onChange={(value) => updateDraft('prepTime', value ? value.format('HH:mm') : '')}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                      },
+                    }}
+                  />
+                </LocalizationProvider>
               </label>
               <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-semibold">Recipe photo</span>
@@ -1435,6 +1531,45 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   />
                 </span>
               </label>
+            </div>
+
+            <div className="grid gap-2">
+              <span className="text-sm font-semibold">Tags</span>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  value={newTagValue}
+                  onChange={(event) => setNewTagValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    addTag();
+                  }}
+                  placeholder="Add a tag"
+                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={addTag}
+                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
+                >
+                  Add tag
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {draft.tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-plum)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    aria-label={`Remove tag ${tag}`}
+                    title={`Remove ${tag}`}
+                  >
+                    {tag}
+                    <span aria-hidden="true">x</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
