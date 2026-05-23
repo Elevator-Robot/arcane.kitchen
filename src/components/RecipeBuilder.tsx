@@ -3,6 +3,11 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
+import dayjs from 'dayjs';
+import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
 
 const client = generateClient<Schema>();
@@ -101,7 +106,7 @@ const defaultDraft: RecipeDraft = {
   name: 'Summer Tomato Toasts',
   description:
     'A bright, shareable recipe with crisp bread, marinated tomatoes, whipped ricotta, and basil oil.',
-  prepTime: '20 min',
+  prepTime: '00:20',
   tags: ['Seasonal', 'Vegetarian'],
   imageUrl: '',
   ingredients: [
@@ -303,11 +308,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     try {
       const { data, errors } = await client.models.Recipe.list({
-        authMode: isAuthenticated ? 'userPool' : 'identityPool',
+        authMode: 'identityPool',
       });
 
       if (errors?.length) {
-        throw new Error(errors.map((error) => error.message).join(', '));
+        const errorMessage = errors.map((error) => error.message).join(', ');
+        if (errorMessage.toLowerCase().includes('not authorized')) {
+          setFeedMessage('Recipes are unavailable until the backend auth rules are deployed.');
+          return;
+        }
+
+        throw new Error(errorMessage);
       }
 
       if (!data.length) {
@@ -336,13 +347,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       setFeedRecipes(recipes);
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message.toLowerCase().includes('not authorized')
+      ) {
+        setFeedMessage('Recipes are unavailable until the backend auth rules are deployed.');
+        return;
+      }
+
       console.error('Failed to load recipes:', error);
-      setFeedRecipes([]);
       setFeedMessage('Recipes are unavailable right now.');
     } finally {
       setIsLoadingFeed(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     loadRecipes();
@@ -713,9 +731,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         })
       );
 
+      const optimisticRecipe: FeedRecipe = {
+        id: recipeId,
+        ownerId: currentUserId,
+        name: draft.name.trim(),
+        author: creatorName,
+        description: draft.description.trim() || 'No description yet.',
+        image: await getRecipeImageSource(imageUrl),
+        time: draft.prepTime.trim() || 'Prep time open',
+        rating: 'New',
+        saves: 'New',
+        tags: draft.tags,
+        instructions: draft.instructions
+          .map((instruction) => instruction.trim())
+          .filter(Boolean),
+      };
+
+      setFeedRecipes((previous) => [
+        optimisticRecipe,
+        ...previous.filter((recipe) => recipe.id !== recipeId),
+      ]);
+
       setPublishMessage('Published to the shared recipe feed.');
       setPublishMessageTone('success');
       await loadRecipes();
+      setActiveTag('All');
+      setDiscoverQuery('');
+      setExpandedRecipeId(null);
       setCurrentView('Discover');
     } catch (error) {
       console.error('Failed to publish recipe:', error);
@@ -1396,13 +1438,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">Prep time</span>
-                <input
-                  value={draft.prepTime}
-                  onChange={(event) =>
-                    updateDraft('prepTime', event.target.value)
-                  }
-                  className="ak-input rounded-lg px-3 py-2 outline-none transition"
-                />
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
+                  <MobileTimePicker
+                    ampm={false}
+                    minutesStep={5}
+                    value={draft.prepTime ? dayjs(`2000-01-01T${draft.prepTime}`) : null}
+                    onChange={(value) => updateDraft('prepTime', value ? value.format('HH:mm') : '')}
+                    slotProps={{
+                      textField: {
+                        size: 'small',
+                        fullWidth: true,
+                      },
+                    }}
+                  />
+                </LocalizationProvider>
               </label>
               <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-semibold">Recipe photo</span>
