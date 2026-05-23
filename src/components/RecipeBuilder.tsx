@@ -289,6 +289,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
+  const [newTagValue, setNewTagValue] = useState('');
   const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
@@ -523,6 +524,29 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       ...previous,
       instructions: [...previous.instructions, ''],
     }));
+  };
+
+  const addTag = () => {
+    const normalizedTag = newTagValue.trim();
+    if (!normalizedTag) return;
+
+    const exists = draft.tags.some(
+      (tag) => tag.toLowerCase() === normalizedTag.toLowerCase()
+    );
+    if (exists) {
+      setNewTagValue('');
+      return;
+    }
+
+    updateDraft('tags', [...draft.tags, normalizedTag]);
+    setNewTagValue('');
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    updateDraft(
+      'tags',
+      draft.tags.filter((tag) => tag !== tagToRemove)
+    );
   };
 
   const removeInstruction = (index: number) => {
@@ -1507,6 +1531,45 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   />
                 </span>
               </label>
+            </div>
+
+            <div className="grid gap-2">
+              <span className="text-sm font-semibold">Tags</span>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  value={newTagValue}
+                  onChange={(event) => setNewTagValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    addTag();
+                  }}
+                  placeholder="Add a tag"
+                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={addTag}
+                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
+                >
+                  Add tag
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {draft.tags.map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-plum)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    aria-label={`Remove tag ${tag}`}
+                    title={`Remove ${tag}`}
+                  >
+                    {tag}
+                    <span aria-hidden="true">x</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
