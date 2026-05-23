@@ -497,6 +497,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
+  const removeInstruction = (index: number) => {
+    setDraft((previous) => ({
+      ...previous,
+      instructions: previous.instructions.filter((_, i) => i !== index),
+    }));
+  };
+
   const visibleFeedRecipes = useMemo(() => {
     const query = discoverQuery.trim().toLowerCase();
 
@@ -954,7 +961,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   );
 
   return (
-    <main className="ak-bg flex h-screen flex-col overflow-hidden">
+    <main className="ak-bg flex h-screen flex-col overflow-hidden pb-10">
       <div className="ak-page-glow pointer-events-none fixed inset-0" />
       <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
         <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
@@ -969,9 +976,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <h1 className="text-lg font-semibold tracking-normal">
                 Arcane Kitchen
               </h1>
-              <p className="ak-muted text-xs">
-                Explore recipes freely. Log in to create.
-              </p>
             </div>
           </div>
 
@@ -1517,8 +1521,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <div className="grid gap-2">
                 {draft.instructions.map((instruction, index) => (
                   <label
-                    key={`${index}-${instruction.slice(0, 8)}`}
-                    className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-start gap-2"
+                    key={`instruction-${index}`}
+                    className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2"
                   >
                     <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-surface)] text-sm font-semibold text-[var(--theme-plum-strong)] ring-1 ring-[var(--theme-border)]">
                       {index + 1}
@@ -1530,6 +1534,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       }
                       className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
                     />
+                    <button
+                      type="button"
+                      onClick={() => removeInstruction(index)}
+                      className="ak-button-secondary ak-muted h-9 w-9 rounded-lg text-sm font-semibold"
+                      aria-label={`Remove step ${index + 1}`}
+                    >
+                      x
+                    </button>
                   </label>
                 ))}
               </div>
@@ -1640,6 +1652,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           </li>
                         ))}
                     </ul>
+                  </div>
+                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                    <h4 className="text-sm font-semibold">Instructions</h4>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--theme-text)]">
+                      {draft.instructions
+                        .map((instruction) => instruction.trim())
+                        .filter(Boolean)
+                        .map((instruction, index) => (
+                          <li key={`preview-step-${index}`}>{instruction}</li>
+                        ))}
+                    </ol>
                   </div>
                 </div>
               </article>
