@@ -78,7 +78,15 @@ const authServices = {
 
   async handleConfirmSignUp(input: any) {
     const username = input.username?.trim().toLowerCase();
-    const confirmationCode = input.confirmation_code;
+    const confirmationCode =
+      input.confirmation_code?.trim() ||
+      input.confirmationCode?.trim() ||
+      input.code?.trim() ||
+      '';
+
+    if (!confirmationCode) {
+      throw new Error('Code is required to confirm sign up');
+    }
 
     const result = await confirmSignUp({
       username,
@@ -102,6 +110,16 @@ function ConfirmationCodeHeader() {
   const syncConfirmationField = (confirmationCode: string) => {
     updateForm({
       name: 'confirmation_code',
+      value: confirmationCode,
+    });
+
+    updateForm({
+      name: 'confirmationCode',
+      value: confirmationCode,
+    });
+
+    updateForm({
+      name: 'code',
       value: confirmationCode,
     });
 
