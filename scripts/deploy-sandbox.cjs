@@ -1,6 +1,7 @@
 const { existsSync, readdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { createHash } = require('node:crypto');
 
 const projectRoot = join(__dirname, '..');
 const ampxBin = join(projectRoot, 'node_modules', '.bin', 'ampx');
@@ -35,7 +36,20 @@ const result = spawnSync(
   ],
   {
     cwd: projectRoot,
-    env: process.env,
+    env: {
+      ...process.env,
+      AK_COGNITO_DOMAIN_PREFIX: (() => {
+        const identifier =
+          process.env.AMPLIFY_SANDBOX_IDENTIFIER ||
+          process.env.USER ||
+          'sandbox';
+        const projectHash = createHash('sha1')
+          .update(projectRoot)
+          .digest('hex')
+          .slice(0, 6);
+        return `arcanekitchen-${identifier}-${projectHash}`;
+      })(),
+    },
     stdio: 'inherit',
   }
 );
