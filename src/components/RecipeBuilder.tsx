@@ -307,9 +307,28 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setFeedMessage('');
 
     try {
-      const { data, errors } = await client.models.Recipe.list({
-        authMode: 'identityPool',
-      });
+      const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
+        ? ['userPool', 'identityPool']
+        : ['identityPool'];
+
+      let data: Awaited<ReturnType<typeof client.models.Recipe.list>>['data'] = [];
+      let errors: Awaited<ReturnType<typeof client.models.Recipe.list>>['errors'] = undefined;
+
+      for (const authMode of authModes) {
+        const result = await client.models.Recipe.list({ authMode });
+        data = result.data;
+        errors = result.errors;
+
+        if (!errors?.length) break;
+
+        const isNotAuthorized = errors.some((error) =>
+          error.message.toLowerCase().includes('not authorized')
+        );
+
+        if (!isNotAuthorized || authMode === authModes[authModes.length - 1]) {
+          break;
+        }
+      }
 
       if (errors?.length) {
         const errorMessage = errors.map((error) => error.message).join(', ');
@@ -360,7 +379,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     } finally {
       setIsLoadingFeed(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     loadRecipes();
