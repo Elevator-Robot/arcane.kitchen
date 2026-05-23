@@ -90,15 +90,6 @@ interface RecipeQuantity {
   unit?: string;
 }
 
-const trendingTags = [
-  '30-minute',
-  'Dinner party',
-  'Meal prep',
-  'Vegetarian',
-  'One pan',
-  'High protein',
-];
-
 const fallbackRecipeImage =
   'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=900&q=80';
 
@@ -568,6 +559,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return matchesTag && haystack.includes(query);
     });
   }, [activeTag, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes]);
+
+  const availableFilterTags = useMemo(() => {
+    const uniqueTags = new Set<string>();
+
+    for (const recipe of feedRecipes) {
+      for (const tag of recipe.tags) {
+        const normalizedTag = tag.trim();
+        if (normalizedTag) uniqueTags.add(normalizedTag);
+      }
+    }
+
+    return Array.from(uniqueTags).sort((left, right) => left.localeCompare(right));
+  }, [feedRecipes]);
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
@@ -1113,7 +1117,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <div className={`ak-surface border-b px-4 py-3 ${expandedRecipe ? 'hidden' : ''}`}>
             <div className="flex flex-wrap gap-2">
-              {['All', 'Favorites', 'My recipes', ...trendingTags].map((tag) => (
+              {['All', 'Favorites', 'My recipes', ...availableFilterTags].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => setActiveTag(tag)}
