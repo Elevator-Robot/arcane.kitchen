@@ -16,7 +16,7 @@ const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
 type RecipeBuilderView = 'Discover' | 'Build';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
-  if (typeof window === 'undefined') return 'Discover';
+  if (typeof window === 'undefined' || !window.localStorage) return 'Discover';
 
   const savedView = window.localStorage.getItem(RECIPE_BUILDER_VIEW_KEY);
 
@@ -28,7 +28,7 @@ const getInitialRecipeBuilderView = (): RecipeBuilderView => {
 };
 
 const getInitialFavoriteRecipeIds = (): Set<string> => {
-  if (typeof window === 'undefined') return new Set();
+  if (typeof window === 'undefined' || !window.localStorage) return new Set();
 
   try {
     const saved = window.localStorage.getItem(RECIPE_BUILDER_FAVORITES_KEY);
@@ -247,15 +247,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const isTabLocked = (tab: RecipeBuilderView) => !isAuthenticated && tab === 'Build';
 
-  const openView = (tab: RecipeBuilderView) => {
-    if (isTabLocked(tab)) {
-      onRequestAuth?.();
-      return;
-    }
-
-    setCurrentView(tab);
-  };
-
   const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
@@ -290,9 +281,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
   const [newTagValue, setNewTagValue] = useState('');
+  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
+  const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(null);
   const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
+  const isEditingRecipe = Boolean(editingRecipeId);
 
   const loadRecipes = useCallback(async () => {
     setIsLoadingFeed(true);
@@ -378,7 +372,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [loadRecipes]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !window.localStorage) return;
     window.localStorage.setItem(RECIPE_BUILDER_VIEW_KEY, currentView);
   }, [currentView]);
 
@@ -418,7 +412,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             .filter((recipeId): recipeId is string => Boolean(recipeId))
         );
 
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && window.localStorage) {
           const localIds = getInitialFavoriteRecipeIds();
 
           for (const recipeId of localIds) {
@@ -452,7 +446,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [currentUserId, isAuthenticated]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || (isAuthenticated && currentUserId)) return;
+    if (
+      typeof window === 'undefined' ||
+      !window.localStorage ||
+      (isAuthenticated && currentUserId)
+    ) {
+      return;
+    }
     window.localStorage.setItem(
       RECIPE_BUILDER_FAVORITES_KEY,
       JSON.stringify([...favoriteRecipeIds])
@@ -613,6 +613,130 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setPublishMessageTone('error');
   };
 
+  const startCreateRecipe = () => {
+    if (isTabLocked('Build')) {
+      onRequestAuth?.();
+      return;
+    }
+
+    setEditingRecipeId(null);
+    setSelectedImageFile(null);
+    setImagePreviewUrl(fallbackRecipeImage);
+    setDraft(defaultDraft);
+    setPublishMessage('');
+    setPublishMessageTone('error');
+    setNewTagValue('');
+    setExpandedRecipeId(null);
+    setCurrentView('Build');
+  };
+
+  const startEditRecipe = async (recipeId: string, recipeOwnerId: string) => {
+    if (!isAuthenticated || !currentUserId) {
+      onRequestAuth?.();
+      return;
+    }
+
+    if (recipeOwnerId !== currentUserId) return;
+    if (loadingEditRecipeId === recipeId) return;
+
+    setLoadingEditRecipeId(recipeId);
+    setPublishMessage('');
+    setPublishMessageTone('error');
+
+    try {
+      const recipeResult = await client.models.Recipe.get(
+        { id: recipeId },
+        { authMode: 'userPool' }
+      );
+
+      if (recipeResult.errors?.length || !recipeResult.data) {
+        throw new Error(
+          recipeResult.errors?.map((error) => error.message).join(', ') ||
+            'Recipe could not be loaded.'
+        );
+      }
+
+      const recipeData = recipeResult.data;
+
+      const recipeLinksResult = await client.models.RecipeIngredient.list({
+        filter: {
+          recipeId: {
+            eq: recipeId,
+          },
+        },
+        authMode: 'userPool',
+      });
+
+      if (recipeLinksResult.errors?.length) {
+        throw new Error(recipeLinksResult.errors.map((error) => error.message).join(', '));
+      }
+
+      const ingredientDrafts = (
+        await Promise.all(
+          recipeLinksResult.data.map(async (link, index) => {
+            if (!link.ingredientId) return null;
+
+            const ingredientResult = await client.models.Ingredient.get(
+              { id: link.ingredientId },
+              { authMode: 'userPool' }
+            );
+
+            if (ingredientResult.errors?.length || !ingredientResult.data?.name) {
+              return null;
+            }
+
+            const quantity = parseRecipeQuantity(link.quantity);
+
+            return {
+              id: Date.now() + index,
+              name: ingredientResult.data.name,
+              amount: quantity.amount || '',
+              unit: quantity.unit || '',
+            };
+          })
+        )
+      ).filter((ingredient): ingredient is RecipeIngredientDraft => Boolean(ingredient));
+
+      const instructions = (recipeData.instructions?.filter(Boolean) as string[]) ?? [];
+      const resolvedImage = await getRecipeImageSource(recipeData.imageUrl);
+
+      setEditingRecipeId(recipeId);
+      setSelectedImageFile(null);
+      setImagePreviewUrl(resolvedImage);
+      setDraft({
+        name: recipeData.name || '',
+        description: recipeData.description || '',
+        prepTime: recipeData.prepTime || '',
+        tags: (recipeData.tags?.filter(Boolean) as string[]) ?? [],
+        imageUrl: recipeData.imageUrl || '',
+        instructions: instructions.length ? instructions : [''],
+        ingredients: ingredientDrafts.length
+          ? ingredientDrafts
+          : [{ id: Date.now(), name: '', amount: '', unit: '' }],
+      });
+      setExpandedRecipeIngredients((previous) => ({
+        ...previous,
+        [recipeId]: ingredientDrafts
+          .map((ingredient) =>
+            [ingredient.amount.trim(), ingredient.unit.trim(), ingredient.name.trim()]
+              .join(' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+          )
+          .filter(Boolean),
+      }));
+      setNewTagValue('');
+      setExpandedRecipeId(null);
+      setCurrentView('Build');
+    } catch (error) {
+      console.error('Failed to load recipe for editing:', error);
+      setPublishMessage('Could not load this recipe for editing right now.');
+      setPublishMessageTone('error');
+    } finally {
+      setLoadingEditRecipeId((current) => (current === recipeId ? null : current));
+    }
+  };
+
   const publishRecipe = async () => {
     if (!isAuthenticated || !currentUserId || isPublishing) {
       setPublishMessage('Log in to publish recipes.');
@@ -634,7 +758,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const recipeFingerprint = buildRecipeFingerprint(draft);
     const recipeNameKey = normalizeText(draft.name);
 
-    if (recipeFingerprint === DEFAULT_RECIPE_FINGERPRINT) {
+    if (!isEditingRecipe && recipeFingerprint === DEFAULT_RECIPE_FINGERPRINT) {
       setPublishMessage(
         'Customize the starter recipe before publishing so the feed stays unique.'
       );
@@ -667,7 +791,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         throw new Error(duplicateCheck.errors.map((error) => error.message).join(', '));
       }
 
-      if (duplicateCheck.data.length) {
+      const duplicateFingerprintMatches = duplicateCheck.data.filter(
+        (recipe) => recipe.id !== editingRecipeId
+      );
+
+      if (duplicateFingerprintMatches.length) {
         setPublishMessage('You already published this recipe. Try a new variation.');
         setPublishMessageTone('error');
         return;
@@ -685,7 +813,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         throw new Error(nameDuplicateCheck.errors.map((error) => error.message).join(', '));
       }
 
-      if (nameDuplicateCheck.data.length) {
+      const duplicateNameMatches = nameDuplicateCheck.data.filter(
+        (recipe) => recipe.id !== editingRecipeId
+      );
+
+      if (duplicateNameMatches.length) {
         setPublishMessage('You already have a recipe with this name. Rename it to publish.');
         setPublishMessageTone('error');
         return;
@@ -706,78 +838,140 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         }).result;
       }
 
-      const recipeResult = await client.models.Recipe.create({
-        name: draft.name.trim(),
-        ownerId: currentUserId,
-        description: draft.description.trim(),
-        createdBy: creatorName,
-        instructions: draft.instructions
-          .map((instruction) => instruction.trim())
-          .filter(Boolean),
-        prepTime: draft.prepTime.trim(),
-        tags: draft.tags,
-        imageUrl,
-        recipeNameKey,
-        recipeFingerprint,
-        ratings: [],
-      }, {
-        authMode: 'userPool',
-      });
+      let recipeId = editingRecipeId;
 
-      if (recipeResult.errors?.length || !recipeResult.data) {
-        throw new Error(
-          recipeResult.errors?.map((error) => error.message).join(', ') ||
-            'Recipe could not be created.'
+      if (isEditingRecipe && editingRecipeId) {
+        const updateResult = await client.models.Recipe.update(
+          {
+            id: editingRecipeId,
+            name: draft.name.trim(),
+            description: draft.description.trim(),
+            createdBy: creatorName,
+            instructions: draft.instructions
+              .map((instruction) => instruction.trim())
+              .filter(Boolean),
+            prepTime: draft.prepTime.trim(),
+            tags: draft.tags,
+            imageUrl,
+            recipeNameKey,
+            recipeFingerprint,
+          },
+          {
+            authMode: 'userPool',
+          }
         );
+
+        if (updateResult.errors?.length || !updateResult.data) {
+          throw new Error(
+            updateResult.errors?.map((error) => error.message).join(', ') ||
+              'Recipe could not be updated.'
+          );
+        }
+
+        const existingLinksResult = await client.models.RecipeIngredient.list({
+          filter: {
+            recipeId: {
+              eq: editingRecipeId,
+            },
+          },
+          authMode: 'userPool',
+        });
+
+        if (existingLinksResult.errors?.length) {
+          throw new Error(existingLinksResult.errors.map((error) => error.message).join(', '));
+        }
+
+        await Promise.all(
+          existingLinksResult.data.map(async (link) => {
+            if (!link.id) return;
+
+            const deleteLinkResult = await client.models.RecipeIngredient.delete(
+              { id: link.id },
+              { authMode: 'userPool' }
+            );
+
+            if (deleteLinkResult.errors?.length) {
+              throw new Error(
+                deleteLinkResult.errors.map((error) => error.message).join(', ')
+              );
+            }
+          })
+        );
+      } else {
+        const recipeResult = await client.models.Recipe.create(
+          {
+            name: draft.name.trim(),
+            ownerId: currentUserId,
+            description: draft.description.trim(),
+            createdBy: creatorName,
+            instructions: draft.instructions
+              .map((instruction) => instruction.trim())
+              .filter(Boolean),
+            prepTime: draft.prepTime.trim(),
+            tags: draft.tags,
+            imageUrl,
+            recipeNameKey,
+            recipeFingerprint,
+            ratings: [],
+          },
+          {
+            authMode: 'userPool',
+          }
+        );
+
+        if (recipeResult.errors?.length || !recipeResult.data?.id) {
+          throw new Error(
+            recipeResult.errors?.map((error) => error.message).join(', ') ||
+              'Recipe could not be created.'
+          );
+        }
+
+        recipeId = recipeResult.data.id;
       }
 
-      const createdRecipe = recipeResult.data;
-      if (!createdRecipe.id) {
-        throw new Error('Recipe was created without an id.');
+      if (!recipeId) {
+        throw new Error('Recipe id is missing.');
       }
-      const recipeId = createdRecipe.id;
 
       await Promise.all(
         cleanedIngredients.map(async (ingredient) => {
-          const ingredientResult = await client.models.Ingredient.create({
-            name: ingredient.name.trim(),
-          }, {
-            authMode: 'userPool',
-          });
+          const ingredientResult = await client.models.Ingredient.create(
+            {
+              name: ingredient.name.trim(),
+            },
+            {
+              authMode: 'userPool',
+            }
+          );
 
-          if (ingredientResult.errors?.length || !ingredientResult.data) {
+          if (ingredientResult.errors?.length || !ingredientResult.data?.id) {
             throw new Error(
-              ingredientResult.errors
-                ?.map((error) => error.message)
-                .join(', ') || 'Ingredient could not be created.'
+              ingredientResult.errors?.map((error) => error.message).join(', ') ||
+                'Ingredient could not be created.'
             );
           }
 
-          const createdIngredient = ingredientResult.data;
-          if (!createdIngredient.id) {
-            throw new Error('Ingredient was created without an id.');
-          }
-          const ingredientId = createdIngredient.id;
-
-          const linkResult = await client.models.RecipeIngredient.create({
-            recipeId,
-            ingredientId,
-            quantity: JSON.stringify({
-              amount: ingredient.amount.trim(),
-              unit: ingredient.unit.trim(),
-            }),
-          }, {
-            authMode: 'userPool',
-          });
+          const linkResult = await client.models.RecipeIngredient.create(
+            {
+              recipeId,
+              ingredientId: ingredientResult.data.id,
+              quantity: JSON.stringify({
+                amount: ingredient.amount.trim(),
+                unit: ingredient.unit.trim(),
+              }),
+            },
+            {
+              authMode: 'userPool',
+            }
+          );
 
           if (linkResult.errors?.length) {
-            throw new Error(
-              linkResult.errors.map((error) => error.message).join(', ')
-            );
+            throw new Error(linkResult.errors.map((error) => error.message).join(', '));
           }
         })
       );
 
+      const existingRecipe = feedRecipes.find((recipe) => recipe.id === recipeId);
       const optimisticRecipe: FeedRecipe = {
         id: recipeId,
         ownerId: currentUserId,
@@ -786,32 +980,54 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         description: draft.description.trim() || 'No description yet.',
         image: await getRecipeImageSource(imageUrl),
         time: draft.prepTime.trim() || 'Prep time open',
-        rating: 'New',
-        saves: 'New',
+        rating: existingRecipe?.rating || 'New',
+        saves: existingRecipe?.saves || 'New',
         tags: draft.tags,
         instructions: draft.instructions
           .map((instruction) => instruction.trim())
           .filter(Boolean),
       };
 
-      setFeedRecipes((previous) => [
-        optimisticRecipe,
-        ...previous.filter((recipe) => recipe.id !== recipeId),
-      ]);
+      setFeedRecipes((previous) => {
+        if (isEditingRecipe) {
+          return previous.map((recipe) =>
+            recipe.id === recipeId ? optimisticRecipe : recipe
+          );
+        }
 
-      setPublishMessage('Published to the shared recipe feed.');
+        return [optimisticRecipe, ...previous.filter((recipe) => recipe.id !== recipeId)];
+      });
+      setExpandedRecipeIngredients((previous) => ({
+        ...previous,
+        [recipeId]: cleanedIngredients
+          .map((ingredient) =>
+            [ingredient.amount.trim(), ingredient.unit.trim(), ingredient.name.trim()]
+              .join(' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+          )
+          .filter(Boolean),
+      }));
+
+      setPublishMessage(
+        isEditingRecipe ? 'Recipe updated in the shared feed.' : 'Published to the shared recipe feed.'
+      );
       setPublishMessageTone('success');
+      setSelectedImageFile(null);
+      setEditingRecipeId(null);
       await loadRecipes();
       setActiveTag('All');
       setDiscoverQuery('');
       setExpandedRecipeId(null);
       setCurrentView('Discover');
     } catch (error) {
-      console.error('Failed to publish recipe:', error);
+      console.error('Failed to save recipe:', error);
       const message =
         error instanceof Error && error.message.includes('Missing bucket name')
           ? 'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.'
-          : 'Publish failed. Check your sandbox deployment and auth.';
+          : isEditingRecipe
+            ? 'Update failed. Check your sandbox deployment and auth.'
+            : 'Publish failed. Check your sandbox deployment and auth.';
 
       setPublishMessage(message);
       setPublishMessageTone('error');
@@ -1100,7 +1316,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       >
         <div className="flex items-center justify-end md:hidden">
           <button
-            onClick={() => openView('Build')}
+            onClick={startCreateRecipe}
             className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
           >
             Create new
@@ -1123,7 +1339,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
               />
               <button
-                onClick={() => openView('Build')}
+                onClick={startCreateRecipe}
                 className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
               >
                 Create new
@@ -1274,7 +1490,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
 
                   {isAuthenticated && expandedRecipe.ownerId === currentUserId && (
-                    <div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void startEditRecipe(expandedRecipe.id, expandedRecipe.ownerId)
+                        }
+                        disabled={loadingEditRecipeId === expandedRecipe.id}
+                        className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                      >
+                        {loadingEditRecipeId === expandedRecipe.id
+                          ? 'Opening...'
+                          : 'Edit recipe'}
+                      </button>
                       <button
                         type="button"
                         onClick={() => deleteRecipe(expandedRecipe.id, expandedRecipe.ownerId)}
@@ -1360,7 +1588,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         <span>{recipe.saves} saves</span>
                       </div>
                       {isAuthenticated && recipe.ownerId === currentUserId && (
-                        <div className="mt-3">
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void startEditRecipe(recipe.id, recipe.ownerId);
+                            }}
+                            disabled={loadingEditRecipeId === recipe.id}
+                            className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                          >
+                            {loadingEditRecipeId === recipe.id
+                              ? 'Opening...'
+                              : 'Edit recipe'}
+                          </button>
                           <button
                             type="button"
                             onClick={(event) => {
@@ -1428,7 +1669,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 Recipe Studio
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-                Create a recipe post
+                {isEditingRecipe ? 'Edit your recipe' : 'Create a recipe post'}
               </h2>
               {!isAuthenticated && (
                 <p className="ak-muted mt-2 text-sm">
@@ -1438,7 +1679,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentView('Discover')}
+                onClick={() => {
+                  setEditingRecipeId(null);
+                  setPublishMessage('');
+                  setPublishMessageTone('error');
+                  setCurrentView('Discover');
+                }}
                 className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
               >
                 Cancel
@@ -1724,7 +1970,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     Post Preview
                   </p>
                   <h2 className="mt-1 text-xl font-semibold tracking-normal">
-                    Ready for the feed
+                    {isEditingRecipe ? 'Review your updates' : 'Ready for the feed'}
                   </h2>
                 </div>
                 {isAuthenticated && (
@@ -1733,7 +1979,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     disabled={isPublishing}
                     className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition disabled:opacity-60"
                   >
-                    {isPublishing ? 'Publishing...' : 'Publish'}
+                    {isPublishing
+                      ? isEditingRecipe
+                        ? 'Saving...'
+                        : 'Publishing...'
+                      : isEditingRecipe
+                        ? 'Save changes'
+                        : 'Publish'}
                   </button>
                 )}
               </div>

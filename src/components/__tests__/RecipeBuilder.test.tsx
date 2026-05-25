@@ -13,7 +13,7 @@ describe('RecipeBuilder Component', () => {
     render(<RecipeBuilder {...defaultRecipeBuilderProps} />);
 
     expect(screen.getByText('Arcane Kitchen')).toBeInTheDocument();
-    expect(screen.getByText('Explore what cooks are making')).toBeInTheDocument();
+    expect(screen.getByText('Discover recipes')).toBeInTheDocument();
     expect(screen.getByText('Create a recipe post')).toBeInTheDocument();
     expect(screen.getByText('Ready for the feed')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Summer Tomato Toasts')).toBeInTheDocument();
