@@ -46,6 +46,22 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
 const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
   currentUser?.userId || userAttributes?.sub || null;
 
+//Converts prep time from HH:mm format to HH:mm:ss format for backwards compatibility.
+ 
+const ensurePrepTimeFormat = (prepTime: string): string => {
+  if (!prepTime) return prepTime;
+  const parts = prepTime.split(':');
+  if (parts.length === 3) {
+  
+    return prepTime;
+  }
+  if (parts.length === 2) {
+    // Convert from HH:mm to HH:mm:ss
+    return `${prepTime}:00`;
+  }
+  return prepTime;
+};
+
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
   currentUser: any;
@@ -97,7 +113,7 @@ const defaultDraft: RecipeDraft = {
   name: 'Summer Tomato Toasts',
   description:
     'A bright, shareable recipe with crisp bread, marinated tomatoes, whipped ricotta, and basil oil.',
-  prepTime: '00:20',
+  prepTime: '00:00:20',
   tags: ['Seasonal', 'Vegetarian'],
   imageUrl: '',
   ingredients: [
@@ -342,12 +358,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             author: recipe.createdBy || 'Arcane cook',
             description: recipe.description || 'No description yet.',
             image: await getRecipeImageSource(recipe.imageUrl),
-            time: recipe.prepTime || 'Prep time open',
-              rating: getBackendRating(recipe.ratings),
-              saves: 'New',
-              tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
-              instructions: (recipe.instructions?.filter(Boolean) as string[]) ?? [],
-            }))
+            time: ensurePrepTimeFormat(recipe.prepTime) || 'Prep time open',
+            rating: getBackendRating(recipe.ratings),
+            saves: 'New',
+            tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
+            instructions: (recipe.instructions?.filter(Boolean) as string[]) ?? [],
+          }))
       );
 
       setFeedRecipes(recipes);
@@ -706,7 +722,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setDraft({
         name: recipeData.name || '',
         description: recipeData.description || '',
-        prepTime: recipeData.prepTime || '',
+        prepTime: ensurePrepTimeFormat(recipeData.prepTime || ''),
         tags: (recipeData.tags?.filter(Boolean) as string[]) ?? [],
         imageUrl: recipeData.imageUrl || '',
         instructions: instructions.length ? instructions : [''],
@@ -1734,13 +1750,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en-gb">
                   <MobileTimePicker
                     ampm={false}
-                    minutesStep={5}
+                    views={['hours', 'minutes', 'seconds']}
+                    secondsStep={1}
                     value={draft.prepTime ? dayjs(`2000-01-01T${draft.prepTime}`) : null}
-                    onChange={(value) => updateDraft('prepTime', value ? value.format('HH:mm') : '')}
+                    onChange={(value) => updateDraft('prepTime', value ? value.format('HH:mm:ss') : '')}
                     slotProps={{
                       textField: {
                         size: 'small',
                         fullWidth: true,
+                        placeholder: 'HH:MM:SS',
                       },
                     }}
                   />
