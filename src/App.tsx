@@ -11,6 +11,12 @@ import {
   signUp,
 } from 'aws-amplify/auth';
 import RecipeBuilder from './components/RecipeBuilder';
+import {
+  isFakeBackend,
+  fakeGetCurrentUser,
+  fakeFetchUserAttributes,
+  fakeSignOut,
+} from './fake-backend';
 
 const authFormFields = {
   signIn: {
@@ -103,9 +109,7 @@ const authServices = {
 
 function ConfirmationCodeHeader() {
   const [code, setCode] = useState(Array(6).fill(''));
-  const { updateForm } = useAuthenticator((context) => [
-    context.updateForm,
-  ]);
+  const { updateForm } = useAuthenticator((context) => [context.updateForm]);
 
   const syncConfirmationField = (confirmationCode: string) => {
     updateForm({
@@ -142,7 +146,9 @@ function ConfirmationCodeHeader() {
     syncConfirmationField(confirmationCode);
 
     if (nextValue && index < nextCode.length - 1) {
-      const nextInput = document.getElementById(`confirmation-code-${index + 1}`);
+      const nextInput = document.getElementById(
+        `confirmation-code-${index + 1}`
+      );
       nextInput?.focus();
     }
   };
@@ -206,11 +212,7 @@ function ConfirmationCodeHeader() {
   );
 }
 
-function AuthSuccess({
-  onComplete,
-}: {
-  onComplete: () => Promise<void>;
-}) {
+function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
   useEffect(() => {
     onComplete();
   }, [onComplete]);
@@ -226,8 +228,12 @@ function App() {
 
   const refreshAuthState = useCallback(async () => {
     try {
-      const user = await getCurrentUser();
-      const attributes = await fetchUserAttributes();
+      const user = isFakeBackend()
+        ? await fakeGetCurrentUser()
+        : await getCurrentUser();
+      const attributes = isFakeBackend()
+        ? await fakeFetchUserAttributes()
+        : await fetchUserAttributes();
 
       setCurrentUser(user);
       setUserAttributes(attributes);
@@ -250,7 +256,11 @@ function App() {
   }, [isAuthenticated, showAuth]);
 
   const handleSignOut = async () => {
-    await amplifySignOut();
+    if (isFakeBackend()) {
+      await fakeSignOut();
+    } else {
+      await amplifySignOut();
+    }
     setCurrentUser(null);
     setUserAttributes(null);
     setIsAuthenticated(false);
@@ -262,7 +272,12 @@ function App() {
   }, [refreshAuthState]);
 
   const submitAuthFormOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (event.key !== 'Enter' || event.shiftKey || event.metaKey || event.ctrlKey) {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.metaKey ||
+      event.ctrlKey
+    ) {
       return;
     }
 
