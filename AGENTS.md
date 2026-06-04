@@ -16,6 +16,13 @@ When the project changes, update this file in the same PR.
 - License or legal changes
 - New dev-only features that affect the development workflow
 
+## Recipe Data Structure
+
+Recipes now include a `utensils` field (array of strings) for kitchen tools needed:
+- Displayed in recipe previews as a bulleted list
+- Included in recipe fingerprint for deduplication
+- Optional (empty if not provided)
+
 ## Fake Backend (`src/fake-backend/`)
 
 - In `development` mode (`npm run dev`), a localStorage-backed fake backend replaces Amplify (Cognito, AppSync, S3) entirely
