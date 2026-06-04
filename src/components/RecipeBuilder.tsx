@@ -87,6 +87,7 @@ interface RecipeDraft {
   imageUrl: string;
   instructions: string[];
   ingredients: RecipeIngredientDraft[];
+  utensils: string[];
 }
 
 interface FeedRecipe {
@@ -101,6 +102,7 @@ interface FeedRecipe {
   saves: string;
   tags: string[];
   instructions: string[];
+  utensils?: string[];
 }
 
 interface RecipeQuantity {
@@ -128,6 +130,7 @@ const defaultDraft: RecipeDraft = {
     'Toss tomatoes with olive oil, salt, pepper, and a splash of vinegar.',
     'Spread ricotta on each toast, spoon tomatoes over the top, and finish with basil oil.',
   ],
+  utensils: ['Cutting board', 'Chef\'s knife', 'Mixing bowl'],
 };
 
 const normalizeText = (value: string) =>
@@ -152,6 +155,11 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
     .filter(Boolean)
     .sort();
 
+  const utensilParts = draft.utensils
+    .map((utensil) => normalizeText(utensil))
+    .filter(Boolean)
+    .sort();
+
   return [
     normalizeText(draft.name),
     normalizeText(draft.description),
@@ -159,6 +167,7 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
     ingredientParts.join('||'),
     instructionParts.join('||'),
     tagParts.join('||'),
+    utensilParts.join('||'),
   ].join('###');
 };
 
@@ -384,6 +393,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
             instructions:
               (recipe.instructions?.filter(Boolean) as string[]) ?? [],
+            utensils: (recipe.utensils?.filter(Boolean) as string[]) ?? [],
           }))
       );
 
@@ -593,6 +603,29 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setDraft((previous) => ({
       ...previous,
       instructions: previous.instructions.filter((_, i) => i !== index),
+    }));
+  };
+
+  const addUtensil = () => {
+    setDraft((previous) => ({
+      ...previous,
+      utensils: [...previous.utensils, ''],
+    }));
+  };
+
+  const updateUtensil = (index: number, value: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      utensils: previous.utensils.map((utensil, i) =>
+        i === index ? value : utensil
+      ),
+    }));
+  };
+
+  const removeUtensil = (index: number) => {
+    setDraft((previous) => ({
+      ...previous,
+      utensils: previous.utensils.filter((_, i) => i !== index),
     }));
   };
 
@@ -916,6 +949,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               .filter(Boolean),
             prepTime: draft.prepTime.trim(),
             tags: draft.tags,
+            utensils: draft.utensils
+              .map((utensil) => utensil.trim())
+              .filter(Boolean),
             imageUrl,
             recipeNameKey,
             recipeFingerprint,
@@ -976,6 +1012,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               .filter(Boolean),
             prepTime: draft.prepTime.trim(),
             tags: draft.tags,
+            utensils: draft.utensils
+              .map((utensil) => utensil.trim())
+              .filter(Boolean),
             imageUrl,
             recipeNameKey,
             recipeFingerprint,
@@ -1057,6 +1096,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         tags: draft.tags,
         instructions: draft.instructions
           .map((instruction) => instruction.trim())
+          .filter(Boolean),
+        utensils: draft.utensils
+          .map((utensil) => utensil.trim())
           .filter(Boolean),
       };
 
@@ -1369,7 +1411,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     <main className="ak-bg flex h-screen flex-col overflow-hidden pb-10">
       <div className="ak-page-glow pointer-events-none fixed inset-0" />
       <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
-        <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
+        <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3 justify-self-start">
             <img
               src="/logo-no-background.svg"
@@ -1414,15 +1456,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             : ''
         }`}
       >
-        <div className="flex items-center justify-end md:hidden">
-          <button
-            onClick={startCreateRecipe}
-            className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
-          >
-            Create new
-          </button>
-        </div>
-
         <section
           id="discover"
           className={`ak-card min-h-0 overflow-hidden rounded-xl ${
@@ -1612,6 +1645,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <li>Instructions have not been added yet.</li>
                         )}
                       </ol>
+                    </section>
+
+                    <section>
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                        Utensils Needed
+                      </h4>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
+                        {expandedRecipe.utensils?.length ? (
+                          expandedRecipe.utensils.map((utensil, index) => (
+                            <li key={`${expandedRecipe.id}-utensil-${index}`}>
+                              {utensil}
+                            </li>
+                          ))
+                        ) : (
+                          <li>Utensils have not been added yet.</li>
+                        )}
+                      </ul>
                     </section>
                   </div>
 
@@ -1866,32 +1916,37 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">Prep time</span>
-                <LocalizationProvider
-                  dateAdapter={AdapterDayjs}
-                  adapterLocale="en-gb"
-                >
-                  <MobileTimePicker
-                    ampm={false}
-                    minutesStep={5}
-                    value={
-                      draft.prepTime
-                        ? dayjs(`2000-01-01T${draft.prepTime}`)
-                        : null
-                    }
-                    onChange={(value) =>
-                      updateDraft(
-                        'prepTime',
-                        value ? value.format('HH:mm') : ''
-                      )
-                    }
-                    slotProps={{
-                      textField: {
-                        size: 'small',
-                        fullWidth: true,
-                      },
-                    }}
-                  />
-                </LocalizationProvider>
+                <div className="relative [&:focus-within_>_.prep-time-label]:opacity-0">
+                  <LocalizationProvider
+                    dateAdapter={AdapterDayjs}
+                    adapterLocale="en-gb"
+                  >
+                    <MobileTimePicker
+                      ampm={false}
+                      minutesStep={5}
+                      value={
+                        draft.prepTime
+                          ? dayjs(`2000-01-01T${draft.prepTime}`)
+                          : null
+                      }
+                      onChange={(value) =>
+                        updateDraft(
+                          'prepTime',
+                          value ? value.format('HH:mm') : ''
+                        )
+                      }
+                      slotProps={{
+                        textField: {
+                          size: 'small',
+                          fullWidth: true,
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                  <span className="prep-time-label pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold opacity-40 transition-opacity duration-200" style={{ color: 'var(--theme-text)' }}>
+                    HH:MM
+                  </span>
+                </div>
               </label>
               <label className="grid min-w-0 gap-2">
                 <span className="text-sm font-semibold">Recipe photo</span>
@@ -2076,6 +2131,43 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 ))}
               </div>
             </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Utensils Needed</h3>
+                <button
+                  onClick={addUtensil}
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="grid gap-2">
+                {draft.utensils.map((utensil, index) => (
+                  <div
+                    key={`utensil-${index}`}
+                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded-xl border p-3"
+                  >
+                    <input
+                      aria-label="Utensil"
+                      value={utensil}
+                      onChange={(event) =>
+                        updateUtensil(index, event.target.value)
+                      }
+                      placeholder="e.g., Mixing bowl, Chef's knife"
+                      className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                    />
+                    <button
+                      onClick={() => removeUtensil(index)}
+                      className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
+                      aria-label="Remove utensil"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {!isAuthenticated && (
@@ -2199,6 +2291,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <li key={`preview-step-${index}`}>{instruction}</li>
                         ))}
                     </ol>
+                  </div>
+                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                    <h4 className="text-sm font-semibold">Utensils Needed</h4>
+                    <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
+                      {draft.utensils
+                        .map((utensil) => utensil.trim())
+                        .filter(Boolean)
+                        .map((utensil, index) => (
+                          <li key={`preview-utensil-${index}`}>• {utensil}</li>
+                        ))}
+                    </ul>
                   </div>
                 </div>
               </article>
