@@ -16,7 +16,9 @@ describe('RecipeBuilder Component', () => {
     expect(screen.getByText('Discover recipes')).toBeInTheDocument();
     expect(screen.getByText('Create a recipe post')).toBeInTheDocument();
     expect(screen.getByText('Ready for the feed')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Summer Tomato Toasts')).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue('Summer Tomato Toasts')
+    ).toBeInTheDocument();
   });
 
   it('updates the post preview as recipe fields change', async () => {
@@ -52,6 +54,8 @@ describe('RecipeBuilder Component', () => {
     expect(
       screen.getAllByRole('button', { name: 'Log in to create' })[0]
     ).toBeInTheDocument();
-    expect(screen.getByText('Start publishing your own recipes')).toBeInTheDocument();
+    expect(
+      screen.getByText('Start publishing your own recipes')
+    ).toBeInTheDocument();
   });
 });

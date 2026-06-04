@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
@@ -9,8 +15,18 @@ import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
+import {
+  isFakeBackend,
+  getFakeClient,
+  fakeUploadData,
+  fakeGetUrl,
+} from '../fake-backend';
 
-const client = generateClient<Schema>();
+const client: any = isFakeBackend()
+  ? getFakeClient()
+  : generateClient<Schema>();
+const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
+const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
 type RecipeBuilderView = 'Discover' | 'Build';
@@ -37,7 +53,9 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
     const parsed = JSON.parse(saved);
     if (!Array.isArray(parsed)) return new Set();
 
-    return new Set(parsed.filter((value): value is string => typeof value === 'string'));
+    return new Set(
+      parsed.filter((value): value is string => typeof value === 'string')
+    );
   } catch {
     return new Set();
   }
@@ -85,6 +103,7 @@ interface RecipeDraft {
   imageUrl: string;
   instructions: string[];
   ingredients: RecipeIngredientDraft[];
+  utensils: string[];
 }
 
 interface FeedRecipe {
@@ -99,6 +118,7 @@ interface FeedRecipe {
   saves: string;
   tags: string[];
   instructions: string[];
+  utensils?: string[];
 }
 
 interface RecipeQuantity {
@@ -126,9 +146,11 @@ const defaultDraft: RecipeDraft = {
     'Toss tomatoes with olive oil, salt, pepper, and a splash of vinegar.',
     'Spread ricotta on each toast, spoon tomatoes over the top, and finish with basil oil.',
   ],
+  utensils: ['Cutting board', 'Chef\'s knife', 'Mixing bowl'],
 };
 
-const normalizeText = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+const normalizeText = (value: string) =>
+  value.trim().toLowerCase().replace(/\s+/g, ' ');
 
 const buildRecipeFingerprint = (draft: RecipeDraft) => {
   const ingredientParts = draft.ingredients
@@ -144,7 +166,15 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
     .map((instruction) => normalizeText(instruction))
     .filter(Boolean);
 
-  const tagParts = draft.tags.map((tag) => normalizeText(tag)).filter(Boolean).sort();
+  const tagParts = draft.tags
+    .map((tag) => normalizeText(tag))
+    .filter(Boolean)
+    .sort();
+
+  const utensilParts = draft.utensils
+    .map((utensil) => normalizeText(utensil))
+    .filter(Boolean)
+    .sort();
 
   return [
     normalizeText(draft.name),
@@ -153,6 +183,7 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
     ingredientParts.join('||'),
     instructionParts.join('||'),
     tagParts.join('||'),
+    utensilParts.join('||'),
   ].join('###');
 };
 
@@ -166,7 +197,7 @@ const getRecipeImageSource = async (imageUrl?: string | null) => {
   if (isRemoteUrl(imageUrl)) return imageUrl;
 
   try {
-    const { url } = await getUrl({
+    const { url } = await doGetUrl({
       path: imageUrl,
       options: {
         expiresIn: 60 * 60,
@@ -261,44 +292,53 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   onRequestAuth,
   onSignOut,
 }) => {
-  const isTabLocked = (tab: RecipeBuilderView) => !isAuthenticated && tab === 'Build';
+  const isTabLocked = (tab: RecipeBuilderView) =>
+    !isAuthenticated && tab === 'Build';
 
   const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [discoverQuery, setDiscoverQuery] = useState('');
-  const [currentView, setCurrentView] =
-    useState<RecipeBuilderView>(getInitialRecipeBuilderView);
+  const [currentView, setCurrentView] = useState<RecipeBuilderView>(
+    getInitialRecipeBuilderView
+  );
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [deletingRecipeIds, setDeletingRecipeIds] = useState<Set<string>>(() => new Set());
+  const [deletingRecipeIds, setDeletingRecipeIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [armedDeleteRecipeIds, setArmedDeleteRecipeIds] = useState<Set<string>>(
     () => new Set()
   );
-  const deleteArmTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const deleteArmTimeoutsRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
   const [publishMessage, setPublishMessage] = useState('');
-  const [publishMessageTone, setPublishMessageTone] = useState<'error' | 'success'>(
-    'error'
-  );
+  const [publishMessageTone, setPublishMessageTone] = useState<
+    'error' | 'success'
+  >('error');
   const [feedMessage, setFeedMessage] = useState('');
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
     getInitialFavoriteRecipeIds
   );
-  const [pendingFavoriteRecipeIds, setPendingFavoriteRecipeIds] = useState<Set<string>>(
-    () => new Set()
-  );
+  const [pendingFavoriteRecipeIds, setPendingFavoriteRecipeIds] = useState<
+    Set<string>
+  >(() => new Set());
   const [expandedRecipeId, setExpandedRecipeId] = useState<string | null>(null);
   const [expandedRecipeIngredients, setExpandedRecipeIngredients] = useState<
     Record<string, string[]>
   >({});
-  const [loadingExpandedRecipeId, setLoadingExpandedRecipeId] =
-    useState<string | null>(null);
+  const [loadingExpandedRecipeId, setLoadingExpandedRecipeId] = useState<
+    string | null
+  >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
-  const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(null);
+  const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
+    null
+  );
   const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
@@ -313,8 +353,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         ? ['userPool', 'identityPool']
         : ['identityPool'];
 
-      let data: Awaited<ReturnType<typeof client.models.Recipe.list>>['data'] = [];
-      let errors: Awaited<ReturnType<typeof client.models.Recipe.list>>['errors'] = undefined;
+      let data: Awaited<ReturnType<typeof client.models.Recipe.list>>['data'] =
+        [];
+      let errors: Awaited<
+        ReturnType<typeof client.models.Recipe.list>
+      >['errors'] = undefined;
 
       for (const authMode of authModes) {
         const result = await client.models.Recipe.list({ authMode });
@@ -335,7 +378,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (errors?.length) {
         const errorMessage = errors.map((error) => error.message).join(', ');
         if (errorMessage.toLowerCase().includes('not authorized')) {
-          setFeedMessage('Recipes are unavailable until the backend auth rules are deployed.');
+          setFeedMessage(
+            'Recipes are unavailable until the backend auth rules are deployed.'
+          );
           return;
         }
 
@@ -372,7 +417,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         error instanceof Error &&
         error.message.toLowerCase().includes('not authorized')
       ) {
-        setFeedMessage('Recipes are unavailable until the backend auth rules are deployed.');
+        setFeedMessage(
+          'Recipes are unavailable until the backend auth rules are deployed.'
+        );
         return;
       }
 
@@ -529,8 +576,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const updateInstruction = (index: number, value: string) => {
     setDraft((previous) => ({
       ...previous,
-      instructions: previous.instructions.map((instruction, instructionIndex) =>
-        instructionIndex === index ? value : instruction
+      instructions: previous.instructions.map(
+        (instruction, instructionIndex) =>
+          instructionIndex === index ? value : instruction
       ),
     }));
   };
@@ -572,6 +620,29 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
+  const addUtensil = () => {
+    setDraft((previous) => ({
+      ...previous,
+      utensils: [...previous.utensils, ''],
+    }));
+  };
+
+  const updateUtensil = (index: number, value: string) => {
+    setDraft((previous) => ({
+      ...previous,
+      utensils: previous.utensils.map((utensil, i) =>
+        i === index ? value : utensil
+      ),
+    }));
+  };
+
+  const removeUtensil = (index: number) => {
+    setDraft((previous) => ({
+      ...previous,
+      utensils: previous.utensils.filter((_, i) => i !== index),
+    }));
+  };
+
   const visibleFeedRecipes = useMemo(() => {
     const query = discoverQuery.trim().toLowerCase();
 
@@ -581,9 +652,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           ? true
           : activeTag === 'Favorites'
             ? favoriteRecipeIds.has(recipe.id)
-          : activeTag === 'My recipes'
-            ? Boolean(currentUserId) && recipe.ownerId === currentUserId
-            : recipe.tags.some((tag) => tag === activeTag);
+            : activeTag === 'My recipes'
+              ? Boolean(currentUserId) && recipe.ownerId === currentUserId
+              : recipe.tags.some((tag) => tag === activeTag);
 
       if (!query) return matchesTag;
 
@@ -610,7 +681,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
     }
 
-    return Array.from(uniqueTags).sort((left, right) => left.localeCompare(right));
+    return Array.from(uniqueTags).sort((left, right) =>
+      left.localeCompare(right)
+    );
   }, [feedRecipes]);
 
   const updateImageFile = (file?: File) => {
@@ -684,7 +757,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       });
 
       if (recipeLinksResult.errors?.length) {
-        throw new Error(recipeLinksResult.errors.map((error) => error.message).join(', '));
+        throw new Error(
+          recipeLinksResult.errors.map((error) => error.message).join(', ')
+        );
       }
 
       const ingredientDrafts = (
@@ -697,7 +772,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               { authMode: 'userPool' }
             );
 
-            if (ingredientResult.errors?.length || !ingredientResult.data?.name) {
+            if (
+              ingredientResult.errors?.length ||
+              !ingredientResult.data?.name
+            ) {
               return null;
             }
 
@@ -711,9 +789,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             };
           })
         )
-      ).filter((ingredient): ingredient is RecipeIngredientDraft => Boolean(ingredient));
+      ).filter((ingredient): ingredient is RecipeIngredientDraft =>
+        Boolean(ingredient)
+      );
 
-      const instructions = (recipeData.instructions?.filter(Boolean) as string[]) ?? [];
+      const instructions =
+        (recipeData.instructions?.filter(Boolean) as string[]) ?? [];
       const resolvedImage = await getRecipeImageSource(recipeData.imageUrl);
 
       setEditingRecipeId(recipeId);
@@ -734,7 +815,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         ...previous,
         [recipeId]: ingredientDrafts
           .map((ingredient) =>
-            [ingredient.amount.trim(), ingredient.unit.trim(), ingredient.name.trim()]
+            [
+              ingredient.amount.trim(),
+              ingredient.unit.trim(),
+              ingredient.name.trim(),
+            ]
               .join(' ')
               .replace(/\s+/g, ' ')
               .trim()
@@ -749,7 +834,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setPublishMessage('Could not load this recipe for editing right now.');
       setPublishMessageTone('error');
     } finally {
-      setLoadingEditRecipeId((current) => (current === recipeId ? null : current));
+      setLoadingEditRecipeId((current) =>
+        current === recipeId ? null : current
+      );
     }
   };
 
@@ -804,7 +891,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       });
 
       if (duplicateCheck.errors?.length) {
-        throw new Error(duplicateCheck.errors.map((error) => error.message).join(', '));
+        throw new Error(
+          duplicateCheck.errors.map((error) => error.message).join(', ')
+        );
       }
 
       const duplicateFingerprintMatches = duplicateCheck.data.filter(
@@ -812,7 +901,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
 
       if (duplicateFingerprintMatches.length) {
-        setPublishMessage('You already published this recipe. Try a new variation.');
+        setPublishMessage(
+          'You already published this recipe. Try a new variation.'
+        );
         setPublishMessageTone('error');
         return;
       }
@@ -826,7 +917,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       });
 
       if (nameDuplicateCheck.errors?.length) {
-        throw new Error(nameDuplicateCheck.errors.map((error) => error.message).join(', '));
+        throw new Error(
+          nameDuplicateCheck.errors.map((error) => error.message).join(', ')
+        );
       }
 
       const duplicateNameMatches = nameDuplicateCheck.data.filter(
@@ -834,7 +927,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
 
       if (duplicateNameMatches.length) {
-        setPublishMessage('You already have a recipe with this name. Rename it to publish.');
+        setPublishMessage(
+          'You already have a recipe with this name. Rename it to publish.'
+        );
         setPublishMessageTone('error');
         return;
       }
@@ -844,7 +939,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (selectedImageFile) {
         imageUrl = getRecipeImagePath(selectedImageFile);
 
-        await uploadData({
+        await doUploadData({
           path: imageUrl,
           data: selectedImageFile,
           options: {
@@ -868,6 +963,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               .filter(Boolean),
             prepTime: draft.prepTime.trim(),
             tags: draft.tags,
+            utensils: draft.utensils
+              .map((utensil) => utensil.trim())
+              .filter(Boolean),
             imageUrl,
             recipeNameKey,
             recipeFingerprint,
@@ -894,17 +992,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         });
 
         if (existingLinksResult.errors?.length) {
-          throw new Error(existingLinksResult.errors.map((error) => error.message).join(', '));
+          throw new Error(
+            existingLinksResult.errors.map((error) => error.message).join(', ')
+          );
         }
 
         await Promise.all(
           existingLinksResult.data.map(async (link) => {
             if (!link.id) return;
 
-            const deleteLinkResult = await client.models.RecipeIngredient.delete(
-              { id: link.id },
-              { authMode: 'userPool' }
-            );
+            const deleteLinkResult =
+              await client.models.RecipeIngredient.delete(
+                { id: link.id },
+                { authMode: 'userPool' }
+              );
 
             if (deleteLinkResult.errors?.length) {
               throw new Error(
@@ -925,6 +1026,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               .filter(Boolean),
             prepTime: draft.prepTime.trim(),
             tags: draft.tags,
+            utensils: draft.utensils
+              .map((utensil) => utensil.trim())
+              .filter(Boolean),
             imageUrl,
             recipeNameKey,
             recipeFingerprint,
@@ -962,8 +1066,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           if (ingredientResult.errors?.length || !ingredientResult.data?.id) {
             throw new Error(
-              ingredientResult.errors?.map((error) => error.message).join(', ') ||
-                'Ingredient could not be created.'
+              ingredientResult.errors
+                ?.map((error) => error.message)
+                .join(', ') || 'Ingredient could not be created.'
             );
           }
 
@@ -982,12 +1087,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           );
 
           if (linkResult.errors?.length) {
-            throw new Error(linkResult.errors.map((error) => error.message).join(', '));
+            throw new Error(
+              linkResult.errors.map((error) => error.message).join(', ')
+            );
           }
         })
       );
 
-      const existingRecipe = feedRecipes.find((recipe) => recipe.id === recipeId);
+      const existingRecipe = feedRecipes.find(
+        (recipe) => recipe.id === recipeId
+      );
       const optimisticRecipe: FeedRecipe = {
         id: recipeId,
         ownerId: currentUserId,
@@ -1002,6 +1111,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         instructions: draft.instructions
           .map((instruction) => instruction.trim())
           .filter(Boolean),
+        utensils: draft.utensils
+          .map((utensil) => utensil.trim())
+          .filter(Boolean),
       };
 
       setFeedRecipes((previous) => {
@@ -1011,13 +1123,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           );
         }
 
-        return [optimisticRecipe, ...previous.filter((recipe) => recipe.id !== recipeId)];
+        return [
+          optimisticRecipe,
+          ...previous.filter((recipe) => recipe.id !== recipeId),
+        ];
       });
       setExpandedRecipeIngredients((previous) => ({
         ...previous,
         [recipeId]: cleanedIngredients
           .map((ingredient) =>
-            [ingredient.amount.trim(), ingredient.unit.trim(), ingredient.name.trim()]
+            [
+              ingredient.amount.trim(),
+              ingredient.unit.trim(),
+              ingredient.name.trim(),
+            ]
               .join(' ')
               .replace(/\s+/g, ' ')
               .trim()
@@ -1026,7 +1145,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }));
 
       setPublishMessage(
-        isEditingRecipe ? 'Recipe updated in the shared feed.' : 'Published to the shared recipe feed.'
+        isEditingRecipe
+          ? 'Recipe updated in the shared feed.'
+          : 'Published to the shared recipe feed.'
       );
       setPublishMessageTone('success');
       setSelectedImageFile(null);
@@ -1087,7 +1208,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         );
 
         if (result.errors?.length) {
-          throw new Error(result.errors.map((error) => error.message).join(', '));
+          throw new Error(
+            result.errors.map((error) => error.message).join(', ')
+          );
         }
       } else {
         const result = await client.models.Favorite.create(
@@ -1100,7 +1223,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         );
 
         if (result.errors?.length) {
-          throw new Error(result.errors.map((error) => error.message).join(', '));
+          throw new Error(
+            result.errors.map((error) => error.message).join(', ')
+          );
         }
       }
     } catch (error) {
@@ -1162,7 +1287,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }
 
           const quantity = parseRecipeQuantity(link.quantity);
-          const parts = [quantity.amount || '', quantity.unit || '', ingredientResult.data.name]
+          const parts = [
+            quantity.amount || '',
+            quantity.unit || '',
+            ingredientResult.data.name,
+          ]
             .join(' ')
             .replace(/\s+/g, ' ')
             .trim();
@@ -1173,7 +1302,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       setExpandedRecipeIngredients((previous) => ({
         ...previous,
-        [recipe.id]: ingredientRows.filter((item): item is string => Boolean(item)),
+        [recipe.id]: ingredientRows.filter((item): item is string =>
+          Boolean(item)
+        ),
       }));
     } catch (error) {
       console.error('Failed to load recipe details:', error);
@@ -1183,7 +1314,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         [recipe.id]: [],
       }));
     } finally {
-      setLoadingExpandedRecipeId((current) => (current === recipe.id ? null : current));
+      setLoadingExpandedRecipeId((current) =>
+        current === recipe.id ? null : current
+      );
     }
   };
 
@@ -1249,8 +1382,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         throw new Error(result.errors.map((error) => error.message).join(', '));
       }
 
-      setFeedRecipes((previous) => previous.filter((recipe) => recipe.id !== recipeId));
-      setExpandedRecipeId((previous) => (previous === recipeId ? null : previous));
+      setFeedRecipes((previous) =>
+        previous.filter((recipe) => recipe.id !== recipeId)
+      );
+      setExpandedRecipeId((previous) =>
+        previous === recipeId ? null : previous
+      );
       setFavoriteRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
@@ -1277,7 +1414,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const expandedRecipe = useMemo(
-    () => (expandedRecipeId ? feedRecipes.find((recipe) => recipe.id === expandedRecipeId) : null),
+    () =>
+      expandedRecipeId
+        ? feedRecipes.find((recipe) => recipe.id === expandedRecipeId)
+        : null,
     [expandedRecipeId, feedRecipes]
   );
 
@@ -1285,7 +1425,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     <main className="ak-bg flex h-screen flex-col overflow-hidden pb-10">
       <div className="ak-page-glow pointer-events-none fixed inset-0" />
       <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
-        <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
+        <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
           <div className="flex items-center gap-3 justify-self-start">
             <img
               src="/logo-no-background.svg"
@@ -1330,23 +1470,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             : ''
         }`}
       >
-        <div className="flex items-center justify-end md:hidden">
-          <button
-            onClick={startCreateRecipe}
-            className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
-          >
-            Create new
-          </button>
-        </div>
-
         <section
           id="discover"
           className={`ak-card min-h-0 overflow-hidden rounded-xl ${
             currentView === 'Discover' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          <div className={`ak-surface-alt border-b p-4 ${expandedRecipe ? 'hidden' : ''}`}>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal">Discover recipes</h2>
+          <div
+            className={`ak-surface-alt border-b p-4 ${expandedRecipe ? 'hidden' : ''}`}
+          >
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
+              Discover recipes
+            </h2>
             <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
               <input
                 value={discoverQuery}
@@ -1365,31 +1500,35 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </p>
             </div>
             {isLoadingFeed && (
-              <p className="ak-muted mt-1 text-sm">
-                Loading shared recipes...
-              </p>
+              <p className="ak-muted mt-1 text-sm">Loading shared recipes...</p>
             )}
           </div>
 
-          <div className={`ak-surface border-b px-4 py-3 ${expandedRecipe ? 'hidden' : ''}`}>
+          <div
+            className={`ak-surface border-b px-4 py-3 ${expandedRecipe ? 'hidden' : ''}`}
+          >
             <div className="flex flex-wrap gap-2">
-              {['All', 'Favorites', 'My recipes', ...availableFilterTags].map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setActiveTag(tag)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                    activeTag === tag
-                      ? 'bg-[var(--theme-plum)] text-white'
-                      : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-plum-strong)]'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
+              {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
+                (tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(tag)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      activeTag === tag
+                        ? 'bg-[var(--theme-plum)] text-white'
+                        : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-plum-strong)]'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
-          <div className={`min-h-0 flex-1 overflow-y-auto ${expandedRecipe ? 'p-0' : 'p-4'}`}>
+          <div
+            className={`min-h-0 flex-1 overflow-y-auto ${expandedRecipe ? 'p-0' : 'p-4'}`}
+          >
             {isLoadingFeed ? (
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2].map((item) => (
@@ -1430,14 +1569,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <div className="grid gap-5 p-4 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-2xl font-semibold tracking-normal">{expandedRecipe.name}</h3>
-                      <p className="ak-muted mt-1 text-sm">by {expandedRecipe.author}</p>
+                      <h3 className="text-2xl font-semibold tracking-normal">
+                        {expandedRecipe.name}
+                      </h3>
+                      <p className="ak-muted mt-1 text-sm">
+                        by {expandedRecipe.author}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
-                        disabled={pendingFavoriteRecipeIds.has(expandedRecipe.id)}
+                        disabled={pendingFavoriteRecipeIds.has(
+                          expandedRecipe.id
+                        )}
                         aria-label={`Favorite ${expandedRecipe.name}`}
                         className={`grid h-9 w-9 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
@@ -1453,7 +1598,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     </div>
                   </div>
 
-                  <p className="text-sm leading-7 text-[var(--theme-text)]">{expandedRecipe.description}</p>
+                  <p className="text-sm leading-7 text-[var(--theme-text)]">
+                    {expandedRecipe.description}
+                  </p>
 
                   <div className="ak-muted flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <span>{expandedRecipe.time}</span>
@@ -1477,12 +1624,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         Ingredients
                       </h4>
                       {loadingExpandedRecipeId === expandedRecipe.id ? (
-                        <p className="ak-muted mt-2 text-sm">Loading ingredients...</p>
+                        <p className="ak-muted mt-2 text-sm">
+                          Loading ingredients...
+                        </p>
                       ) : expandedRecipeMessage ? (
-                        <p className="ak-muted mt-2 text-sm">{expandedRecipeMessage}</p>
+                        <p className="ak-muted mt-2 text-sm">
+                          {expandedRecipeMessage}
+                        </p>
                       ) : (
                         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
-                          {(expandedRecipeIngredients[expandedRecipe.id] || []).map((ingredient) => (
+                          {(
+                            expandedRecipeIngredients[expandedRecipe.id] || []
+                          ).map((ingredient) => (
                             <li key={ingredient}>{ingredient}</li>
                           ))}
                         </ul>
@@ -1495,50 +1648,80 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       </h4>
                       <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-[var(--theme-text)]">
                         {expandedRecipe.instructions.length ? (
-                          expandedRecipe.instructions.map((instruction, index) => (
-                            <li key={`${expandedRecipe.id}-step-${index}`}>{instruction}</li>
-                          ))
+                          expandedRecipe.instructions.map(
+                            (instruction, index) => (
+                              <li key={`${expandedRecipe.id}-step-${index}`}>
+                                {instruction}
+                              </li>
+                            )
+                          )
                         ) : (
                           <li>Instructions have not been added yet.</li>
                         )}
                       </ol>
                     </section>
+
+                    <section>
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                        Utensils Needed
+                      </h4>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
+                        {expandedRecipe.utensils?.length ? (
+                          expandedRecipe.utensils.map((utensil, index) => (
+                            <li key={`${expandedRecipe.id}-utensil-${index}`}>
+                              {utensil}
+                            </li>
+                          ))
+                        ) : (
+                          <li>Utensils have not been added yet.</li>
+                        )}
+                      </ul>
+                    </section>
                   </div>
 
-                  {isAuthenticated && expandedRecipe.ownerId === currentUserId && (
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void startEditRecipe(expandedRecipe.id, expandedRecipe.ownerId)
-                        }
-                        disabled={loadingEditRecipeId === expandedRecipe.id}
-                        className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
-                      >
-                        {loadingEditRecipeId === expandedRecipe.id
-                          ? 'Opening...'
-                          : 'Edit recipe'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteRecipe(expandedRecipe.id, expandedRecipe.ownerId)}
-                        disabled={deletingRecipeIds.has(expandedRecipe.id)}
-                        className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
-                          deletingRecipeIds.has(expandedRecipe.id)
-                            ? 'w-28 px-2.5'
+                  {isAuthenticated &&
+                    expandedRecipe.ownerId === currentUserId && (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void startEditRecipe(
+                              expandedRecipe.id,
+                              expandedRecipe.ownerId
+                            )
+                          }
+                          disabled={loadingEditRecipeId === expandedRecipe.id}
+                          className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                        >
+                          {loadingEditRecipeId === expandedRecipe.id
+                            ? 'Opening...'
+                            : 'Edit recipe'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            deleteRecipe(
+                              expandedRecipe.id,
+                              expandedRecipe.ownerId
+                            )
+                          }
+                          disabled={deletingRecipeIds.has(expandedRecipe.id)}
+                          className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
+                            deletingRecipeIds.has(expandedRecipe.id)
+                              ? 'w-28 px-2.5'
+                              : armedDeleteRecipeIds.has(expandedRecipe.id)
+                                ? 'w-36 px-3'
+                                : 'w-28 px-3'
+                          }`}
+                        >
+                          {deletingRecipeIds.has(expandedRecipe.id)
+                            ? 'Deleting...'
                             : armedDeleteRecipeIds.has(expandedRecipe.id)
-                              ? 'w-36 px-3'
-                              : 'w-28 px-3'
-                        }`}
-                      >
-                        {deletingRecipeIds.has(expandedRecipe.id)
-                          ? 'Deleting...'
-                          : armedDeleteRecipeIds.has(expandedRecipe.id)
-                            ? 'Delete permanently'
-                            : 'Delete recipe'}
-                      </button>
-                    </div>
-                  )}
+                              ? 'Delete permanently'
+                              : 'Delete recipe'}
+                        </button>
+                      </div>
+                    )}
                 </div>
               </article>
             ) : visibleFeedRecipes.length ? (
@@ -1573,9 +1756,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <h3 className="text-base font-semibold tracking-normal">
                             {recipe.name}
                           </h3>
-                          <p className="ak-muted text-sm">
-                            by {recipe.author}
-                          </p>
+                          <p className="ak-muted text-sm">by {recipe.author}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
@@ -1711,7 +1892,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </div>
 
-          <div className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}>
+          <div
+            className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
+          >
             {publishMessage && (
               <div
                 className={`rounded-lg border px-3 py-2 text-sm ${
@@ -1775,7 +1958,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 >
                   <span
                     className={`rounded-md bg-[var(--theme-pine)] px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 group-hover:brightness-110 group-active:scale-[0.98] group-focus-within:ring-2 group-focus-within:ring-[var(--theme-focus)] ${
-                      selectedImageFile ? 'bg-[var(--theme-pine-strong)] ring-2 ring-[var(--theme-focus)]' : ''
+                      selectedImageFile
+                        ? 'bg-[var(--theme-pine-strong)] ring-2 ring-[var(--theme-focus)]'
+                        : ''
                     }`}
                   >
                     {selectedImageFile ? 'Photo selected' : 'Choose photo'}
@@ -1945,6 +2130,43 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 ))}
               </div>
             </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Utensils Needed</h3>
+                <button
+                  onClick={addUtensil}
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="grid gap-2">
+                {draft.utensils.map((utensil, index) => (
+                  <div
+                    key={`utensil-${index}`}
+                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded-xl border p-3"
+                  >
+                    <input
+                      aria-label="Utensil"
+                      value={utensil}
+                      onChange={(event) =>
+                        updateUtensil(index, event.target.value)
+                      }
+                      placeholder="e.g., Mixing bowl, Chef's knife"
+                      className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                    />
+                    <button
+                      onClick={() => removeUtensil(index)}
+                      className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
+                      aria-label="Remove utensil"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {!isAuthenticated && (
@@ -1988,7 +2210,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     Post Preview
                   </p>
                   <h2 className="mt-1 text-xl font-semibold tracking-normal">
-                    {isEditingRecipe ? 'Review your updates' : 'Ready for the feed'}
+                    {isEditingRecipe
+                      ? 'Review your updates'
+                      : 'Ready for the feed'}
                   </h2>
                 </div>
                 {isAuthenticated && (
@@ -2021,9 +2245,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="text-xl font-semibold tracking-normal">
                         {draft.name || 'Untitled recipe'}
                       </h3>
-                      <p className="ak-muted mt-1 text-sm">
-                        by {creatorName}
-                      </p>
+                      <p className="ak-muted mt-1 text-sm">by {creatorName}</p>
                     </div>
                     <span className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold shadow-sm">
                       {rating}
@@ -2068,6 +2290,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <li key={`preview-step-${index}`}>{instruction}</li>
                         ))}
                     </ol>
+                  </div>
+                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                    <h4 className="text-sm font-semibold">Utensils Needed</h4>
+                    <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
+                      {draft.utensils
+                        .map((utensil) => utensil.trim())
+                        .filter(Boolean)
+                        .map((utensil, index) => (
+                          <li key={`preview-utensil-${index}`}>• {utensil}</li>
+                        ))}
+                    </ul>
                   </div>
                 </div>
               </article>

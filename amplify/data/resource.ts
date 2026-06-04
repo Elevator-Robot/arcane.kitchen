@@ -12,6 +12,7 @@ const schema = a.schema({
       instructions: a.string().array(),
       prepTime: a.string(),
       tags: a.string().array(),
+      utensils: a.string().array(),
       imageUrl: a.string(),
       recipeNameKey: a.string(),
       recipeFingerprint: a.string(),
