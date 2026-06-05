@@ -81,11 +81,13 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([array], { type: mime });
 }
 
-export function fakeAmplifyConfigWithStorage(): { Storage: unknown } {
+export function fakeAmplifyConfigWithStorage() {
   return {
     Storage: {
-      bucket: 'fake-bucket',
-      region: 'us-east-1',
+      S3: {
+        bucket: 'fake-bucket',
+        region: 'us-east-1',
+      },
     },
   };
 }

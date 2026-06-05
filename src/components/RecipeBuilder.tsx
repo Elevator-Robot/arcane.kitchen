@@ -350,7 +350,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (!errors?.length) break;
 
-        const isNotAuthorized = errors.some((error) =>
+        const isNotAuthorized = errors.some((error: any) =>
           error.message.toLowerCase().includes('not authorized')
         );
 
@@ -360,7 +360,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
 
       if (errors?.length) {
-        const errorMessage = errors.map((error) => error.message).join(', ');
+        const errorMessage = errors.map((error: any) => error.message).join(', ');
         if (errorMessage.toLowerCase().includes('not authorized')) {
           setFeedMessage(
             'Recipes are unavailable until the backend auth rules are deployed.'
@@ -379,8 +379,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       const recipes = await Promise.all(
         data
-          .filter((recipe) => recipe.id && recipe.name)
-          .map(async (recipe) => ({
+          .filter((recipe: any) => recipe.id && recipe.name)
+          .map(async (recipe: any) => ({
             id: recipe.id as string,
             ownerId: recipe.ownerId || '',
             name: recipe.name,
@@ -452,13 +452,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         });
 
         if (errors?.length) {
-          throw new Error(errors.map((error) => error.message).join(', '));
+          throw new Error(errors.map((error: any) => error.message).join(', '));
         }
 
-        const backendIds = new Set(
+        const backendIds = new Set<string>(
           data
-            .map((favorite) => favorite.recipeId)
-            .filter((recipeId): recipeId is string => Boolean(recipeId))
+            .map((favorite: any) => favorite.recipeId)
+            .filter((recipeId: any): recipeId is string => Boolean(recipeId))
         );
 
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -726,7 +726,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (recipeResult.errors?.length || !recipeResult.data) {
         throw new Error(
-          recipeResult.errors?.map((error) => error.message).join(', ') ||
+          recipeResult.errors?.map((error: any) => error.message).join(', ') ||
             'Recipe could not be loaded.'
         );
       }
@@ -744,13 +744,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (recipeLinksResult.errors?.length) {
         throw new Error(
-          recipeLinksResult.errors.map((error) => error.message).join(', ')
+          recipeLinksResult.errors.map((error: any) => error.message).join(', ')
         );
       }
 
       const ingredientDrafts = (
         await Promise.all(
-          recipeLinksResult.data.map(async (link, index) => {
+          recipeLinksResult.data.map(async (link: any, index: number) => {
             if (!link.ingredientId) return null;
 
             const ingredientResult = await client.models.Ingredient.get(
@@ -793,6 +793,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         tags: (recipeData.tags?.filter(Boolean) as string[]) ?? [],
         imageUrl: recipeData.imageUrl || '',
         instructions: instructions.length ? instructions : [''],
+        utensils: (recipeData.utensils?.filter(Boolean) as string[]) ?? [],
         ingredients: ingredientDrafts.length
           ? ingredientDrafts
           : [{ id: Date.now(), name: '', amount: '', unit: '' }],
@@ -878,12 +879,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (duplicateCheck.errors?.length) {
         throw new Error(
-          duplicateCheck.errors.map((error) => error.message).join(', ')
+          duplicateCheck.errors.map((error: any) => error.message).join(', ')
         );
       }
 
       const duplicateFingerprintMatches = duplicateCheck.data.filter(
-        (recipe) => recipe.id !== editingRecipeId
+        (recipe: any) => recipe.id !== editingRecipeId
       );
 
       if (duplicateFingerprintMatches.length) {
@@ -904,12 +905,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (nameDuplicateCheck.errors?.length) {
         throw new Error(
-          nameDuplicateCheck.errors.map((error) => error.message).join(', ')
+          nameDuplicateCheck.errors.map((error: any) => error.message).join(', ')
         );
       }
 
       const duplicateNameMatches = nameDuplicateCheck.data.filter(
-        (recipe) => recipe.id !== editingRecipeId
+        (recipe: any) => recipe.id !== editingRecipeId
       );
 
       if (duplicateNameMatches.length) {
@@ -963,7 +964,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (updateResult.errors?.length || !updateResult.data) {
           throw new Error(
-            updateResult.errors?.map((error) => error.message).join(', ') ||
+            updateResult.errors?.map((error: any) => error.message).join(', ') ||
               'Recipe could not be updated.'
           );
         }
@@ -979,12 +980,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (existingLinksResult.errors?.length) {
           throw new Error(
-            existingLinksResult.errors.map((error) => error.message).join(', ')
+            existingLinksResult.errors.map((error: any) => error.message).join(', ')
           );
         }
 
         await Promise.all(
-          existingLinksResult.data.map(async (link) => {
+          existingLinksResult.data.map(async (link: any) => {
             if (!link.id) return;
 
             const deleteLinkResult =
@@ -995,7 +996,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
             if (deleteLinkResult.errors?.length) {
               throw new Error(
-                deleteLinkResult.errors.map((error) => error.message).join(', ')
+                deleteLinkResult.errors.map((error: any) => error.message).join(', ')
               );
             }
           })
@@ -1027,7 +1028,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (recipeResult.errors?.length || !recipeResult.data?.id) {
           throw new Error(
-            recipeResult.errors?.map((error) => error.message).join(', ') ||
+            recipeResult.errors?.map((error: any) => error.message).join(', ') ||
               'Recipe could not be created.'
           );
         }
@@ -1053,7 +1054,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           if (ingredientResult.errors?.length || !ingredientResult.data?.id) {
             throw new Error(
               ingredientResult.errors
-                ?.map((error) => error.message)
+                ?.map((error: any) => error.message)
                 .join(', ') || 'Ingredient could not be created.'
             );
           }
@@ -1074,7 +1075,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           if (linkResult.errors?.length) {
             throw new Error(
-              linkResult.errors.map((error) => error.message).join(', ')
+              linkResult.errors.map((error: any) => error.message).join(', ')
             );
           }
         })
@@ -1195,7 +1196,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (result.errors?.length) {
           throw new Error(
-            result.errors.map((error) => error.message).join(', ')
+            result.errors.map((error: any) => error.message).join(', ')
           );
         }
       } else {
@@ -1210,7 +1211,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (result.errors?.length) {
           throw new Error(
-            result.errors.map((error) => error.message).join(', ')
+            result.errors.map((error: any) => error.message).join(', ')
           );
         }
       }
@@ -1256,11 +1257,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       });
 
       if (errors?.length) {
-        throw new Error(errors.map((error) => error.message).join(', '));
+        throw new Error(errors.map((error: any) => error.message).join(', '));
       }
 
       const ingredientRows = await Promise.all(
-        data.map(async (link) => {
+        data.map(async (link: any) => {
           if (!link.ingredientId) return null;
 
           const ingredientResult = await client.models.Ingredient.get(
@@ -1365,7 +1366,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
 
       if (result.errors?.length) {
-        throw new Error(result.errors.map((error) => error.message).join(', '));
+        throw new Error(result.errors.map((error: any) => error.message).join(', '));
       }
 
       setFeedRecipes((previous) =>
