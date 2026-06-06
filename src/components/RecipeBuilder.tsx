@@ -9,6 +9,7 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import stockRecipePlaceholder from '../assets/stock-recipe.png';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
@@ -110,10 +111,20 @@ interface RecipeQuantity {
   unit?: string;
 }
 
-const fallbackRecipeImage =
-  'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&w=900&q=80';
+const neutralImagePlaceholder = stockRecipePlaceholder;
 
-const defaultDraft: RecipeDraft = {
+const EMPTY_DRAFT: RecipeDraft = {
+  name: '',
+  description: '',
+  prepTime: '',
+  tags: [],
+  imageUrl: '',
+  instructions: [''],
+  ingredients: [{ id: 0, name: '', amount: '', unit: '' }],
+  utensils: [],
+};
+
+const EXAMPLE_DRAFT: RecipeDraft = {
   name: 'Summer Tomato Toasts',
   description:
     'A bright, shareable recipe with crisp bread, marinated tomatoes, whipped ricotta, and basil oil.',
@@ -171,13 +182,11 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
   ].join('###');
 };
 
-const DEFAULT_RECIPE_FINGERPRINT = buildRecipeFingerprint(defaultDraft);
-
 const isRemoteUrl = (value?: string | null) =>
   Boolean(value && /^https?:\/\//i.test(value));
 
 const getRecipeImageSource = async (imageUrl?: string | null) => {
-  if (!imageUrl) return fallbackRecipeImage;
+  if (!imageUrl) return neutralImagePlaceholder;
   if (isRemoteUrl(imageUrl)) return imageUrl;
 
   try {
@@ -191,7 +200,7 @@ const getRecipeImageSource = async (imageUrl?: string | null) => {
     return url.toString();
   } catch (error) {
     console.error('Failed to resolve recipe image:', error);
-    return fallbackRecipeImage;
+    return neutralImagePlaceholder;
   }
 };
 
@@ -279,7 +288,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
 
-  const [draft, setDraft] = useState<RecipeDraft>(defaultDraft);
+  const [draft, setDraft] = useState<RecipeDraft>(EMPTY_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [discoverQuery, setDiscoverQuery] = useState('');
@@ -317,7 +326,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState(fallbackRecipeImage);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -696,8 +705,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     setEditingRecipeId(null);
     setSelectedImageFile(null);
-    setImagePreviewUrl(fallbackRecipeImage);
-    setDraft(defaultDraft);
+    setImagePreviewUrl(neutralImagePlaceholder);
+    setDraft(EMPTY_DRAFT);
+    setPublishMessage('');
+    setPublishMessageTone('error');
+    setNewTagValue('');
+    setExpandedRecipeId(null);
+    setCurrentView('Build');
+  };
+
+  const loadExampleRecipe = () => {
+    setEditingRecipeId(null);
+    setSelectedImageFile(null);
+    setImagePreviewUrl(neutralImagePlaceholder);
+    setDraft(EXAMPLE_DRAFT);
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -847,14 +868,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     const recipeFingerprint = buildRecipeFingerprint(draft);
     const recipeNameKey = normalizeText(draft.name);
-
-    if (!isEditingRecipe && recipeFingerprint === DEFAULT_RECIPE_FINGERPRINT) {
-      setPublishMessage(
-        'Customize the starter recipe before publishing so the feed stays unique.'
-      );
-      setPublishMessageTone('error');
-      return;
-    }
 
     if (selectedImageFile && !hasStorageConfig()) {
       setPublishMessage(
@@ -1855,6 +1868,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <h2 className="mt-1 text-2xl font-semibold tracking-normal">
                 {isEditingRecipe ? 'Edit your recipe' : 'Create a recipe post'}
               </h2>
+              {!isEditingRecipe && (
+                <button
+                  type="button"
+                  onClick={loadExampleRecipe}
+                  className="ak-muted mt-1 text-xs underline decoration-dotted transition hover:text-[var(--theme-plum-strong)]"
+                >
+                  Need inspiration? Load an example
+                </button>
+              )}
               {!isAuthenticated && (
                 <p className="ak-muted mt-2 text-sm">
                   Log in to unlock publishing.
@@ -1899,6 +1921,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <input
                 value={draft.name}
                 onChange={(event) => updateDraft('name', event.target.value)}
+                placeholder="e.g., Grandma's Apple Pie"
                 className="ak-input rounded-lg px-3 py-2 outline-none transition"
               />
             </label>
@@ -1910,14 +1933,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 onChange={(event) =>
                   updateDraft('description', event.target.value)
                 }
+                placeholder="A short summary of your dish"
                 className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
               />
             </label>
 
-            <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
+              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">Prep time</span>
-                <div className="relative [&:focus-within_>_.prep-time-label]:opacity-0">
+                <div>
                   <LocalizationProvider
                     dateAdapter={AdapterDayjs}
                     adapterLocale="en-gb"
@@ -1940,13 +1964,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         textField: {
                           size: 'small',
                           fullWidth: true,
+                          placeholder: 'HH:MM',
                         },
                       }}
                     />
                   </LocalizationProvider>
-                  <span className="prep-time-label pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold opacity-40 transition-opacity duration-200" style={{ color: 'var(--theme-text)' }}>
-                    HH:MM
-                  </span>
                 </div>
               </label>
               <label className="grid min-w-0 gap-2">
@@ -1995,7 +2017,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     event.preventDefault();
                     addTag();
                   }}
-                  placeholder="Add a tag"
+                  placeholder="e.g., Quick, Vegetarian, Dessert"
                   className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
                 />
                 <button
@@ -2050,7 +2072,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             event.target.value
                           )
                         }
-                        placeholder="Ingredient"
+                        placeholder="e.g., All-purpose flour"
                         className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                       />
                       <button
@@ -2072,7 +2094,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             event.target.value
                           )
                         }
-                        placeholder="Amount"
+                        placeholder="e.g., 2"
                         className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                       />
                       <input
@@ -2085,7 +2107,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             event.target.value
                           )
                         }
-                        placeholder="Unit"
+                        placeholder="e.g., cups"
                         className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                       />
                     </div>
@@ -2118,6 +2140,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       onChange={(event) =>
                         updateInstruction(index, event.target.value)
                       }
+                      placeholder="e.g., Preheat oven to 375°F"
                       className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
                     />
                     <button
@@ -2256,54 +2279,70 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
                     {draft.description}
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <span className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                      {draft.prepTime}
-                    </span>
-                    {draft.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                    <h4 className="text-sm font-semibold">Ingredient list</h4>
-                    <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
-                      {draft.ingredients
-                        .filter((ingredient) => ingredient.name)
-                        .map((ingredient) => (
-                          <li key={ingredient.id}>
-                            {ingredient.amount} {ingredient.unit}{' '}
-                            {ingredient.name}
-                          </li>
-                        ))}
-                    </ul>
-                  </div>
-                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                    <h4 className="text-sm font-semibold">Instructions</h4>
-                    <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--theme-text)]">
-                      {draft.instructions
-                        .map((instruction) => instruction.trim())
-                        .filter(Boolean)
-                        .map((instruction, index) => (
-                          <li key={`preview-step-${index}`}>{instruction}</li>
-                        ))}
-                    </ol>
-                  </div>
-                  <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                    <h4 className="text-sm font-semibold">Utensils Needed</h4>
-                    <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
-                      {draft.utensils
-                        .map((utensil) => utensil.trim())
-                        .filter(Boolean)
-                        .map((utensil, index) => (
-                          <li key={`preview-utensil-${index}`}>• {utensil}</li>
-                        ))}
-                    </ul>
-                  </div>
+                  {(draft.prepTime || draft.tags.length > 0) && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {draft.prepTime && (
+                        <span className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                          {draft.prepTime}
+                        </span>
+                      )}
+                      {draft.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {draft.ingredients.some((ing) => ing.name) && (
+                    <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                      <h4 className="text-sm font-semibold">Ingredient list</h4>
+                      <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
+                        {draft.ingredients
+                          .filter((ingredient) => ingredient.name)
+                          .map((ingredient) => (
+                            <li key={ingredient.id}>
+                              {ingredient.amount} {ingredient.unit}{' '}
+                              {ingredient.name}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                  {draft.instructions.some(
+                    (inst) => inst.trim()
+                  ) && (
+                    <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                      <h4 className="text-sm font-semibold">Instructions</h4>
+                      <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--theme-text)]">
+                        {draft.instructions
+                          .map((instruction) => instruction.trim())
+                          .filter(Boolean)
+                          .map((instruction, index) => (
+                            <li key={`preview-step-${index}`}>
+                              {instruction}
+                            </li>
+                          ))}
+                      </ol>
+                    </div>
+                  )}
+                  {draft.utensils.some((ut) => ut.trim()) && (
+                    <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                      <h4 className="text-sm font-semibold">Utensils Needed</h4>
+                      <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
+                        {draft.utensils
+                          .map((utensil) => utensil.trim())
+                          .filter(Boolean)
+                          .map((utensil, index) => (
+                            <li key={`preview-utensil-${index}`}>
+                              • {utensil}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </article>
             </div>

@@ -17,7 +17,7 @@ describe('RecipeBuilder Component', () => {
     expect(screen.getByText('Create a recipe post')).toBeInTheDocument();
     expect(screen.getByText('Ready for the feed')).toBeInTheDocument();
     expect(
-      screen.getByDisplayValue('Summer Tomato Toasts')
+      screen.getByPlaceholderText("e.g., Grandma's Apple Pie")
     ).toBeInTheDocument();
   });
 
@@ -25,8 +25,7 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     render(<RecipeBuilder {...defaultRecipeBuilderProps} />);
 
-    const nameInput = screen.getByDisplayValue('Summer Tomato Toasts');
-    await user.clear(nameInput);
+    const nameInput = screen.getByPlaceholderText("e.g., Grandma's Apple Pie");
     await user.type(nameInput, 'Roasted Corn Salad');
 
     expect(
@@ -38,14 +37,15 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     render(<RecipeBuilder {...defaultRecipeBuilderProps} />);
 
-    await user.click(screen.getByRole('button', { name: 'Add' }));
+    const addButtons = screen.getAllByRole('button', { name: 'Add' });
+    await user.click(addButtons[0]);
     const ingredientFields = screen.getAllByLabelText('Ingredient');
 
-    expect(ingredientFields).toHaveLength(4);
+    expect(ingredientFields).toHaveLength(2);
 
-    await user.click(screen.getAllByLabelText('Remove ingredient')[3]);
+    await user.click(screen.getAllByLabelText('Remove ingredient')[1]);
 
-    expect(screen.getAllByLabelText('Ingredient')).toHaveLength(3);
+    expect(screen.getAllByLabelText('Ingredient')).toHaveLength(1);
   });
 
   it('prompts unauthenticated users to sign in before creating', () => {
