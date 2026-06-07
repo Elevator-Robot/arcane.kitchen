@@ -9,7 +9,6 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import { Minimize2 } from 'lucide-react';
-import stockRecipePlaceholder from '../assets/stock-recipe.png';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
@@ -111,7 +110,9 @@ interface RecipeQuantity {
   unit?: string;
 }
 
-const neutralImagePlaceholder = stockRecipePlaceholder;
+const IMAGE_PLACEHOLDER = '__no_image__';
+const neutralImagePlaceholder = IMAGE_PLACEHOLDER;
+const isPlaceholder = (src: string) => src === IMAGE_PLACEHOLDER || src === neutralImagePlaceholder;
 
 const EMPTY_DRAFT: RecipeDraft = {
   name: '',
@@ -1563,11 +1564,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : expandedRecipe ? (
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
-                  <img
-                    src={expandedRecipe.image}
-                    alt={expandedRecipe.name}
-                    className="h-64 w-full object-cover sm:h-80"
-                  />
+                  {isPlaceholder(expandedRecipe.image) ? (
+                    <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
+                      <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={expandedRecipe.image}
+                      alt={expandedRecipe.name}
+                      className="h-64 w-full object-cover sm:h-80"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={collapseExpandedRecipe}
@@ -1745,11 +1756,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     onClick={() => void expandRecipe(recipe)}
                   >
                     <div className="relative aspect-[4/3] overflow-hidden">
-                      <img
-                        src={recipe.image}
-                        alt={recipe.name}
-                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      />
+                      {isPlaceholder(recipe.image) ? (
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
+                          <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                          </svg>
+                          <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={recipe.image}
+                          alt={recipe.name}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                         <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
@@ -1896,48 +1917,45 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </div>
 
           <div
-            className={`grid min-h-0 min-w-0 flex-1 gap-5 overflow-x-hidden overflow-y-auto p-5 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
+            className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
           >
             {publishMessage && (
               <div
-                className={`rounded-lg border px-4 py-2.5 text-sm ${
+                className={`rounded-lg border px-3 py-2 text-sm ${
                   publishMessageTone === 'error'
-                    ? 'border-red-200 bg-red-50 text-red-800'
-                    : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    ? 'border-[#e5b3b3] bg-[#fff1f1] text-[#8f1d1d]'
+                    : 'border-[#b7d9c8] bg-[#edf9f2] text-[#1f6b42]'
                 }`}
               >
                 {publishMessage}
               </div>
             )}
 
-            {/* Name + Description side by side */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Recipe name</span>
-                <input
-                  value={draft.name}
-                  onChange={(event) => updateDraft('name', event.target.value)}
-                  placeholder="e.g., Grandma's Apple Pie"
-                  className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                />
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Description</span>
-                <textarea
-                  value={draft.description}
-                  onChange={(event) =>
-                    updateDraft('description', event.target.value)
-                  }
-                  placeholder="A short summary of your dish"
-                  className="h-[42px] resize-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                />
-              </label>
-            </div>
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold">Recipe name</span>
+              <input
+                value={draft.name}
+                onChange={(event) => updateDraft('name', event.target.value)}
+                placeholder="e.g., Grandma's Apple Pie"
+                className="ak-input rounded-lg px-3 py-2 outline-none transition"
+              />
+            </label>
 
-            {/* Prep time + Photo inline */}
-            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Prep time</span>
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold">Description</span>
+              <textarea
+                value={draft.description}
+                onChange={(event) =>
+                  updateDraft('description', event.target.value)
+                }
+                placeholder="A short summary of your dish"
+                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
+              />
+            </label>
+
+            <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">Prep time</span>
                 <div>
                   <LocalizationProvider
                     dateAdapter={AdapterDayjs}
@@ -1962,54 +1980,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </LocalizationProvider>
                 </div>
               </label>
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Photo</span>
-                <div
-                  className={`flex items-center gap-3 rounded-xl border border-dashed px-4 py-3 transition cursor-pointer ${
-                    selectedImageFile
-                      ? 'border-[var(--theme-sage)] bg-[var(--theme-sage)]/5'
-                      : 'border-[var(--theme-border)] hover:border-[var(--theme-accent)]'
-                  }`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      const input = e.currentTarget.querySelector<HTMLInputElement>('input[type="file"]');
-                      input?.click();
-                    }
-                  }}
-                  onClick={() => {
-                    const input = document.querySelector<HTMLInputElement>('#recipe-photo-input');
-                    input?.click();
-                  }}
-                >
-                  <span className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm ${
-                    selectedImageFile
-                      ? 'bg-[var(--theme-sage-strong)]'
-                      : 'bg-[var(--theme-text-muted)]'
-                  }`}>
-                    {selectedImageFile ? 'Selected' : 'Choose'}
-                  </span>
-                  <span className="truncate text-sm text-[var(--theme-text-muted)]">
-                    {selectedImageFile ? selectedImageFile.name : 'Upload a photo'}
-                  </span>
-                  <input
-                    id="recipe-photo-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      updateImageFile(event.target.files?.[0])
-                    }
-                    className="sr-only"
-                  />
-                </div>
-              </label>
             </div>
 
-            {/* Tags */}
             <div className="grid gap-2">
-              <span className="text-sm font-medium text-[var(--theme-text)]">Tags</span>
-              <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">Tags</span>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <input
                   value={newTagValue}
                   onChange={(event) => setNewTagValue(event.target.value)}
@@ -2018,168 +1993,160 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     event.preventDefault();
                     addTag();
                   }}
-                  placeholder="Add a tag..."
-                  className="min-w-0 flex-1 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                  placeholder="e.g., Quick, Vegetarian, Dessert"
+                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
                 />
                 <button
                   type="button"
                   onClick={addTag}
-                  className="shrink-0 rounded-xl border border-[var(--theme-border)] px-4 py-2.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
                 >
                   Add tag
                 </button>
               </div>
-              {draft.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {draft.tags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => removeTag(tag)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-[var(--theme-accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--theme-accent-strong)] transition hover:bg-[var(--theme-accent)]/20"
-                    >
-                      {tag}
-                      <span aria-hidden="true" className="text-current">&times;</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Ingredients + Instructions 2-col */}
-            <div className="grid gap-5 md:grid-cols-2">
-              {/* Ingredients */}
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-[var(--theme-text)]">Ingredients</h3>
+              <div className="flex flex-wrap gap-2">
+                {draft.tags.map((tag) => (
                   <button
-                    onClick={addIngredient}
-                    className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                    key={tag}
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    aria-label={`Remove tag ${tag}`}
+                    title={`Remove ${tag}`}
                   >
-                    + Add
+                    {tag}
+                    <span aria-hidden="true">x</span>
                   </button>
-                </div>
-                <div className="grid gap-2">
-                  {draft.ingredients.map((ingredient) => (
-                    <div
-                      key={ingredient.id}
-                      className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3"
-                    >
-                      <div className="grid gap-2">
-                        <div className="grid grid-cols-[1fr_auto] gap-2">
-                          <input
-                            aria-label="Ingredient"
-                            value={ingredient.name}
-                            onChange={(event) =>
-                              updateIngredient(
-                                ingredient.id,
-                                'name',
-                                event.target.value
-                              )
-                            }
-                            placeholder="e.g., All-purpose flour"
-                            className="min-w-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                          />
-                          <button
-                            onClick={() => removeIngredient(ingredient.id)}
-                            className="grid h-9 w-9 place-items-center rounded-lg text-sm text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-500"
-                            aria-label="Remove ingredient"
-                          >
-                            &times;
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            aria-label="Amount"
-                            value={ingredient.amount}
-                            onChange={(event) =>
-                              updateIngredient(
-                                ingredient.id,
-                                'amount',
-                                event.target.value
-                              )
-                            }
-                            placeholder="e.g., 2"
-                            className="min-w-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                          />
-                          <input
-                            aria-label="Unit"
-                            value={ingredient.unit}
-                            onChange={(event) =>
-                              updateIngredient(
-                                ingredient.id,
-                                'unit',
-                                event.target.value
-                              )
-                            }
-                            placeholder="e.g., cups"
-                            className="min-w-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Instructions */}
-              <div>
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-[var(--theme-text)]">Instructions</h3>
-                  <button
-                    onClick={addInstruction}
-                    className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                  >
-                    + Add step
-                  </button>
-                </div>
-                <div className="grid gap-2">
-                  {draft.instructions.map((instruction, index) => (
-                    <div
-                      key={`instruction-${index}`}
-                      className="flex items-start gap-2"
-                    >
-                      <span className="mt-2.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--theme-accent)]/10 text-xs font-semibold text-[var(--theme-accent-strong)]">
-                        {index + 1}
-                      </span>
-                      <textarea
-                        value={instruction}
-                        onChange={(event) =>
-                          updateInstruction(index, event.target.value)
-                        }
-                        placeholder="e.g., Preheat oven to 375°F"
-                        className="min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeInstruction(index)}
-                        className="mt-2 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-500"
-                        aria-label={`Remove step ${index + 1}`}
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Utensils */}
             <div>
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-medium text-[var(--theme-text)]">Utensils</h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Ingredients</h3>
                 <button
-                  onClick={addUtensil}
-                  className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                  onClick={addIngredient}
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
                 >
-                  + Add
+                  Add
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2">
+                {draft.ingredients.map((ingredient) => (
+                  <div
+                    key={ingredient.id}
+                    className="ak-surface-alt grid min-w-0 gap-2 rounded-xl border p-2"
+                  >
+                    <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
+                      <input
+                        aria-label="Ingredient"
+                        value={ingredient.name}
+                        onChange={(event) =>
+                          updateIngredient(
+                            ingredient.id,
+                            'name',
+                            event.target.value
+                          )
+                        }
+                        placeholder="e.g., All-purpose flour"
+                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                      />
+                      <button
+                        onClick={() => removeIngredient(ingredient.id)}
+                        className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
+                        aria-label="Remove ingredient"
+                      >
+                        x
+                      </button>
+                    </div>
+                    <div className="grid min-w-0 grid-cols-2 gap-2">
+                      <input
+                        aria-label="Amount"
+                        value={ingredient.amount}
+                        onChange={(event) =>
+                          updateIngredient(
+                            ingredient.id,
+                            'amount',
+                            event.target.value
+                          )
+                        }
+                        placeholder="e.g., 2"
+                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                      />
+                      <input
+                        aria-label="Unit"
+                        value={ingredient.unit}
+                        onChange={(event) =>
+                          updateIngredient(
+                            ingredient.id,
+                            'unit',
+                            event.target.value
+                          )
+                        }
+                        placeholder="e.g., cups"
+                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Instructions</h3>
+                <button
+                  onClick={addInstruction}
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
+                >
+                  Add step
+                </button>
+              </div>
+              <div className="grid gap-2">
+                {draft.instructions.map((instruction, index) => (
+                  <label
+                    key={`instruction-${index}`}
+                    className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2"
+                  >
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-surface)] text-sm font-semibold text-[var(--theme-accent-strong)] ring-1 ring-[var(--theme-border)]">
+                      {index + 1}
+                    </span>
+                    <textarea
+                      value={instruction}
+                      onChange={(event) =>
+                        updateInstruction(index, event.target.value)
+                      }
+                      placeholder="e.g., Preheat oven to 375°F"
+                      className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeInstruction(index)}
+                      className="ak-button-secondary ak-muted h-9 w-9 rounded-lg text-sm font-semibold"
+                      aria-label={`Remove step ${index + 1}`}
+                    >
+                      x
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold">Utensils Needed</h3>
+                <button
+                  onClick={addUtensil}
+                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="grid gap-2">
                 {draft.utensils.map((utensil, index) => (
                   <div
                     key={`utensil-${index}`}
-                    className="flex items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-1.5"
+                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded-xl border p-3"
                   >
                     <input
                       aria-label="Utensil"
@@ -2187,15 +2154,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       onChange={(event) =>
                         updateUtensil(index, event.target.value)
                       }
-                      placeholder="e.g., Mixing bowl"
-                      className="min-w-[120px] border-0 bg-transparent px-0 py-0 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-text-muted)]"
+                      placeholder="e.g., Mixing bowl, Chef's knife"
+                      className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
                     />
                     <button
                       onClick={() => removeUtensil(index)}
-                      className="grid h-6 w-6 place-items-center rounded-md text-xs text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-500"
+                      className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
                       aria-label="Remove utensil"
                     >
-                      &times;
+                      x
                     </button>
                   </div>
                 ))}
@@ -2204,19 +2171,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </div>
 
           {!isAuthenticated && (
-            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)]/96 p-6 text-center shadow-cozy-xl backdrop-blur-sm">
-              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--theme-accent)]">
+            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface)_96%,transparent)] p-5 text-center shadow-2xl backdrop-blur">
+              <p className="text-[var(--theme-accent)] text-xs font-semibold uppercase">
                 Account Required
               </p>
-              <h3 className="mt-2 font-heading text-xl font-semibold text-[var(--theme-text)]">
-                Start publishing recipes
+              <h3 className="mt-1 text-xl font-semibold tracking-normal">
+                Start publishing your own recipes
               </h3>
-              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-[var(--theme-text-muted)]">
-                Log in to add ingredients, write steps, and share recipes with the community.
+              <p className="text-[var(--theme-text-muted)] mx-auto mt-2 max-w-sm text-sm leading-6">
+                Log in to add ingredients, write steps, and post recipes to the
+                shared feed.
               </p>
               <button
                 onClick={onRequestAuth}
-                className="mt-5 rounded-xl bg-[var(--theme-accent)] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+                className="mt-4 rounded-lg bg-[var(--theme-sage)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-sage-strong)]"
               >
                 Log in to create
               </button>
@@ -2267,11 +2235,42 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)]">
-                <img
-                  src={imagePreviewUrl}
-                  alt={draft.name || 'Recipe preview'}
-                  className="aspect-[4/3] w-full object-cover"
-                />
+                {isPlaceholder(imagePreviewUrl) ? (
+                  <div
+                    className="flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center bg-[var(--theme-surface-alt)] transition hover:bg-[var(--theme-surface-alt)]/80"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      const input = document.querySelector<HTMLInputElement>('#recipe-photo-input-sidebar');
+                      input?.click();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        const input = document.querySelector<HTMLInputElement>('#recipe-photo-input-sidebar');
+                        input?.click();
+                      }
+                    }}
+                  >
+                    <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+                    <input
+                      id="recipe-photo-input-sidebar"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => updateImageFile(event.target.files?.[0])}
+                      className="sr-only"
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={imagePreviewUrl}
+                    alt={draft.name || 'Recipe preview'}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                )}
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
