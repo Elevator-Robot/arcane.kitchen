@@ -1411,14 +1411,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-2.5 lg:px-6">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-3">
               <img
                 src="/logo-no-background.svg"
                 alt="Arcane Kitchen logo"
                 draggable={false}
-                className="pointer-events-none select-none h-9 w-9 object-contain"
+                className="pointer-events-none select-none h-12 w-12 object-contain brightness-[0.3]"
               />
-              <span className="font-heading text-lg font-semibold text-[var(--theme-text)]">
+              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)]">
                 Arcane Kitchen
               </span>
             </div>
@@ -1505,38 +1505,42 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </div>
 
-          {/* Search + filters */}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <input
-                value={discoverQuery}
-                onChange={(event) => setDiscoverQuery(event.target.value)}
-                placeholder="Search recipes..."
-                className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-              />
-              <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
+          {!expandedRecipeId && (
+            <>
+              {/* Search + filters */}
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <input
+                    value={discoverQuery}
+                    onChange={(event) => setDiscoverQuery(event.target.value)}
+                    placeholder="Search recipes..."
+                    className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                  />
+                  <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
-              (tag) => (
-                <button
-                  key={tag}
-                  onClick={() => setActiveTag(tag)}
-                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                    activeTag === tag
-                      ? 'bg-[var(--theme-accent)] text-white'
-                      : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                  }`}
-                >
-                  {tag}
-                </button>
-              )
-            )}
-          </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
+                  (tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setActiveTag(tag)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                        activeTag === tag
+                          ? 'bg-[var(--theme-accent)] text-white'
+                          : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  )
+                )}
+              </div>
+            </>
+          )}
 
           {isLoadingFeed && (
             <p className="text-[var(--theme-text-muted)] mt-4 text-sm">Loading shared recipes...</p>
