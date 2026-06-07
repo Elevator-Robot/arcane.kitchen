@@ -8,7 +8,7 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Minimize2 } from 'lucide-react';
 import stockRecipePlaceholder from '../assets/stock-recipe.png';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -310,7 +310,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [publishMessageTone, setPublishMessageTone] = useState<
     'error' | 'success'
   >('error');
-  const [feedMessage, setFeedMessage] = useState('');
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
     getInitialFavoriteRecipeIds
   );
@@ -339,7 +338,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   const loadRecipes = useCallback(async () => {
     setIsLoadingFeed(true);
-    setFeedMessage('');
 
     try {
       const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
@@ -371,9 +369,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (errors?.length) {
         const errorMessage = errors.map((error: any) => error.message).join(', ');
         if (errorMessage.toLowerCase().includes('not authorized')) {
-          setFeedMessage(
-            'Recipes are unavailable until the backend auth rules are deployed.'
-          );
           return;
         }
 
@@ -382,7 +377,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (!data.length) {
         setFeedRecipes([]);
-        setFeedMessage('No recipes have been published yet.');
         return;
       }
 
@@ -408,18 +402,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       setFeedRecipes(recipes);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.toLowerCase().includes('not authorized')
-      ) {
-        setFeedMessage(
-          'Recipes are unavailable until the backend auth rules are deployed.'
-        );
-        return;
-      }
-
       console.error('Failed to load recipes:', error);
-      setFeedMessage('Recipes are unavailable right now.');
     } finally {
       setIsLoadingFeed(false);
     }
@@ -1422,41 +1405,60 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   );
 
   return (
-    <main className="ak-bg flex h-screen flex-col overflow-hidden pb-10">
-      <div className="ak-page-glow pointer-events-none fixed inset-0" />
-      <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
-        <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
-          <div className="flex items-center gap-3 justify-self-start">
-            <img
-              src="/logo-no-background.svg"
-              alt="Arcane Kitchen logo"
-              draggable={false}
-              className="pointer-events-none select-none h-[4.5rem] w-[4.5rem] object-contain filter grayscale brightness-[0.18] contrast-150"
-            />
-            <div>
-              <h1 className="text-lg font-semibold tracking-normal">
+    <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
+      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-2.5 lg:px-6">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <img
+                src="/logo-no-background.svg"
+                alt="Arcane Kitchen logo"
+                draggable={false}
+                className="pointer-events-none select-none h-9 w-9 object-contain"
+              />
+              <span className="font-heading text-lg font-semibold text-[var(--theme-text)]">
                 Arcane Kitchen
-              </h1>
+              </span>
             </div>
+            <nav className="hidden md:flex items-center gap-1">
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  currentView === 'Discover'
+                    ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                    : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                }`}
+              >
+                Discover
+              </button>
+              <button
+                onClick={startCreateRecipe}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  currentView === 'Build'
+                    ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                    : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                }`}
+              >
+                Build
+              </button>
+            </nav>
           </div>
 
-          <div className="hidden md:block md:justify-self-center" />
-
-          <div className="flex items-center gap-2 justify-self-end">
-            {onSignOut && (
+          <div className="flex items-center gap-2">
+            {onSignOut ? (
               <button
                 onClick={onSignOut}
-                className="ak-button-secondary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
+                className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
                 Sign out
               </button>
-            )}
-            {!isAuthenticated && (
+            ) : (
               <button
                 onClick={onRequestAuth}
-                className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
+                className="rounded-lg bg-[var(--theme-accent)] px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
               >
-                Log in to create
+                Log in
               </button>
             )}
           </div>
@@ -1472,84 +1474,94 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       >
         <section
           id="discover"
-          className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+          className={`min-h-0 overflow-y-auto ${
             currentView === 'Discover' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          <div
-            className={`ak-surface-alt border-b p-4 ${expandedRecipe ? 'hidden' : ''}`}
-          >
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-              Discover recipes
-            </h2>
-            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+          {/* Hero */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--theme-accent)]/5 via-[var(--theme-surface)] to-[var(--theme-sage)]/5 px-6 py-10 sm:px-10 sm:py-14">
+            <div className="relative">
+              <h2 className="font-heading text-4xl font-semibold tracking-tight text-[var(--theme-text)] sm:text-5xl">
+                Cook With Intention
+              </h2>
+              <p className="mt-3 max-w-lg text-base leading-relaxed text-[var(--theme-text-muted)]">
+                Discover, create, and share recipes from your cozy kitchen.
+                Save your favorites, plan your meals, and cook with joy.
+              </p>
+              <div className="mt-6 flex items-center gap-3">
+                <button
+                  onClick={startCreateRecipe}
+                  className="rounded-lg bg-[var(--theme-accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+                >
+                  Create a recipe
+                </button>
+                {visibleFeedRecipes.length > 0 && (
+                  <span className="text-sm text-[var(--theme-text-muted)]">
+                    {visibleFeedRecipes.length} recipes shared
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Search + filters */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
               <input
                 value={discoverQuery}
                 onChange={(event) => setDiscoverQuery(event.target.value)}
-                placeholder="Search by name, creator, or tag"
-                className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
+                placeholder="Search recipes..."
+                className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
               />
-              <button
-                onClick={startCreateRecipe}
-                className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
-              >
-                Create new
-              </button>
-              <p className="ak-muted text-xs sm:text-right">
-                {visibleFeedRecipes.length} of {feedRecipes.length} recipes
-              </p>
+              <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-            {isLoadingFeed && (
-              <p className="ak-muted mt-1 text-sm">Loading shared recipes...</p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
+              (tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setActiveTag(tag)}
+                  className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                    activeTag === tag
+                      ? 'bg-[var(--theme-accent)] text-white'
+                      : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                  }`}
+                >
+                  {tag}
+                </button>
+              )
             )}
           </div>
 
-          <div
-            className={`ak-surface border-b px-4 py-3 ${expandedRecipe ? 'hidden' : ''}`}
-          >
-            <div className="flex flex-wrap gap-2">
-              {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
-                (tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                      activeTag === tag
-                        ? 'bg-[var(--theme-plum)] text-white'
-                        : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-plum-strong)]'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
+          {isLoadingFeed && (
+            <p className="text-[var(--theme-text-muted)] mt-4 text-sm">Loading shared recipes...</p>
+          )}
 
+          {/* Recipe grid */}
           <div
-            className={`min-h-0 flex-1 overflow-y-auto ${expandedRecipe ? 'p-0' : 'p-4'}`}
+            className={`mt-6 ${expandedRecipe ? '' : ''}`}
           >
             {isLoadingFeed ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2].map((item) => (
                   <div
                     key={item}
-                    className="ak-surface-alt overflow-hidden rounded-xl border"
+                    className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)]"
                   >
-                    <div className="h-40 animate-pulse bg-[var(--theme-border)]" />
-                    <div className="grid gap-3 p-3">
-                      <div className="h-5 w-2/3 animate-pulse rounded bg-[var(--theme-border)]" />
-                      <div className="h-4 w-1/2 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
-                      <div className="flex gap-2">
-                        <div className="h-6 w-20 animate-pulse rounded-full bg-[var(--theme-bg-soft)]" />
-                        <div className="h-6 w-24 animate-pulse rounded-full bg-[var(--theme-bg-soft)]" />
-                      </div>
+                    <div className="aspect-[4/3] animate-pulse bg-[var(--theme-border)]" />
+                    <div className="grid gap-2.5 p-4">
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : expandedRecipe ? (
-              <article className="ak-surface-alt overflow-hidden rounded-xl border shadow-lg">
+              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
                   <img
                     src={expandedRecipe.image}
@@ -1572,7 +1584,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="text-2xl font-semibold tracking-normal">
                         {expandedRecipe.name}
                       </h3>
-                      <p className="ak-muted mt-1 text-sm">
+                      <p className="text-[var(--theme-text-muted)] mt-1 text-sm">
                         by {expandedRecipe.author}
                       </p>
                     </div>
@@ -1586,8 +1598,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         aria-label={`Favorite ${expandedRecipe.name}`}
                         className={`grid h-9 w-9 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
-                            ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
-                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
+                            ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white'
+                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] hover:bg-[var(--theme-bg-soft)]'
                         }`}
                       >
                         {favoriteRecipeIds.has(expandedRecipe.id) ? '♥' : '♡'}
@@ -1602,7 +1614,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     {expandedRecipe.description}
                   </p>
 
-                  <div className="ak-muted flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <span>{expandedRecipe.time}</span>
                     <span>{expandedRecipe.saves} saves</span>
                   </div>
@@ -1624,11 +1636,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         Ingredients
                       </h4>
                       {loadingExpandedRecipeId === expandedRecipe.id ? (
-                        <p className="ak-muted mt-2 text-sm">
+                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
                           Loading ingredients...
                         </p>
                       ) : expandedRecipeMessage ? (
-                        <p className="ak-muted mt-2 text-sm">
+                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
                           {expandedRecipeMessage}
                         </p>
                       ) : (
@@ -1725,67 +1737,65 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
               </article>
             ) : visibleFeedRecipes.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleFeedRecipes.map((recipe) => (
                   <article
                     key={recipe.id}
-                    className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
+                    onClick={() => void expandRecipe(recipe)}
                   >
-                    <div className="relative">
+                    <div className="relative aspect-[4/3] overflow-hidden">
                       <img
                         src={recipe.image}
                         alt={recipe.name}
-                        className="h-40 w-full object-cover"
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       />
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void expandRecipe(recipe);
-                        }}
-                        aria-label="Expand recipe"
-                        title="Expand recipe"
-                        className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-md bg-black/70 text-white transition hover:bg-black"
-                      >
-                        <Maximize2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div className="p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-base font-semibold tracking-normal">
-                            {recipe.name}
-                          </h3>
-                          <p className="ak-muted text-sm">by {recipe.author}</p>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
+                          {recipe.rating}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void toggleFavoriteRecipe(recipe.id);
-                            }}
-                            disabled={pendingFavoriteRecipeIds.has(recipe.id)}
-                            aria-label={`Favorite ${recipe.name}`}
-                            className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
-                              favoriteRecipeIds.has(recipe.id)
-                                ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
-                                : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
-                            }`}
-                          >
-                            {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
-                          </button>
-                          <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
-                            {recipe.rating}
-                          </div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void toggleFavoriteRecipe(recipe.id);
+                          }}
+                          disabled={pendingFavoriteRecipeIds.has(recipe.id)}
+                          aria-label={`Favorite ${recipe.name}`}
+                          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
+                            favoriteRecipeIds.has(recipe.id)
+                              ? 'bg-[var(--theme-accent)] text-white'
+                              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
+                          }`}
+                        >
+                          {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
+                        </button>
                       </div>
-                      <div className="ak-muted mt-3 flex items-center justify-between text-xs">
-                        <span>{recipe.time}</span>
-                        <span>{recipe.saves} saves</span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
+                        {recipe.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                        by {recipe.author}
+                      </p>
+                      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
+                        <span className="flex items-center gap-1">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {recipe.time}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                          </svg>
+                          {recipe.saves} saves
+                        </span>
                       </div>
                       {isAuthenticated && recipe.ownerId === currentUserId && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
                           <button
                             type="button"
                             onClick={(event) => {
@@ -1793,11 +1803,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                               void startEditRecipe(recipe.id, recipe.ownerId);
                             }}
                             disabled={loadingEditRecipeId === recipe.id}
-                            className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
                           >
                             {loadingEditRecipeId === recipe.id
                               ? 'Opening...'
-                              : 'Edit recipe'}
+                              : 'Edit'}
                           </button>
                           <button
                             type="button"
@@ -1806,46 +1816,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                               void deleteRecipe(recipe.id, recipe.ownerId);
                             }}
                             disabled={deletingRecipeIds.has(recipe.id)}
-                            className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
-                              deletingRecipeIds.has(recipe.id)
-                                ? 'w-28 px-2.5'
-                                : armedDeleteRecipeIds.has(recipe.id)
-                                  ? 'w-36 px-3'
-                                  : 'w-28 px-3'
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+                              armedDeleteRecipeIds.has(recipe.id)
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
                             }`}
                           >
                             {deletingRecipeIds.has(recipe.id)
                               ? 'Deleting...'
                               : armedDeleteRecipeIds.has(recipe.id)
                                 ? 'Delete permanently'
-                                : 'Delete recipe'}
+                                : 'Delete'}
                           </button>
                         </div>
                       )}
-                      <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
-                        {recipe.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {recipe.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   </article>
                 ))}
               </div>
             ) : (
-              <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
-                <p className="text-sm font-semibold text-[var(--theme-text)]">
-                  {feedMessage || 'No matching recipes right now.'}
+              <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  No recipes found
                 </p>
-                <p className="ak-muted mt-2 text-sm leading-6">
-                  Try another search term or switch to a different tag.
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                  {isAuthenticated
+                    ? 'Be the first to share a recipe with the community.'
+                    : 'Log in and create the first recipe.'}
                 </p>
               </div>
             )}
@@ -1854,32 +1851,29 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         <section
           id="build"
-          className={`ak-card relative min-h-0 overflow-hidden rounded-xl ${
+          className={`relative min-h-0 overflow-hidden rounded-xl bg-[var(--theme-surface)] ${
             currentView === 'Build'
               ? 'flex flex-col lg:col-start-1 lg:row-start-1'
               : 'hidden'
           }`}
         >
-          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
+          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-5 py-4">
             <div>
-              <p className="ak-accent text-xs font-semibold uppercase">
-                Recipe Studio
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-                {isEditingRecipe ? 'Edit your recipe' : 'Create a recipe post'}
+              <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                {isEditingRecipe ? 'Edit recipe' : 'New recipe'}
               </h2>
               {!isEditingRecipe && (
                 <button
                   type="button"
                   onClick={loadExampleRecipe}
-                  className="ak-muted mt-1 text-xs underline decoration-dotted transition hover:text-[var(--theme-plum-strong)]"
+                  className="mt-0.5 text-xs text-[var(--theme-text-muted)] underline decoration-dotted transition hover:text-[var(--theme-accent-strong)]"
                 >
                   Need inspiration? Load an example
                 </button>
               )}
               {!isAuthenticated && (
-                <p className="ak-muted mt-2 text-sm">
-                  Log in to unlock publishing.
+                <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                  Log in to publish recipes.
                 </p>
               )}
             </div>
@@ -1891,56 +1885,59 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   setPublishMessageTone('error');
                   setCurrentView('Discover');
                 }}
-                className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
+                className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
                 Cancel
               </button>
-              <div className="ak-button-primary hidden rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm sm:block">
-                Creator: {creatorName}
+              <div className="hidden rounded-lg bg-[var(--theme-accent)]/10 px-3 py-1.5 text-sm font-medium text-[var(--theme-accent-strong)] sm:block">
+                {creatorName}
               </div>
             </div>
           </div>
 
           <div
-            className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
+            className={`grid min-h-0 min-w-0 flex-1 gap-5 overflow-x-hidden overflow-y-auto p-5 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
           >
             {publishMessage && (
               <div
-                className={`rounded-lg border px-3 py-2 text-sm ${
+                className={`rounded-lg border px-4 py-2.5 text-sm ${
                   publishMessageTone === 'error'
-                    ? 'border-[#e5b3b3] bg-[#fff1f1] text-[#8f1d1d]'
-                    : 'border-[#b7d9c8] bg-[#edf9f2] text-[#1f6b42]'
+                    ? 'border-red-200 bg-red-50 text-red-800'
+                    : 'border-emerald-200 bg-emerald-50 text-emerald-800'
                 }`}
               >
                 {publishMessage}
               </div>
             )}
 
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold">Recipe name</span>
-              <input
-                value={draft.name}
-                onChange={(event) => updateDraft('name', event.target.value)}
-                placeholder="e.g., Grandma's Apple Pie"
-                className="ak-input rounded-lg px-3 py-2 outline-none transition"
-              />
-            </label>
+            {/* Name + Description side by side */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Recipe name</span>
+                <input
+                  value={draft.name}
+                  onChange={(event) => updateDraft('name', event.target.value)}
+                  placeholder="e.g., Grandma's Apple Pie"
+                  className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-3 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Description</span>
+                <textarea
+                  value={draft.description}
+                  onChange={(event) =>
+                    updateDraft('description', event.target.value)
+                  }
+                  placeholder="A short summary of your dish"
+                  className="h-[42px] resize-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                />
+              </label>
+            </div>
 
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold">Description</span>
-              <textarea
-                value={draft.description}
-                onChange={(event) =>
-                  updateDraft('description', event.target.value)
-                }
-                placeholder="A short summary of your dish"
-                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
-              />
-            </label>
-
-              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
-              <label className="grid gap-2">
-                <span className="text-sm font-semibold">Prep time</span>
+            {/* Prep time + Photo inline */}
+            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Prep time</span>
                 <div>
                   <LocalizationProvider
                     dateAdapter={AdapterDayjs}
@@ -1965,30 +1962,39 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </LocalizationProvider>
                 </div>
               </label>
-              <label className="grid min-w-0 gap-2">
-                <span className="text-sm font-semibold">Recipe photo</span>
-                <span
-                  className={`ak-input group grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg p-2 transition cursor-pointer ${
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Photo</span>
+                <div
+                  className={`flex items-center gap-3 rounded-xl border border-dashed px-4 py-3 transition cursor-pointer ${
                     selectedImageFile
-                      ? 'border-[var(--theme-pine)] bg-[color-mix(in_srgb,var(--theme-surface)_84%,var(--theme-pine)_16%)]'
-                      : ''
+                      ? 'border-[var(--theme-sage)] bg-[var(--theme-sage)]/5'
+                      : 'border-[var(--theme-border)] hover:border-[var(--theme-accent)]'
                   }`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      const input = e.currentTarget.querySelector<HTMLInputElement>('input[type="file"]');
+                      input?.click();
+                    }
+                  }}
+                  onClick={() => {
+                    const input = document.querySelector<HTMLInputElement>('#recipe-photo-input');
+                    input?.click();
+                  }}
                 >
-                  <span
-                    className={`rounded-md bg-[var(--theme-pine)] px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 group-hover:brightness-110 group-active:scale-[0.98] group-focus-within:ring-2 group-focus-within:ring-[var(--theme-focus)] ${
-                      selectedImageFile
-                        ? 'bg-[var(--theme-pine-strong)] ring-2 ring-[var(--theme-focus)]'
-                        : ''
-                    }`}
-                  >
-                    {selectedImageFile ? 'Photo selected' : 'Choose photo'}
+                  <span className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm ${
+                    selectedImageFile
+                      ? 'bg-[var(--theme-sage-strong)]'
+                      : 'bg-[var(--theme-text-muted)]'
+                  }`}>
+                    {selectedImageFile ? 'Selected' : 'Choose'}
                   </span>
-                  <span className="ak-muted min-w-0 truncate text-sm">
-                    {selectedImageFile
-                      ? selectedImageFile.name
-                      : 'No photo selected'}
+                  <span className="truncate text-sm text-[var(--theme-text-muted)]">
+                    {selectedImageFile ? selectedImageFile.name : 'Upload a photo'}
                   </span>
                   <input
+                    id="recipe-photo-input"
                     type="file"
                     accept="image/*"
                     onChange={(event) =>
@@ -1996,13 +2002,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     }
                     className="sr-only"
                   />
-                </span>
+                </div>
               </label>
             </div>
 
+            {/* Tags */}
             <div className="grid gap-2">
-              <span className="text-sm font-semibold">Tags</span>
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <span className="text-sm font-medium text-[var(--theme-text)]">Tags</span>
+              <div className="flex items-center gap-2">
                 <input
                   value={newTagValue}
                   onChange={(event) => setNewTagValue(event.target.value)}
@@ -2011,160 +2018,168 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     event.preventDefault();
                     addTag();
                   }}
-                  placeholder="e.g., Quick, Vegetarian, Dessert"
-                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
+                  placeholder="Add a tag..."
+                  className="min-w-0 flex-1 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
                 />
                 <button
                   type="button"
                   onClick={addTag}
-                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
+                  className="shrink-0 rounded-xl border border-[var(--theme-border)] px-4 py-2.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                 >
                   Add tag
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {draft.tags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-plum)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
-                    aria-label={`Remove tag ${tag}`}
-                    title={`Remove ${tag}`}
-                  >
-                    {tag}
-                    <span aria-hidden="true">x</span>
-                  </button>
-                ))}
-              </div>
+              {draft.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {draft.tags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-[var(--theme-accent)]/10 px-3 py-1.5 text-xs font-medium text-[var(--theme-accent-strong)] transition hover:bg-[var(--theme-accent)]/20"
+                    >
+                      {tag}
+                      <span aria-hidden="true" className="text-current">&times;</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Ingredients</h3>
-                <button
-                  onClick={addIngredient}
-                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="grid gap-2">
-                {draft.ingredients.map((ingredient) => (
-                  <div
-                    key={ingredient.id}
-                    className="ak-surface-alt grid min-w-0 gap-2 rounded-xl border p-2"
+            {/* Ingredients + Instructions 2-col */}
+            <div className="grid gap-5 md:grid-cols-2">
+              {/* Ingredients */}
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-[var(--theme-text)]">Ingredients</h3>
+                  <button
+                    onClick={addIngredient}
+                    className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                   >
-                    <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
-                      <input
-                        aria-label="Ingredient"
-                        value={ingredient.name}
+                    + Add
+                  </button>
+                </div>
+                <div className="grid gap-2">
+                  {draft.ingredients.map((ingredient) => (
+                    <div
+                      key={ingredient.id}
+                      className="rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3"
+                    >
+                      <div className="grid gap-2">
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          <input
+                            aria-label="Ingredient"
+                            value={ingredient.name}
+                            onChange={(event) =>
+                              updateIngredient(
+                                ingredient.id,
+                                'name',
+                                event.target.value
+                              )
+                            }
+                            placeholder="e.g., All-purpose flour"
+                            className="min-w-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                          />
+                          <button
+                            onClick={() => removeIngredient(ingredient.id)}
+                            className="grid h-9 w-9 place-items-center rounded-lg text-sm text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-500"
+                            aria-label="Remove ingredient"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            aria-label="Amount"
+                            value={ingredient.amount}
+                            onChange={(event) =>
+                              updateIngredient(
+                                ingredient.id,
+                                'amount',
+                                event.target.value
+                              )
+                            }
+                            placeholder="e.g., 2"
+                            className="min-w-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                          />
+                          <input
+                            aria-label="Unit"
+                            value={ingredient.unit}
+                            onChange={(event) =>
+                              updateIngredient(
+                                ingredient.id,
+                                'unit',
+                                event.target.value
+                              )
+                            }
+                            placeholder="e.g., cups"
+                            className="min-w-0 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-bg)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Instructions */}
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-[var(--theme-text)]">Instructions</h3>
+                  <button
+                    onClick={addInstruction}
+                    className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                  >
+                    + Add step
+                  </button>
+                </div>
+                <div className="grid gap-2">
+                  {draft.instructions.map((instruction, index) => (
+                    <div
+                      key={`instruction-${index}`}
+                      className="flex items-start gap-2"
+                    >
+                      <span className="mt-2.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[var(--theme-accent)]/10 text-xs font-semibold text-[var(--theme-accent-strong)]">
+                        {index + 1}
+                      </span>
+                      <textarea
+                        value={instruction}
                         onChange={(event) =>
-                          updateIngredient(
-                            ingredient.id,
-                            'name',
-                            event.target.value
-                          )
+                          updateInstruction(index, event.target.value)
                         }
-                        placeholder="e.g., All-purpose flour"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        placeholder="e.g., Preheat oven to 375°F"
+                        className="min-h-[42px] min-w-0 flex-1 resize-none rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
                       />
                       <button
-                        onClick={() => removeIngredient(ingredient.id)}
-                        className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
-                        aria-label="Remove ingredient"
+                        type="button"
+                        onClick={() => removeInstruction(index)}
+                        className="mt-2 grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-500"
+                        aria-label={`Remove step ${index + 1}`}
                       >
-                        x
+                        &times;
                       </button>
                     </div>
-                    <div className="grid min-w-0 grid-cols-2 gap-2">
-                      <input
-                        aria-label="Amount"
-                        value={ingredient.amount}
-                        onChange={(event) =>
-                          updateIngredient(
-                            ingredient.id,
-                            'amount',
-                            event.target.value
-                          )
-                        }
-                        placeholder="e.g., 2"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
-                      />
-                      <input
-                        aria-label="Unit"
-                        value={ingredient.unit}
-                        onChange={(event) =>
-                          updateIngredient(
-                            ingredient.id,
-                            'unit',
-                            event.target.value
-                          )
-                        }
-                        placeholder="e.g., cups"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
 
+            {/* Utensils */}
             <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Instructions</h3>
-                <button
-                  onClick={addInstruction}
-                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
-                >
-                  Add step
-                </button>
-              </div>
-              <div className="grid gap-2">
-                {draft.instructions.map((instruction, index) => (
-                  <label
-                    key={`instruction-${index}`}
-                    className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2"
-                  >
-                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-surface)] text-sm font-semibold text-[var(--theme-plum-strong)] ring-1 ring-[var(--theme-border)]">
-                      {index + 1}
-                    </span>
-                    <textarea
-                      value={instruction}
-                      onChange={(event) =>
-                        updateInstruction(index, event.target.value)
-                      }
-                      placeholder="e.g., Preheat oven to 375°F"
-                      className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeInstruction(index)}
-                      className="ak-button-secondary ak-muted h-9 w-9 rounded-lg text-sm font-semibold"
-                      aria-label={`Remove step ${index + 1}`}
-                    >
-                      x
-                    </button>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Utensils Needed</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-sm font-medium text-[var(--theme-text)]">Utensils</h3>
                 <button
                   onClick={addUtensil}
-                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
+                  className="rounded-lg border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                 >
-                  Add
+                  + Add
                 </button>
               </div>
-              <div className="grid gap-2">
+              <div className="flex flex-wrap gap-2">
                 {draft.utensils.map((utensil, index) => (
                   <div
                     key={`utensil-${index}`}
-                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded-xl border p-3"
+                    className="flex items-center gap-2 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-1.5"
                   >
                     <input
                       aria-label="Utensil"
@@ -2172,15 +2187,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       onChange={(event) =>
                         updateUtensil(index, event.target.value)
                       }
-                      placeholder="e.g., Mixing bowl, Chef's knife"
-                      className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                      placeholder="e.g., Mixing bowl"
+                      className="min-w-[120px] border-0 bg-transparent px-0 py-0 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-text-muted)]"
                     />
                     <button
                       onClick={() => removeUtensil(index)}
-                      className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
+                      className="grid h-6 w-6 place-items-center rounded-md text-xs text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-500"
                       aria-label="Remove utensil"
                     >
-                      x
+                      &times;
                     </button>
                   </div>
                 ))}
@@ -2189,20 +2204,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </div>
 
           {!isAuthenticated && (
-            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface)_96%,transparent)] p-5 text-center shadow-2xl backdrop-blur">
-              <p className="ak-accent text-xs font-semibold uppercase">
+            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)]/96 p-6 text-center shadow-cozy-xl backdrop-blur-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--theme-accent)]">
                 Account Required
               </p>
-              <h3 className="mt-1 text-xl font-semibold tracking-normal">
-                Start publishing your own recipes
+              <h3 className="mt-2 font-heading text-xl font-semibold text-[var(--theme-text)]">
+                Start publishing recipes
               </h3>
-              <p className="ak-muted mx-auto mt-2 max-w-sm text-sm leading-6">
-                Log in to add ingredients, write steps, and post recipes to the
-                shared feed.
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-relaxed text-[var(--theme-text-muted)]">
+                Log in to add ingredients, write steps, and share recipes with the community.
               </p>
               <button
                 onClick={onRequestAuth}
-                className="mt-4 rounded-lg bg-[var(--theme-pine)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-pine-strong)]"
+                className="mt-5 rounded-xl bg-[var(--theme-accent)] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
               >
                 Log in to create
               </button>
@@ -2218,27 +2232,27 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <section
-            className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+            className={`relative min-h-0 overflow-hidden rounded-xl bg-[var(--theme-surface)] ${
               currentView === 'Build' ? 'flex flex-col' : 'hidden'
             }`}
           >
-            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
+            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="ak-accent text-xs font-semibold uppercase">
-                    Post Preview
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold tracking-normal">
+                  <h2 className="font-heading text-lg font-semibold text-[var(--theme-text)]">
+                    Preview
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--theme-text-muted)]">
                     {isEditingRecipe
                       ? 'Review your updates'
                       : 'Ready for the feed'}
-                  </h2>
+                  </p>
                 </div>
                 {isAuthenticated && (
                   <button
                     onClick={publishRecipe}
                     disabled={isPublishing}
-                    className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition disabled:opacity-60"
+                    className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-60"
                   >
                     {isPublishing
                       ? isEditingRecipe
@@ -2252,38 +2266,40 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <article className="ak-surface-alt overflow-hidden rounded-lg border">
+              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)]">
                 <img
                   src={imagePreviewUrl}
                   alt={draft.name || 'Recipe preview'}
-                  className="h-48 w-full object-cover"
+                  className="aspect-[4/3] w-full object-cover"
                 />
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-xl font-semibold tracking-normal">
+                      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
                         {draft.name || 'Untitled recipe'}
                       </h3>
-                      <p className="ak-muted mt-1 text-sm">by {creatorName}</p>
+                      <p className="mt-1 text-sm text-[var(--theme-text-muted)]">by {creatorName}</p>
                     </div>
-                    <span className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold shadow-sm">
+                    <span className="shrink-0 rounded-md bg-[var(--theme-surface-alt)] px-2 py-1 text-xs font-semibold text-[var(--theme-text)]">
                       {rating}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
-                    {draft.description}
-                  </p>
+                  {draft.description && (
+                    <p className="mt-3 text-sm leading-relaxed text-[var(--theme-text)]">
+                      {draft.description}
+                    </p>
+                  )}
                   {(draft.prepTime || draft.tags.length > 0) && (
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-1.5">
                       {draft.prepTime && (
-                        <span className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                        <span className="rounded-full bg-[var(--theme-accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--theme-accent-strong)]">
                           {draft.prepTime}
                         </span>
                       )}
                       {draft.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                          className="rounded-full bg-[var(--theme-sage)]/10 px-2.5 py-1 text-xs font-medium text-[var(--theme-sage-strong)]"
                         >
                           {tag}
                         </span>
@@ -2292,7 +2308,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   )}
                   {draft.ingredients.some((ing) => ing.name) && (
                     <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                      <h4 className="text-sm font-semibold">Ingredient list</h4>
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">Ingredients</h4>
                       <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
                         {draft.ingredients
                           .filter((ingredient) => ingredient.name)
@@ -2309,7 +2325,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     (inst) => inst.trim()
                   ) && (
                     <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                      <h4 className="text-sm font-semibold">Instructions</h4>
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">Instructions</h4>
                       <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--theme-text)]">
                         {draft.instructions
                           .map((instruction) => instruction.trim())
@@ -2324,7 +2340,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   )}
                   {draft.utensils.some((ut) => ut.trim()) && (
                     <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                      <h4 className="text-sm font-semibold">Utensils Needed</h4>
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">Utensils</h4>
                       <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
                         {draft.utensils
                           .map((utensil) => utensil.trim())
@@ -2343,13 +2359,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </section>
         </aside>
       </div>
-      <footer className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface-alt)_92%,transparent)] px-4 py-2 text-center text-xs text-[var(--theme-text-muted)] backdrop-blur-sm">
+      <footer className="sticky inset-x-0 bottom-0 z-40 border-t border-[var(--theme-border)] bg-[var(--theme-surface)]/92 px-4 py-2.5 text-center text-xs text-[var(--theme-text-muted)] backdrop-blur-sm">
         Crafted by{' '}
         <a
           href="https://elevatorrobot.com"
           target="_blank"
           rel="noreferrer"
-          className="font-semibold text-[var(--theme-plum-strong)] hover:text-[var(--theme-plum)]"
+          className="font-medium text-[var(--theme-accent-strong)] hover:text-[var(--theme-accent)]"
         >
           Elevator Robot
         </a>
