@@ -54,7 +54,7 @@ const bootstrap = async () => {
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <div className="bg-arcane-parchment min-h-screen">
+      <div className="min-h-screen">
         <App />
       </div>
     </React.StrictMode>

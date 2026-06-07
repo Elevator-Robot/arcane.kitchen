@@ -1,30 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --theme-bg: #2b1732;
-    --theme-bg-soft: #3a2144;
-    --theme-surface: #fff8ef;
-    --theme-surface-alt: #f8efe3;
-    --theme-text: #211923;
-    --theme-text-muted: #6e6270;
-    --theme-border: #d4bfd1;
-    --theme-border-strong: #bb9fba;
-    --theme-plum: #6f2b6a;
-    --theme-plum-strong: #55204f;
-    --theme-pine: #2f5a43;
-    --theme-pine-strong: #234333;
-    --theme-focus: rgba(111, 43, 106, 0.18);
-    --theme-overlay: rgba(25, 17, 28, 0.64);
+    --theme-bg: #faf0e6;
+    --theme-bg-soft: #f5e6d3;
+    --theme-surface: #fffaf5;
+    --theme-surface-alt: #f5e6d3;
+    --theme-text: #2c1810;
+    --theme-text-muted: #8b7355;
+    --theme-border: #d4c4a8;
+    --theme-border-strong: #b8a48a;
+    --theme-accent: #d97706;
+    --theme-accent-strong: #b45309;
+    --theme-sage: #5a7a4a;
+    --theme-sage-strong: #4a663a;
+    --theme-focus: rgba(217, 119, 6, 0.18);
+    --theme-overlay: rgba(44, 24, 16, 0.64);
   }
 
   html {
     font-family:
-      Inter,
+      Nunito,
       ui-sans-serif,
       system-ui,
       -apple-system,
@@ -49,6 +47,12 @@
   h4,
   h5,
   h6 {
+    font-family:
+      Fraunces,
+      Georgia,
+      ui-serif,
+      serif;
+    font-weight: 600;
     letter-spacing: 0;
   }
 
@@ -75,9 +79,9 @@
 
   .ak-page-glow {
     background:
-      radial-gradient(circle at 18% 8%, rgba(173, 95, 191, 0.24), transparent 34%),
-      radial-gradient(circle at 82% 14%, rgba(79, 54, 117, 0.22), transparent 36%),
-      linear-gradient(180deg, rgba(255, 248, 239, 0.78), rgba(43, 23, 50, 0.92));
+      radial-gradient(circle at 18% 8%, rgba(217, 119, 6, 0.10), transparent 34%),
+      radial-gradient(circle at 82% 14%, rgba(90, 122, 74, 0.08), transparent 36%),
+      linear-gradient(180deg, rgba(255, 250, 245, 0.9), rgba(250, 240, 230, 0.95));
   }
 
   .ak-surface {
@@ -93,7 +97,7 @@
   .ak-card {
     border: 1px solid var(--theme-border);
     background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
-    box-shadow: 0 24px 70px rgba(48, 26, 44, 0.1);
+    box-shadow: 0 8px 30px rgba(44, 24, 16, 0.08);
     backdrop-filter: blur(10px);
   }
 
@@ -104,7 +108,7 @@
 
   .ak-pill-nav {
     background: var(--theme-surface);
-    box-shadow: 0 8px 18px rgba(47, 34, 48, 0.08);
+    box-shadow: 0 4px 12px rgba(44, 24, 16, 0.06);
   }
 
   .ak-input {
@@ -115,35 +119,31 @@
 
   .ak-input:focus,
   .ak-input:focus-within {
-    border-color: var(--theme-plum);
+    border-color: var(--theme-accent);
     box-shadow: 0 0 0 4px var(--theme-focus);
   }
 
   .ak-button-primary {
     background: linear-gradient(
       135deg,
-      var(--theme-plum),
-      color-mix(in srgb, var(--theme-plum) 75%, var(--theme-pine) 25%)
+      var(--theme-accent),
+      color-mix(in srgb, var(--theme-accent) 75%, var(--theme-sage) 25%)
     );
     color: #fff;
   }
 
   .ak-button-primary:hover {
-    background: linear-gradient(135deg, var(--theme-plum-strong), var(--theme-pine));
+    background: linear-gradient(135deg, var(--theme-accent-strong), var(--theme-sage));
   }
 
   .ak-button-danger {
-    background-image: linear-gradient(
-      135deg,
-      var(--theme-plum),
-      color-mix(in srgb, var(--theme-plum) 75%, var(--theme-pine) 25%)
-    );
+    background-image: linear-gradient(135deg, #d94a4a, #8f1d1d);
     background-color: transparent;
     color: #fff;
   }
 
   .ak-button-danger:hover {
-    background-image: linear-gradient(135deg, #d94a4a, #8f1d1d);
+    background-image: linear-gradient(135deg, #b91c1c, #7f1d1d);
   }
 
   .ak-button-secondary {
@@ -154,8 +154,8 @@
 
   .ak-button-secondary:hover {
     background: color-mix(in srgb, var(--theme-surface-alt) 82%, white 18%);
-    border-color: var(--theme-plum);
-    color: var(--theme-plum-strong);
+    border-color: var(--theme-accent);
+    color: var(--theme-accent-strong);
   }
 
   .ak-muted {
@@ -163,7 +163,7 @@
   }
 
   .ak-accent {
-    color: var(--theme-plum);
+    color: var(--theme-accent);
   }
 
   .ak-overlay {
@@ -174,13 +174,13 @@
     --amplify-components-authenticator-router-box-shadow: none;
     --amplify-components-authenticator-router-border-width: 0;
     --amplify-components-authenticator-router-background-color: transparent;
-    --amplify-components-tabs-item-active-border-color: var(--theme-plum);
+    --amplify-components-tabs-item-active-border-color: var(--theme-accent);
     --amplify-components-tabs-item-active-color: var(--theme-text);
     --amplify-components-tabs-border-color: var(--theme-border);
     --amplify-colors-brand-primary-10: var(--theme-surface-alt);
-    --amplify-colors-brand-primary-60: var(--theme-plum);
-    --amplify-colors-brand-primary-80: var(--theme-plum-strong);
-    --amplify-colors-brand-primary-90: #43183f;
+    --amplify-colors-brand-primary-60: var(--theme-accent);
+    --amplify-colors-brand-primary-80: var(--theme-accent-strong);
+    --amplify-colors-brand-primary-90: #92400e;
     width: 100%;
   }
 
@@ -206,13 +206,13 @@
   .auth-panel .amplify-button--primary {
     background: linear-gradient(
       135deg,
-      var(--theme-plum),
-      color-mix(in srgb, var(--theme-plum) 75%, var(--theme-pine) 25%)
+      var(--theme-accent),
+      color-mix(in srgb, var(--theme-accent) 75%, var(--theme-sage) 25%)
     );
     color: #fff;
     border: 0;
     border-radius: 0.5rem;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+    box-shadow: 0 1px 2px rgba(44, 24, 16, 0.15);
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1.25rem;
@@ -222,7 +222,7 @@
   }
 
   .auth-panel .amplify-button--primary:hover {
-    background: linear-gradient(135deg, var(--theme-plum-strong), var(--theme-pine));
+    background: linear-gradient(135deg, var(--theme-accent-strong), var(--theme-sage));
   }
 
   .auth-panel .amplify-button:not(.amplify-button--link) {
@@ -268,7 +268,7 @@
   }
 
   .confirmation-code-input:focus {
-    border-color: var(--theme-plum);
+    border-color: var(--theme-accent);
     box-shadow: 0 0 0 4px var(--theme-focus);
   }
 

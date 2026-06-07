@@ -23,6 +23,14 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Included in recipe fingerprint for deduplication
 - Optional (empty if not provided)
 
+## Profile & Avatars
+
+- Profile data (display name, bio, avatar) is stored in localStorage under `arcaneKitchen.profileData.{userId}`
+- Avatars are preset fantasy/D&D-themed portraits in `public/images/avatars/` (36 PNG files)
+- Users select an avatar from a grid in the Profile page — no custom photo upload
+- Selected avatar filename is saved in `profileData.avatar`; displayed via `<img src="/images/avatars/{filename}" />`
+- Fallback: if no avatar selected, shows the initial letter of the display name
+
 ## Fake Backend (`src/fake-backend/`)
 
 - In `development` mode (`npm run dev`), a localStorage-backed fake backend replaces Amplify (Cognito, AppSync, S3) entirely

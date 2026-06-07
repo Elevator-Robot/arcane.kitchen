@@ -291,7 +291,7 @@ function App() {
   };
 
   return (
-    <div className="ak-bg h-screen overflow-hidden">
+    <div className="h-screen overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         currentUser={currentUser}
@@ -301,14 +301,14 @@ function App() {
       />
 
       {showAuth && (
-        <div className="ak-overlay fixed inset-0 z-50 overflow-y-auto px-4 py-6 backdrop-blur-md sm:py-10">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md sm:py-10">
           <div className="mx-auto flex min-h-full w-full max-w-5xl items-center justify-center">
             <div className="relative grid w-full overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-[0_30px_90px_rgba(34,18,36,0.35)] md:grid-cols-[0.95fr_1fr]">
-              <section className="relative hidden min-h-[620px] bg-[var(--theme-pine-strong)] p-8 text-white md:block">
+              <section className="relative hidden min-h-[620px] bg-[var(--theme-sage-strong)] p-8 text-white md:block">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(111,43,106,0.34),transparent_32%),linear-gradient(145deg,rgba(111,43,106,0.2),transparent_55%)]" />
                 <div className="relative flex h-full flex-col justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-plum)_45%,white_55%)]">
+                    <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-accent)_45%,white_55%)]">
                       Member Kitchen
                     </p>
                     <h2 className="mt-4 text-4xl font-semibold tracking-normal">
@@ -333,13 +333,13 @@ function App() {
 
               <section className="max-h-[calc(100vh-3rem)] overflow-y-auto p-5 sm:p-7 md:max-h-[calc(100vh-5rem)]">
                 <div className="mb-5 pr-14 md:hidden">
-                  <p className="text-xs font-semibold uppercase ak-accent">
+                  <p className="text-xs font-semibold uppercase text-[var(--theme-accent)]">
                     Member Kitchen
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold tracking-normal">
                     Share recipes people want to save
                   </h2>
-                  <p className="ak-muted mt-2 text-sm leading-6">
+                  <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                     Log in to publish recipes, save favorites, and build your
                     collection.
                   </p>
@@ -347,7 +347,7 @@ function App() {
 
                 <button
                   onClick={() => setShowAuth(false)}
-                  className="ak-button-secondary absolute right-4 top-4 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition"
+                  className="absolute right-4 top-4 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] shadow-sm transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                 >
                   Close
                 </button>

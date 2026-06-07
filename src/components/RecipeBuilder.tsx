@@ -8,8 +8,7 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
-import { Maximize2, Minimize2 } from 'lucide-react';
-import stockRecipePlaceholder from '../assets/stock-recipe.png';
+import { Minimize2 } from 'lucide-react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
@@ -30,14 +29,14 @@ const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
 const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
-type RecipeBuilderView = 'Discover' | 'Build';
+type RecipeBuilderView = 'Discover' | 'Build' | 'Profile';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
   if (typeof window === 'undefined' || !window.localStorage) return 'Discover';
 
   const savedView = window.localStorage.getItem(RECIPE_BUILDER_VIEW_KEY);
 
-  if (savedView === 'Discover' || savedView === 'Build') {
+  if (savedView === 'Discover' || savedView === 'Build' || savedView === 'Profile') {
     return savedView;
   }
 
@@ -111,7 +110,9 @@ interface RecipeQuantity {
   unit?: string;
 }
 
-const neutralImagePlaceholder = stockRecipePlaceholder;
+const IMAGE_PLACEHOLDER = '__no_image__';
+const neutralImagePlaceholder = IMAGE_PLACEHOLDER;
+const isPlaceholder = (src: string) => src === IMAGE_PLACEHOLDER || src === neutralImagePlaceholder;
 
 const EMPTY_DRAFT: RecipeDraft = {
   name: '',
@@ -287,7 +288,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
-
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
@@ -310,7 +310,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [publishMessageTone, setPublishMessageTone] = useState<
     'error' | 'success'
   >('error');
-  const [feedMessage, setFeedMessage] = useState('');
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
     getInitialFavoriteRecipeIds
   );
@@ -327,6 +326,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
+  const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
+  const profileNameRef = useRef<HTMLInputElement>(null);
+  const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -334,12 +338,67 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   );
   const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
+
+  const PROFILE_DATA_KEY = currentUserId
+    ? `arcaneKitchen.profileData.${currentUserId}`
+    : null;
+
+  const loadProfileData = useCallback(() => {
+    if (!PROFILE_DATA_KEY) return { displayName: creatorName, bio: '', avatar: null };
+    try {
+      const saved = localStorage.getItem(PROFILE_DATA_KEY);
+      if (saved) {
+        const data = JSON.parse(saved);
+        return { displayName: data.displayName || creatorName, bio: data.bio || '', avatar: data.avatar || null };
+      }
+    } catch { /* ignore */ }
+    return { displayName: creatorName, bio: '', avatar: null };
+  }, [PROFILE_DATA_KEY, creatorName]);
+
+  const avatarEntries = useMemo(
+    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.png', { eager: true })).map(([path, mod]) => ({
+      file: path.split('/').pop()!,
+      url: mod.default,
+    })),
+    [],
+  );
+
+  const savedProfileData = loadProfileData();
+
+  const avatarUrl = savedProfileData.avatar
+    ? avatarEntries.find((e) => e.file === savedProfileData.avatar)?.url || null
+    : null;
+
+  const shuffleAvatars = useCallback(() => {
+    const copy = [...avatarEntries];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    setShuffledAvatars(copy.slice(0, 6));
+  }, [avatarEntries]);
+
+  useEffect(() => {
+    if (currentView === 'Profile') {
+      setSelectedAvatar(savedProfileData.avatar);
+      shuffleAvatars();
+    }
+  }, [currentView]);
+
+  const saveProfile = () => {
+    if (PROFILE_DATA_KEY) {
+      const displayName = profileNameRef.current?.value || '';
+      const bio = profileBioRef.current?.value || '';
+      localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ displayName, bio, avatar: selectedAvatar }));
+    }
+    setCurrentView('Discover');
+  };
+
   const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
   const isEditingRecipe = Boolean(editingRecipeId);
 
   const loadRecipes = useCallback(async () => {
     setIsLoadingFeed(true);
-    setFeedMessage('');
 
     try {
       const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
@@ -371,9 +430,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (errors?.length) {
         const errorMessage = errors.map((error: any) => error.message).join(', ');
         if (errorMessage.toLowerCase().includes('not authorized')) {
-          setFeedMessage(
-            'Recipes are unavailable until the backend auth rules are deployed.'
-          );
           return;
         }
 
@@ -382,7 +438,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (!data.length) {
         setFeedRecipes([]);
-        setFeedMessage('No recipes have been published yet.');
         return;
       }
 
@@ -408,18 +463,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       setFeedRecipes(recipes);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.toLowerCase().includes('not authorized')
-      ) {
-        setFeedMessage(
-          'Recipes are unavailable until the backend auth rules are deployed.'
-        );
-        return;
-      }
-
       console.error('Failed to load recipes:', error);
-      setFeedMessage('Recipes are unavailable right now.');
     } finally {
       setIsLoadingFeed(false);
     }
@@ -862,6 +906,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     if (!draft.name.trim() || !cleanedIngredients.length) {
       setPublishMessage('Add a recipe name and at least one ingredient.');
+      setPublishMessageTone('error');
+      return;
+    }
+
+    if (isPlaceholder(imagePreviewUrl)) {
+      setPublishMessage('Add a photo of the recipe.');
       setPublishMessageTone('error');
       return;
     }
@@ -1422,41 +1472,106 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   );
 
   return (
-    <main className="ak-bg flex h-screen flex-col overflow-hidden pb-10">
-      <div className="ak-page-glow pointer-events-none fixed inset-0" />
-      <header className="ak-header sticky top-0 z-20 border-b backdrop-blur-xl">
-        <div className="mx-auto grid w-full max-w-[1800px] grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center px-4 py-3 lg:px-6">
-          <div className="flex items-center gap-3 justify-self-start">
-            <img
-              src="/logo-no-background.svg"
-              alt="Arcane Kitchen logo"
-              draggable={false}
-              className="pointer-events-none select-none h-[4.5rem] w-[4.5rem] object-contain filter grayscale brightness-[0.18] contrast-150"
-            />
-            <div>
-              <h1 className="text-lg font-semibold tracking-normal">
+    <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
+      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-2.5 lg:px-6">
+          <div className="flex items-center gap-8">
+            <div className="flex items-start gap-3">
+              <img
+                src="/logo-no-background.svg"
+                alt="Arcane Kitchen logo"
+                draggable={false}
+                className="pointer-events-none select-none h-12 w-12 object-contain brightness-[0.3]"
+              />
+              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)]">
                 Arcane Kitchen
-              </h1>
+              </span>
             </div>
+            <nav className="hidden md:flex items-center gap-1">
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  currentView === 'Discover'
+                    ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                    : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                }`}
+              >
+                Discover
+              </button>
+              <button
+                onClick={startCreateRecipe}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                  currentView === 'Build'
+                    ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                    : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                }`}
+              >
+                Build
+              </button>
+            </nav>
           </div>
 
-          <div className="hidden md:block md:justify-self-center" />
-
-          <div className="flex items-center gap-2 justify-self-end">
-            {onSignOut && (
-              <button
-                onClick={onSignOut}
-                className="ak-button-secondary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
-              >
-                Sign out
-              </button>
-            )}
-            {!isAuthenticated && (
+          <div className="flex items-center gap-2">
+            {onSignOut ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu((p) => !p)}
+                  className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
+                >
+                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      creatorName.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <span className="max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)]">
+                    {savedProfileData.displayName}
+                  </span>
+                  <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showUserMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
+                      <button
+                        onClick={() => { setCurrentView('Profile'); setShowUserMenu(false); }}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                        </svg>
+                        Profile
+                      </button>
+                      <div className="my-1 border-t border-[var(--theme-border)]" />
+                      <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]">
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501 1.07 1.605 2.578 2.868 4.355 3.577-1.77.71-3.278 1.972-4.347 3.577a1.067 1.067 0 01-.865.501c-1.153.086-2.294.213-3.423.379-1.584.233-2.707 1.626-2.707 3.228v2.393m15.75-3.37c0-1.6-1.123-2.994-2.707-3.227-1.129-.166-2.27-.293-3.423-.379a1.067 1.067 0 01-.865-.5c-1.07-1.606-2.578-2.868-4.355-3.578 1.77-.71 3.278-1.972 4.347-3.577.195-.291.515-.475.865-.5 1.153-.086 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6m-15.75 0c0-1.6 1.123-2.994 2.707-3.227 1.129-.166 2.27-.293 3.423-.379a1.067 1.067 0 01.865-.5c1.07-1.605 2.578-2.868 4.355-3.577-1.77.709-3.278 1.972-4.347 3.577-.195.291-.515.475-.865.501-1.153.086-2.294.213-3.423.379-1.584.233-2.707 1.626-2.707 3.228v1.5" />
+                        </svg>
+                        Feedback & Support
+                      </button>
+                      <button
+                        onClick={onSignOut}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
               <button
                 onClick={onRequestAuth}
-                className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition"
+                className="rounded-lg bg-[var(--theme-accent)] px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
               >
-                Log in to create
+                Log in
               </button>
             )}
           </div>
@@ -1472,90 +1587,97 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       >
         <section
           id="discover"
-          className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+          className={`min-h-0 overflow-y-auto ${
             currentView === 'Discover' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          <div
-            className={`ak-surface-alt border-b p-4 ${expandedRecipe ? 'hidden' : ''}`}
-          >
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-              Discover recipes
-            </h2>
-            <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
-              <input
-                value={discoverQuery}
-                onChange={(event) => setDiscoverQuery(event.target.value)}
-                placeholder="Search by name, creator, or tag"
-                className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
-              />
-              <button
-                onClick={startCreateRecipe}
-                className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
-              >
-                Create new
-              </button>
-              <p className="ak-muted text-xs sm:text-right">
-                {visibleFeedRecipes.length} of {feedRecipes.length} recipes
-              </p>
-            </div>
-            {isLoadingFeed && (
-              <p className="ak-muted mt-1 text-sm">Loading shared recipes...</p>
-            )}
-          </div>
+          {!expandedRecipeId && (
+            <>
+              <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Search recipes</h2>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="relative flex-1 min-w-[200px]">
+                  <input
+                    value={discoverQuery}
+                    onChange={(event) => setDiscoverQuery(event.target.value)}
+                    placeholder="Search recipes..."
+                    className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                  />
+                  <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <button
+                  onClick={startCreateRecipe}
+                  title="Create a recipe"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent)] text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] active:scale-95"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                </button>
+              </div>
 
-          <div
-            className={`ak-surface border-b px-4 py-3 ${expandedRecipe ? 'hidden' : ''}`}
-          >
-            <div className="flex flex-wrap gap-2">
-              {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
-                (tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setActiveTag(tag)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                      activeTag === tag
-                        ? 'bg-[var(--theme-plum)] text-white'
-                        : 'bg-[var(--theme-surface)] text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-plum-strong)]'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
+                  (tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setActiveTag(tag)}
+                      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                        activeTag === tag
+                          ? 'bg-[var(--theme-accent)] text-white'
+                          : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  )
+                )}
+              </div>
+            </>
+          )}
 
+          {isLoadingFeed && (
+            <p className="text-[var(--theme-text-muted)] mt-4 text-sm">Loading shared recipes...</p>
+          )}
+
+          {/* Recipe grid */}
           <div
-            className={`min-h-0 flex-1 overflow-y-auto ${expandedRecipe ? 'p-0' : 'p-4'}`}
+            className={`mt-6 ${expandedRecipe ? '' : ''}`}
           >
             {isLoadingFeed ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2].map((item) => (
                   <div
                     key={item}
-                    className="ak-surface-alt overflow-hidden rounded-xl border"
+                    className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)]"
                   >
-                    <div className="h-40 animate-pulse bg-[var(--theme-border)]" />
-                    <div className="grid gap-3 p-3">
-                      <div className="h-5 w-2/3 animate-pulse rounded bg-[var(--theme-border)]" />
-                      <div className="h-4 w-1/2 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
-                      <div className="flex gap-2">
-                        <div className="h-6 w-20 animate-pulse rounded-full bg-[var(--theme-bg-soft)]" />
-                        <div className="h-6 w-24 animate-pulse rounded-full bg-[var(--theme-bg-soft)]" />
-                      </div>
+                    <div className="aspect-[4/3] animate-pulse bg-[var(--theme-border)]" />
+                    <div className="grid gap-2.5 p-4">
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : expandedRecipe ? (
-              <article className="ak-surface-alt overflow-hidden rounded-xl border shadow-lg">
+              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
-                  <img
-                    src={expandedRecipe.image}
-                    alt={expandedRecipe.name}
-                    className="h-64 w-full object-cover sm:h-80"
-                  />
+                  {isPlaceholder(expandedRecipe.image) ? (
+                    <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
+                      <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={expandedRecipe.image}
+                      alt={expandedRecipe.name}
+                      className="h-64 w-full object-cover sm:h-80"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={collapseExpandedRecipe}
@@ -1572,7 +1694,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="text-2xl font-semibold tracking-normal">
                         {expandedRecipe.name}
                       </h3>
-                      <p className="ak-muted mt-1 text-sm">
+                      <p className="text-[var(--theme-text-muted)] mt-1 text-sm">
                         by {expandedRecipe.author}
                       </p>
                     </div>
@@ -1586,8 +1708,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         aria-label={`Favorite ${expandedRecipe.name}`}
                         className={`grid h-9 w-9 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
-                            ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
-                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
+                            ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white'
+                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] hover:bg-[var(--theme-bg-soft)]'
                         }`}
                       >
                         {favoriteRecipeIds.has(expandedRecipe.id) ? '♥' : '♡'}
@@ -1602,7 +1724,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     {expandedRecipe.description}
                   </p>
 
-                  <div className="ak-muted flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                  <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <span>{expandedRecipe.time}</span>
                     <span>{expandedRecipe.saves} saves</span>
                   </div>
@@ -1624,11 +1746,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         Ingredients
                       </h4>
                       {loadingExpandedRecipeId === expandedRecipe.id ? (
-                        <p className="ak-muted mt-2 text-sm">
+                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
                           Loading ingredients...
                         </p>
                       ) : expandedRecipeMessage ? (
-                        <p className="ak-muted mt-2 text-sm">
+                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
                           {expandedRecipeMessage}
                         </p>
                       ) : (
@@ -1725,67 +1847,75 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
               </article>
             ) : visibleFeedRecipes.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleFeedRecipes.map((recipe) => (
                   <article
                     key={recipe.id}
-                    className="ak-surface-alt overflow-hidden rounded-xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
+                    onClick={() => void expandRecipe(recipe)}
                   >
-                    <div className="relative">
-                      <img
-                        src={recipe.image}
-                        alt={recipe.name}
-                        className="h-40 w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void expandRecipe(recipe);
-                        }}
-                        aria-label="Expand recipe"
-                        title="Expand recipe"
-                        className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-md bg-black/70 text-white transition hover:bg-black"
-                      >
-                        <Maximize2 className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div className="p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-base font-semibold tracking-normal">
-                            {recipe.name}
-                          </h3>
-                          <p className="ak-muted text-sm">by {recipe.author}</p>
+                    <div className="relative aspect-[4/3] overflow-hidden">
+                      {isPlaceholder(recipe.image) ? (
+                        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
+                          <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                          </svg>
+                          <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void toggleFavoriteRecipe(recipe.id);
-                            }}
-                            disabled={pendingFavoriteRecipeIds.has(recipe.id)}
-                            aria-label={`Favorite ${recipe.name}`}
-                            className={`grid h-8 w-8 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
-                              favoriteRecipeIds.has(recipe.id)
-                                ? 'border-[var(--theme-plum)] bg-[var(--theme-plum)] text-white'
-                                : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-plum)] hover:bg-[var(--theme-bg-soft)]'
-                            }`}
-                          >
-                            {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
-                          </button>
-                          <div className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
-                            {recipe.rating}
-                          </div>
+                      ) : (
+                        <img
+                          src={recipe.image}
+                          alt={recipe.name}
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
+                          {recipe.rating}
                         </div>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void toggleFavoriteRecipe(recipe.id);
+                          }}
+                          disabled={pendingFavoriteRecipeIds.has(recipe.id)}
+                          aria-label={`Favorite ${recipe.name}`}
+                          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
+                            favoriteRecipeIds.has(recipe.id)
+                              ? 'bg-[var(--theme-accent)] text-white'
+                              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
+                          }`}
+                        >
+                          {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
+                        </button>
                       </div>
-                      <div className="ak-muted mt-3 flex items-center justify-between text-xs">
-                        <span>{recipe.time}</span>
-                        <span>{recipe.saves} saves</span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
+                        {recipe.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                        by {recipe.author}
+                      </p>
+                      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
+                        <span className="flex items-center gap-1">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          {recipe.time}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                          </svg>
+                          {recipe.saves} saves
+                        </span>
                       </div>
                       {isAuthenticated && recipe.ownerId === currentUserId && (
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
                           <button
                             type="button"
                             onClick={(event) => {
@@ -1793,11 +1923,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                               void startEditRecipe(recipe.id, recipe.ownerId);
                             }}
                             disabled={loadingEditRecipeId === recipe.id}
-                            className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
                           >
                             {loadingEditRecipeId === recipe.id
                               ? 'Opening...'
-                              : 'Edit recipe'}
+                              : 'Edit'}
                           </button>
                           <button
                             type="button"
@@ -1806,46 +1936,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                               void deleteRecipe(recipe.id, recipe.ownerId);
                             }}
                             disabled={deletingRecipeIds.has(recipe.id)}
-                            className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
-                              deletingRecipeIds.has(recipe.id)
-                                ? 'w-28 px-2.5'
-                                : armedDeleteRecipeIds.has(recipe.id)
-                                  ? 'w-36 px-3'
-                                  : 'w-28 px-3'
+                            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+                              armedDeleteRecipeIds.has(recipe.id)
+                                ? 'bg-red-600 hover:bg-red-700'
+                                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
                             }`}
                           >
                             {deletingRecipeIds.has(recipe.id)
                               ? 'Deleting...'
                               : armedDeleteRecipeIds.has(recipe.id)
                                 ? 'Delete permanently'
-                                : 'Delete recipe'}
+                                : 'Delete'}
                           </button>
                         </div>
                       )}
-                      <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
-                        {recipe.description}
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {recipe.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   </article>
                 ))}
               </div>
             ) : (
-              <div className="ak-surface-alt rounded-xl border border-dashed p-6 text-center">
-                <p className="text-sm font-semibold text-[var(--theme-text)]">
-                  {feedMessage || 'No matching recipes right now.'}
+              <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  No recipes found
                 </p>
-                <p className="ak-muted mt-2 text-sm leading-6">
-                  Try another search term or switch to a different tag.
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                  {isAuthenticated
+                    ? 'Be the first to share a recipe with the community.'
+                    : 'Log in and create the first recipe.'}
                 </p>
               </div>
             )}
@@ -1854,50 +1971,31 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         <section
           id="build"
-          className={`ak-card relative min-h-0 overflow-hidden rounded-xl ${
+          className={`relative min-h-0 overflow-hidden rounded-xl bg-[var(--theme-surface)] ${
             currentView === 'Build'
               ? 'flex flex-col lg:col-start-1 lg:row-start-1'
               : 'hidden'
           }`}
         >
-          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
+          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-5 py-4">
             <div>
-              <p className="ak-accent text-xs font-semibold uppercase">
-                Recipe Studio
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-                {isEditingRecipe ? 'Edit your recipe' : 'Create a recipe post'}
+              <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                {isEditingRecipe ? 'Edit recipe' : 'New recipe'}
               </h2>
               {!isEditingRecipe && (
                 <button
                   type="button"
                   onClick={loadExampleRecipe}
-                  className="ak-muted mt-1 text-xs underline decoration-dotted transition hover:text-[var(--theme-plum-strong)]"
+                  className="mt-0.5 text-xs text-[var(--theme-text-muted)] underline decoration-dotted transition hover:text-[var(--theme-accent-strong)]"
                 >
                   Need inspiration? Load an example
                 </button>
               )}
               {!isAuthenticated && (
-                <p className="ak-muted mt-2 text-sm">
-                  Log in to unlock publishing.
+                <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                  Log in to publish recipes.
                 </p>
               )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setEditingRecipeId(null);
-                  setPublishMessage('');
-                  setPublishMessageTone('error');
-                  setCurrentView('Discover');
-                }}
-                className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
-              >
-                Cancel
-              </button>
-              <div className="ak-button-primary hidden rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm sm:block">
-                Creator: {creatorName}
-              </div>
             </div>
           </div>
 
@@ -1938,7 +2036,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               />
             </label>
 
-              <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
+            <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">Prep time</span>
                 <div>
@@ -1960,49 +2058,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           value ? value.format('HH:mm') : ''
                         )
                       }
-                      slotProps={{
-                        textField: {
-                          size: 'small',
-                          fullWidth: true,
-                          placeholder: 'HH:MM',
-                        },
-                      }}
+                      slotProps={{ textField: { size: 'small', fullWidth: true, placeholder: 'HH:MM' } as any }}
                     />
                   </LocalizationProvider>
                 </div>
-              </label>
-              <label className="grid min-w-0 gap-2">
-                <span className="text-sm font-semibold">Recipe photo</span>
-                <span
-                  className={`ak-input group grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 rounded-lg p-2 transition cursor-pointer ${
-                    selectedImageFile
-                      ? 'border-[var(--theme-pine)] bg-[color-mix(in_srgb,var(--theme-surface)_84%,var(--theme-pine)_16%)]'
-                      : ''
-                  }`}
-                >
-                  <span
-                    className={`rounded-md bg-[var(--theme-pine)] px-3 py-1.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 group-hover:brightness-110 group-active:scale-[0.98] group-focus-within:ring-2 group-focus-within:ring-[var(--theme-focus)] ${
-                      selectedImageFile
-                        ? 'bg-[var(--theme-pine-strong)] ring-2 ring-[var(--theme-focus)]'
-                        : ''
-                    }`}
-                  >
-                    {selectedImageFile ? 'Photo selected' : 'Choose photo'}
-                  </span>
-                  <span className="ak-muted min-w-0 truncate text-sm">
-                    {selectedImageFile
-                      ? selectedImageFile.name
-                      : 'No photo selected'}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      updateImageFile(event.target.files?.[0])
-                    }
-                    className="sr-only"
-                  />
-                </span>
               </label>
             </div>
 
@@ -2034,7 +2093,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     key={tag}
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-plum)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
                     aria-label={`Remove tag ${tag}`}
                     title={`Remove ${tag}`}
                   >
@@ -2132,7 +2191,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     key={`instruction-${index}`}
                     className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2"
                   >
-                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-surface)] text-sm font-semibold text-[var(--theme-plum-strong)] ring-1 ring-[var(--theme-border)]">
+                    <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--theme-surface)] text-sm font-semibold text-[var(--theme-accent-strong)] ring-1 ring-[var(--theme-border)]">
                       {index + 1}
                     </span>
                     <textarea
@@ -2196,24 +2255,121 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           {!isAuthenticated && (
             <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface)_96%,transparent)] p-5 text-center shadow-2xl backdrop-blur">
-              <p className="ak-accent text-xs font-semibold uppercase">
+              <p className="text-[var(--theme-accent)] text-xs font-semibold uppercase">
                 Account Required
               </p>
               <h3 className="mt-1 text-xl font-semibold tracking-normal">
                 Start publishing your own recipes
               </h3>
-              <p className="ak-muted mx-auto mt-2 max-w-sm text-sm leading-6">
+              <p className="text-[var(--theme-text-muted)] mx-auto mt-2 max-w-sm text-sm leading-6">
                 Log in to add ingredients, write steps, and post recipes to the
                 shared feed.
               </p>
               <button
                 onClick={onRequestAuth}
-                className="mt-4 rounded-lg bg-[var(--theme-pine)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-pine-strong)]"
+                className="mt-4 rounded-lg bg-[var(--theme-sage)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-sage-strong)]"
               >
                 Log in to create
               </button>
             </div>
           )}
+        </section>
+
+        <section
+          id="profile"
+          key={currentView === 'Profile' ? 'profile-visible' : 'profile-hidden'}
+          className={`min-h-0 overflow-y-auto ${
+            currentView === 'Profile' ? 'flex flex-col' : 'hidden'
+          }`}
+        >
+          <div className="mx-auto w-full max-w-2xl">
+            <div className="flex items-center gap-4">
+              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xl font-bold text-white">
+                {selectedAvatar ? (
+                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  creatorName.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div>
+                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
+                <p className="text-sm text-[var(--theme-text-muted)]">
+                  {userAttributes?.email || currentUser?.username}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <div className="mb-3 flex items-center gap-2">
+                <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
+                <button
+                  onClick={shuffleAvatars}
+                  className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
+                  title="Shuffle avatars"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+              <div className="grid grid-cols-6 gap-2">
+                {shuffledAvatars.map(({ file, url }) => (
+                  <button
+                    key={file}
+                    onClick={() => setSelectedAvatar(file)}
+                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
+                      selectedAvatar === file
+                        ? 'border-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)]'
+                        : 'border-transparent hover:border-[var(--theme-border)]'
+                    }`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-5">
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
+                <input
+                  ref={profileNameRef}
+                  defaultValue={savedProfileData.displayName}
+                  placeholder="Your display name"
+                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none transition"
+                />
+              </label>
+
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
+                <textarea
+                  ref={profileBioRef}
+                  defaultValue={savedProfileData.bio}
+                  placeholder="A short bio about yourself"
+                  rows={3}
+                  className="ak-input h-20 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
+                />
+              </label>
+            </div>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={saveProfile}
+                className="rounded-lg bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedAvatar(savedProfileData.avatar);
+                  setCurrentView('Discover');
+                }}
+                className="rounded-lg border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </section>
 
         <aside
@@ -2224,72 +2380,118 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <section
-            className={`ak-card min-h-0 overflow-hidden rounded-xl ${
+            className={`relative min-h-0 overflow-hidden rounded-xl bg-[var(--theme-surface)] ${
               currentView === 'Build' ? 'flex flex-col' : 'hidden'
             }`}
           >
-            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4">
+            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="ak-accent text-xs font-semibold uppercase">
-                    Post Preview
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold tracking-normal">
+                  <h2 className="font-heading text-lg font-semibold text-[var(--theme-text)]">
+                    Preview
+                  </h2>
+                  <p className="mt-0.5 text-xs text-[var(--theme-text-muted)]">
                     {isEditingRecipe
                       ? 'Review your updates'
                       : 'Ready for the feed'}
-                  </h2>
+                  </p>
                 </div>
                 {isAuthenticated && (
-                  <button
-                    onClick={publishRecipe}
-                    disabled={isPublishing}
-                    className="ak-button-primary rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition disabled:opacity-60"
-                  >
-                    {isPublishing
-                      ? isEditingRecipe
-                        ? 'Saving...'
-                        : 'Publishing...'
-                      : isEditingRecipe
-                        ? 'Save changes'
-                        : 'Publish'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingRecipeId(null);
+                        setPublishMessage('');
+                        setPublishMessageTone('error');
+                        setCurrentView('Discover');
+                      }}
+                      className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={publishRecipe}
+                      disabled={isPublishing}
+                      className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-60"
+                    >
+                      {isPublishing
+                        ? isEditingRecipe
+                          ? 'Saving...'
+                          : 'Publishing...'
+                        : isEditingRecipe
+                          ? 'Save changes'
+                          : 'Publish'}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <article className="ak-surface-alt overflow-hidden rounded-lg border">
-                <img
-                  src={imagePreviewUrl}
-                  alt={draft.name || 'Recipe preview'}
-                  className="h-48 w-full object-cover"
-                />
+              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)]">
+                {isPlaceholder(imagePreviewUrl) ? (
+                  <div
+                    className="group flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-alt)] transition-all hover:border-[var(--theme-accent)] hover:bg-[var(--theme-accent)]/5"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      const input = document.querySelector<HTMLInputElement>('#recipe-photo-input-sidebar');
+                      input?.click();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        const input = document.querySelector<HTMLInputElement>('#recipe-photo-input-sidebar');
+                        input?.click();
+                      }
+                    }}
+                  >
+                    <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)] transition-all group-hover:scale-110 group-hover:text-[var(--theme-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-[var(--theme-text-muted)] transition-all group-hover:text-[var(--theme-accent)]">Add Photo</span>
+                    <input
+                      id="recipe-photo-input-sidebar"
+                      type="file"
+                      accept="image/*"
+                      onChange={(event) => updateImageFile(event.target.files?.[0])}
+                      className="sr-only"
+                    />
+                  </div>
+                ) : (
+                  <img
+                    src={imagePreviewUrl}
+                    alt={draft.name || 'Recipe preview'}
+                    className="aspect-[4/3] w-full object-cover"
+                  />
+                )}
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-xl font-semibold tracking-normal">
+                      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
                         {draft.name || 'Untitled recipe'}
                       </h3>
-                      <p className="ak-muted mt-1 text-sm">by {creatorName}</p>
+                      <p className="mt-1 text-sm text-[var(--theme-text-muted)]">by {creatorName}</p>
                     </div>
-                    <span className="rounded-md bg-[var(--theme-surface)] px-2 py-1 text-sm font-semibold shadow-sm">
+                    <span className="shrink-0 rounded-md bg-[var(--theme-surface-alt)] px-2 py-1 text-xs font-semibold text-[var(--theme-text)]">
                       {rating}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[var(--theme-text)]">
-                    {draft.description}
-                  </p>
+                  {draft.description && (
+                    <p className="mt-3 text-sm leading-relaxed text-[var(--theme-text)]">
+                      {draft.description}
+                    </p>
+                  )}
                   {(draft.prepTime || draft.tags.length > 0) && (
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-4 flex flex-wrap gap-1.5">
                       {draft.prepTime && (
-                        <span className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm">
+                        <span className="rounded-full bg-[var(--theme-accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--theme-accent-strong)]">
                           {draft.prepTime}
                         </span>
                       )}
                       {draft.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="ak-button-primary rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                          className="rounded-full bg-[var(--theme-sage)]/10 px-2.5 py-1 text-xs font-medium text-[var(--theme-sage-strong)]"
                         >
                           {tag}
                         </span>
@@ -2298,7 +2500,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   )}
                   {draft.ingredients.some((ing) => ing.name) && (
                     <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                      <h4 className="text-sm font-semibold">Ingredient list</h4>
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">Ingredients</h4>
                       <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
                         {draft.ingredients
                           .filter((ingredient) => ingredient.name)
@@ -2315,7 +2517,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     (inst) => inst.trim()
                   ) && (
                     <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                      <h4 className="text-sm font-semibold">Instructions</h4>
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">Instructions</h4>
                       <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-[var(--theme-text)]">
                         {draft.instructions
                           .map((instruction) => instruction.trim())
@@ -2330,7 +2532,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   )}
                   {draft.utensils.some((ut) => ut.trim()) && (
                     <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
-                      <h4 className="text-sm font-semibold">Utensils Needed</h4>
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">Utensils</h4>
                       <ul className="mt-2 space-y-1 text-sm text-[var(--theme-text)]">
                         {draft.utensils
                           .map((utensil) => utensil.trim())
@@ -2349,13 +2551,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </section>
         </aside>
       </div>
-      <footer className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface-alt)_92%,transparent)] px-4 py-2 text-center text-xs text-[var(--theme-text-muted)] backdrop-blur-sm">
+      <footer className="sticky inset-x-0 bottom-0 z-40 border-t border-[var(--theme-border)] bg-[var(--theme-surface)]/92 px-4 py-2.5 text-center text-xs text-[var(--theme-text-muted)] backdrop-blur-sm">
         Crafted by{' '}
         <a
           href="https://elevatorrobot.com"
           target="_blank"
           rel="noreferrer"
-          className="font-semibold text-[var(--theme-plum-strong)] hover:text-[var(--theme-plum)]"
+          className="font-medium text-[var(--theme-accent-strong)] hover:text-[var(--theme-accent)]"
         >
           Elevator Robot
         </a>
