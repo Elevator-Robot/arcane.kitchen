@@ -11,6 +11,7 @@ import {
   signUp,
 } from 'aws-amplify/auth';
 import RecipeBuilder from './components/RecipeBuilder';
+import SignInForm from './components/SignInForm';
 import {
   isFakeBackend,
   fakeGetCurrentUser,
@@ -36,6 +37,11 @@ const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
+    const agreeToTerms = input.__agreeToTerms === true;
+
+    if (!agreeToTerms) {
+      throw new Error('You must accept the user agreement to continue');
+    }
 
     try {
       return await signIn({ username, password });
@@ -106,6 +112,14 @@ const authServices = {
     return result as any;
   },
 };
+
+function CustomSignIn() {
+  return (
+    <div>
+      <SignInForm />
+    </div>
+  );
+}
 
 function ConfirmationCodeHeader() {
   const [code, setCode] = useState(Array(6).fill(''));
@@ -356,14 +370,7 @@ function App() {
                   <Authenticator
                     hideSignUp
                     components={{
-                      SignIn: {
-                        Header() {
-                          return null;
-                        },
-                        Footer() {
-                          return null;
-                        },
-                      },
+                      SignIn: CustomSignIn,
                       ConfirmSignUp: {
                         Header: ConfirmationCodeHeader,
                       },
