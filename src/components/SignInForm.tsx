@@ -84,11 +84,6 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart, onTermsOp
       return;
     }
 
-    if (!agreeToTerms) {
-      setError('You must accept the user agreement to continue');
-      return;
-    }
-
     setIsLoading(true);
     onSignInStart?.();
 
@@ -179,7 +174,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart, onTermsOp
 
         <Button
           type="submit"
-          disabled={!agreeToTerms || isLoading}
+          disabled={isLoading}
           isLoading={isLoading}
           className="w-full mt-6"
         >
