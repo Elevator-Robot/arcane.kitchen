@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Amplify } from 'aws-amplify';
 import { Authenticator, Text } from '@aws-amplify/ui-react';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
@@ -11,6 +12,7 @@ import {
   signUp,
 } from 'aws-amplify/auth';
 import RecipeBuilder from './components/RecipeBuilder';
+import SignInForm from './components/SignInForm';
 import {
   isFakeBackend,
   fakeGetCurrentUser,
@@ -32,10 +34,23 @@ const authFormFields = {
   },
 };
 
+const hasAmplifyAuthConfig = () => {
+  try {
+    return Boolean((Amplify.getConfig() as { Auth?: unknown })?.Auth);
+  } catch {
+    return false;
+  }
+};
+
 const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
+    const agreeToTerms = input.__agreeToTerms === true;
+
+    if (!isFakeBackend() && !hasAmplifyAuthConfig()) {
+      throw new Error('Authentication is not configured yet. Please try again later.');
+    }
 
     try {
       return await signIn({ username, password });
@@ -46,6 +61,10 @@ const authServices = {
 
       if (!shouldCreateAccount) {
         throw error;
+      }
+
+      if (!agreeToTerms) {
+        throw new Error('You must accept the user agreement to continue');
       }
 
       try {
@@ -106,6 +125,14 @@ const authServices = {
     return result as any;
   },
 };
+
+function CustomSignIn() {
+  return (
+    <div>
+      <SignInForm />
+    </div>
+  );
+}
 
 function ConfirmationCodeHeader() {
   const [code, setCode] = useState(Array(6).fill(''));
@@ -225,8 +252,50 @@ function App() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [userAttributes, setUserAttributes] = useState<any>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [showAgreementPrompt, setShowAgreementPrompt] = useState(false);
+  const [agreementPendingUserKey, setAgreementPendingUserKey] = useState<string | null>(null);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+
+  const getAgreementStorageKey = useCallback((userIdentifier?: string | null) => {
+    if (!userIdentifier) return null;
+    return `arcaneKitchen.acceptedAgreement.${userIdentifier}`;
+  }, []);
+
+  const hasAcceptedAgreement = useCallback((userIdentifier?: string | null) => {
+    const storageKey = getAgreementStorageKey(userIdentifier);
+    if (!storageKey || typeof window === 'undefined') return false;
+
+    try {
+      return window.localStorage.getItem(storageKey) === 'true';
+    } catch {
+      return false;
+    }
+  }, [getAgreementStorageKey]);
+
+  const markAgreementAccepted = useCallback((userIdentifier?: string | null) => {
+    const storageKey = getAgreementStorageKey(userIdentifier);
+    if (!storageKey || typeof window === 'undefined') return;
+
+    try {
+      window.localStorage.setItem(storageKey, 'true');
+    } catch {
+      // ignore localStorage failures
+    }
+  }, [getAgreementStorageKey]);
 
   const refreshAuthState = useCallback(async () => {
+    setAuthNotice(null);
+
+    if (!isFakeBackend() && !hasAmplifyAuthConfig()) {
+      setAuthNotice('Authentication is not configured yet. Please try again later.');
+      setCurrentUser(null);
+      setUserAttributes(null);
+      setIsAuthenticated(false);
+      setShowAgreementPrompt(false);
+      setAgreementPendingUserKey(null);
+      return;
+    }
+
     try {
       const user = isFakeBackend()
         ? await fakeGetCurrentUser()
@@ -235,15 +304,32 @@ function App() {
         ? await fakeFetchUserAttributes()
         : await fetchUserAttributes();
 
+      const userIdentifier =
+        user?.userId ||
+        attributes?.sub ||
+        user?.username ||
+        attributes?.email ||
+        null;
+
       setCurrentUser(user);
       setUserAttributes(attributes);
       setIsAuthenticated(true);
+
+      if (!hasAcceptedAgreement(userIdentifier)) {
+        setAgreementPendingUserKey(userIdentifier);
+        setShowAgreementPrompt(Boolean(userIdentifier));
+      } else {
+        setAgreementPendingUserKey(null);
+        setShowAgreementPrompt(false);
+      }
     } catch {
       setCurrentUser(null);
       setUserAttributes(null);
       setIsAuthenticated(false);
+      setShowAgreementPrompt(false);
+      setAgreementPendingUserKey(null);
     }
-  }, []);
+  }, [hasAcceptedAgreement]);
 
   useEffect(() => {
     refreshAuthState();
@@ -270,6 +356,16 @@ function App() {
     await refreshAuthState();
     setShowAuth(false);
   }, [refreshAuthState]);
+
+  const handleAcceptAgreement = useCallback(() => {
+    markAgreementAccepted(agreementPendingUserKey);
+    setShowAgreementPrompt(false);
+    setAgreementPendingUserKey(null);
+  }, [agreementPendingUserKey, markAgreementAccepted]);
+
+  const handleDismissAgreement = useCallback(() => {
+    setShowAgreementPrompt(false);
+  }, []);
 
   const submitAuthFormOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
     if (
@@ -299,6 +395,41 @@ function App() {
         onRequestAuth={() => setShowAuth(true)}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
       />
+
+      {showAgreementPrompt && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md">
+          <div className="w-full max-w-lg rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-[0_30px_90px_rgba(34,18,36,0.35)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-accent)]">
+              User agreement
+            </p>
+            <h3 className="mt-3 text-2xl font-semibold text-[var(--theme-text)]">
+              Please confirm the agreement
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-[var(--theme-text-muted)]">
+              To keep using Arcane Kitchen safely, please confirm that you own or have permission to share the recipes you upload.
+            </p>
+            <div className="mt-5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4 text-sm text-[var(--theme-text-muted)]">
+              You can accept this now and continue using the app. If you prefer, you can close this prompt and return later.
+            </div>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={handleDismissAgreement}
+                className="rounded-xl border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+              >
+                Maybe later
+              </button>
+              <button
+                type="button"
+                onClick={handleAcceptAgreement}
+                className="rounded-xl bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                Accept and continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showAuth && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md sm:py-10">
@@ -353,17 +484,15 @@ function App() {
                 </button>
 
                 <div className="auth-panel" onKeyDown={submitAuthFormOnEnter}>
+                  {authNotice && (
+                    <div className="mb-4 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+                      {authNotice}
+                    </div>
+                  )}
                   <Authenticator
                     hideSignUp
                     components={{
-                      SignIn: {
-                        Header() {
-                          return null;
-                        },
-                        Footer() {
-                          return null;
-                        },
-                      },
+                      SignIn: CustomSignIn,
                       ConfirmSignUp: {
                         Header: ConfirmationCodeHeader,
                       },

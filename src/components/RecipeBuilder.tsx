@@ -82,6 +82,7 @@ interface RecipeIngredientDraft {
 interface RecipeDraft {
   name: string;
   description: string;
+  notes?: string;
   prepTime: string;
   tags: string[];
   imageUrl: string;
@@ -96,6 +97,7 @@ interface FeedRecipe {
   name: string;
   author: string;
   description: string;
+  notes?: string;
   image: string;
   time: string;
   rating: string;
@@ -103,6 +105,7 @@ interface FeedRecipe {
   tags: string[];
   instructions: string[];
   utensils?: string[];
+  createdAt?: string;
 }
 
 interface RecipeQuantity {
@@ -114,9 +117,16 @@ const IMAGE_PLACEHOLDER = '__no_image__';
 const neutralImagePlaceholder = IMAGE_PLACEHOLDER;
 const isPlaceholder = (src: string) => src === IMAGE_PLACEHOLDER || src === neutralImagePlaceholder;
 
+const isRecipeNew = (recipe: FeedRecipe) => {
+  if (!recipe.createdAt) return false;
+  const createdAt = dayjs(recipe.createdAt);
+  return createdAt.isValid() && dayjs().diff(createdAt, 'day') < 30;
+};
+
 const EMPTY_DRAFT: RecipeDraft = {
   name: '',
   description: '',
+  notes: '',
   prepTime: '',
   tags: [],
   imageUrl: '',
@@ -292,6 +302,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [discoverQuery, setDiscoverQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentView, setCurrentView] = useState<RecipeBuilderView>(
     getInitialRecipeBuilderView
   );
@@ -449,6 +460,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ownerId: recipe.ownerId || '',
             name: recipe.name,
             author: recipe.createdBy || 'Arcane cook',
+            createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
             description: recipe.description || 'No description yet.',
             image: await getRecipeImageSource(recipe.imageUrl),
             time: recipe.prepTime || 'Prep time open',
@@ -685,7 +697,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const visibleFeedRecipes = useMemo(() => {
     const query = discoverQuery.trim().toLowerCase();
 
-    return feedRecipes.filter((recipe) => {
+    const filtered = feedRecipes.filter((recipe) => {
       const matchesTag =
         activeTag === 'All'
           ? true
@@ -708,7 +720,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       return matchesTag && haystack.includes(query);
     });
-  }, [activeTag, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes]);
+
+    return [...filtered].sort((left, right) => {
+      const leftTime = left.createdAt ? dayjs(left.createdAt).valueOf() : 0;
+      const rightTime = right.createdAt ? dayjs(right.createdAt).valueOf() : 0;
+      if (sortOrder === 'desc') {
+        return rightTime - leftTime;
+      }
+      return leftTime - rightTime;
+    });
+  }, [activeTag, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes, sortOrder]);
 
   const availableFilterTags = useMemo(() => {
     const uniqueTags = new Set<string>();
@@ -854,6 +875,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setDraft({
         name: recipeData.name || '',
         description: recipeData.description || '',
+        notes: recipeData.notes || '',
         prepTime: recipeData.prepTime || '',
         tags: (recipeData.tags?.filter(Boolean) as string[]) ?? [],
         imageUrl: recipeData.imageUrl || '',
@@ -1007,6 +1029,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             id: editingRecipeId,
             name: draft.name.trim(),
             description: draft.description.trim(),
+            notes: draft.notes?.trim() || undefined,
             createdBy: creatorName,
             instructions: draft.instructions
               .map((instruction) => instruction.trim())
@@ -1070,7 +1093,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             name: draft.name.trim(),
             ownerId: currentUserId,
             description: draft.description.trim(),
+            notes: draft.notes?.trim() || undefined,
             createdBy: creatorName,
+            createdAt: new Date().toISOString(),
             instructions: draft.instructions
               .map((instruction) => instruction.trim())
               .filter(Boolean),
@@ -1484,7 +1509,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 draggable={false}
                 className="pointer-events-none select-none h-12 w-12 object-contain brightness-[0.3]"
               />
-              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)]">
+              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)] select-none">
                 Arcane Kitchen
               </span>
             </div>
@@ -1605,6 +1630,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
+                </div>
+                <div className="relative min-w-[180px]">
+                  <label className="sr-only" htmlFor="discover-sort-order">
+                    Sort recipes
+                  </label>
+                  <select
+                    id="discover-sort-order"
+                    value={sortOrder}
+                    onChange={(event) => setSortOrder(event.target.value as 'asc' | 'desc')}
+                    className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                  >
+                    <option value="desc">Newest first</option>
+                    <option value="asc">Oldest first</option>
+                  </select>
                 </div>
                 <button
                   onClick={startCreateRecipe}
@@ -1799,6 +1838,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         )}
                       </ul>
                     </section>
+
+                    {expandedRecipe.notes && expandedRecipe.notes.trim() && (
+                      <section>
+                        <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                          Notes
+                        </h4>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--theme-text)]">
+                          {expandedRecipe.notes}
+                        </p>
+                      </section>
+                    )}
                   </div>
 
                   {isAuthenticated &&
@@ -1897,9 +1947,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
                         {recipe.name}
                       </h3>
-                      <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
-                        by {recipe.author}
-                      </p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
+                        <span>by {recipe.author}</span>
+                        {isRecipeNew(recipe) && (
+                          <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                            New
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
                         <span className="flex items-center gap-1">
                           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2032,6 +2087,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   updateDraft('description', event.target.value)
                 }
                 placeholder="A short summary of your dish"
+                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold">Notes</span>
+              <textarea
+                value={draft.notes || ''}
+                onChange={(event) =>
+                  updateDraft('notes', event.target.value)
+                }
+                placeholder="Add notes or tips for your recipe"
                 className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
               />
             </label>

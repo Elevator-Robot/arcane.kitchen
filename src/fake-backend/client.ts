@@ -119,6 +119,9 @@ function modelApi<T extends Record<string, unknown>>(table: keyof StoredData) {
       crypto.randomUUID?.() ||
       `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     const record = { ...input, id } as unknown as Record<string, unknown>;
+    if (table === 'recipes' && record.createdAt == null) {
+      record.createdAt = new Date().toISOString();
+    }
     (db[table] as Record<string, Record<string, unknown>>)[id] = record;
     saveDb(db);
     return { data: record as T };
