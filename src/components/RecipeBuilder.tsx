@@ -1509,7 +1509,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 draggable={false}
                 className="pointer-events-none select-none h-12 w-12 object-contain brightness-[0.3]"
               />
-              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)]">
+              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)] select-none">
                 Arcane Kitchen
               </span>
             </div>

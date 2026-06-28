@@ -8,7 +8,7 @@ interface SignInFormProps {
   onTermsOpen?: () => void;
 }
 
-const AGREEMENT_TEXT = `I certify that I own or have permission to share all recipes I upload to Arcane Kitchen. I will not upload recipes that belong to others without their explicit consent.`;
+const AGREEMENT_TEXT = `I agree to the User Agreement and confirm that I will only upload recipes I have the right to share.`;
 
 function TermsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   if (!isOpen) return null;
@@ -30,24 +30,48 @@ function TermsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 
         <div className="space-y-4 text-sm text-[var(--theme-text-muted)] max-h-[400px] overflow-y-auto">
           <section>
-            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Recipe Ownership</h3>
-            <p>{AGREEMENT_TEXT}</p>
-          </section>
-
-          <section>
-            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Content Standards</h3>
+            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Your Content</h3>
             <p>
-              By uploading recipes to Arcane Kitchen, you agree to provide recipes that are original or properly
-              attributed. You are responsible for ensuring that all recipes comply with applicable laws and do not
-              infringe upon the intellectual property rights of others.
+              You retain ownership of any recipes, text, photos, and other content you submit. By uploading
+              content to Arcane Kitchen, you grant us a non-exclusive, royalty-free license to display, store,
+              and distribute it on the platform.
             </p>
           </section>
 
           <section>
-            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Consequences of Violation</h3>
+            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Copyright & Originality</h3>
             <p>
-              Uploading recipes that you do not own or have permission to share may result in content removal, account
-              suspension, or other action as determined by Arcane Kitchen.
+              You represent and warrant that all content you upload is your original work, or that you have
+              obtained all necessary rights and permissions to share it. You may not upload recipes, photos, or
+              text that infringe upon the copyright, trademark, or other intellectual property rights of any
+              person or entity. This includes recipes copied from cookbooks, websites, or other sources without
+              permission.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Prohibited Conduct</h3>
+            <p>
+              You agree not to submit content that is unlawful, misleading, plagiarized, or otherwise
+              violates the rights of others. Arcane Kitchen reserves the right to review, modify, or remove
+              any content at its sole discretion.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Enforcement</h3>
+            <p>
+              Violation of these terms may result in content removal, account suspension, or termination
+              of access to the platform, with or without notice.
+            </p>
+          </section>
+
+          <section>
+            <h3 className="font-semibold text-[var(--theme-text)] mb-2">Disclaimer</h3>
+            <p>
+              Arcane Kitchen is provided "as is" without warranties of any kind. We are not responsible for
+              the accuracy, completeness, or safety of user-submitted recipes. Use the platform at your
+              own risk.
             </p>
           </section>
         </div>
