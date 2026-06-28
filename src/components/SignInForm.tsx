@@ -88,9 +88,8 @@ function TermsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void 
 }
 
 export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart, onTermsOpen }) => {
-  const { submitForm, validationErrors } = useAuthenticator((context) => [
+  const { submitForm } = useAuthenticator((context) => [
     context.submitForm,
-    context.validationErrors,
   ]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

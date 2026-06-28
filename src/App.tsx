@@ -492,7 +492,7 @@ function App() {
                   <Authenticator
                     hideSignUp
                     components={{
-                      SignIn: CustomSignIn,
+                      SignIn: CustomSignIn as any,
                       ConfirmSignUp: {
                         Header: ConfirmationCodeHeader,
                       },
