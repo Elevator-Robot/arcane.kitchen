@@ -164,6 +164,35 @@ const normalizeTag = (value: string) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 };
 
+const TAG_CATEGORIES: Record<string, string[]> = {
+  Diet: [
+    'Vegetarian', 'Vegan', 'Gluten-Free', 'Dairy-Free', 'Keto',
+    'Paleo', 'Low-Carb', 'Nut-Free', 'Whole30', 'Sugar-Free',
+  ],
+  'Meal Type': [
+    'Breakfast', 'Lunch', 'Dinner', 'Dessert', 'Snack',
+    'Appetizer', 'Brunch', 'Side',
+  ],
+  Cuisine: [
+    'Italian', 'Mexican', 'Thai', 'Japanese', 'Indian',
+    'Mediterranean', 'Chinese', 'French', 'American', 'Korean',
+    'Middle Eastern', 'Vietnamese',
+  ],
+  Season: ['Spring', 'Summer', 'Fall', 'Winter'],
+  Difficulty: ['Easy', 'Medium', 'Hard'],
+};
+
+const officialTagSet = new Set(
+  Object.values(TAG_CATEGORIES).flat()
+);
+
+const tagCategoryMap = new Map<string, string>();
+for (const [category, tags] of Object.entries(TAG_CATEGORIES)) {
+  for (const tag of tags) {
+    tagCategoryMap.set(tag.toLowerCase(), category);
+  }
+}
+
 const buildRecipeFingerprint = (draft: RecipeDraft) => {
   const ingredientParts = draft.ingredients
     .map((ingredient) =>
@@ -307,7 +336,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
-  const [showAllTags, setShowAllTags] = useState(false);
+  const [showAllTags, setShowAllTags] = useState('');
   const [discoverQuery, setDiscoverQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentView, setCurrentView] = useState<RecipeBuilderView>(
@@ -759,6 +788,27 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return Array.from(tagMap.values())
       .sort((a, b) => b.count - a.count);
   }, [feedRecipes]);
+
+  const officialFilterTags = useMemo(() => {
+    const result: { category: string; tags: { label: string; count: number }[] }[] = [];
+    const tagByLabel = new Map(availableFilterTags.map((t) => [t.label.toLowerCase(), t]));
+
+    for (const [category, labels] of Object.entries(TAG_CATEGORIES)) {
+      const found: { label: string; count: number }[] = [];
+      for (const label of labels) {
+        const match = tagByLabel.get(label.toLowerCase());
+        if (match) found.push(match);
+      }
+      if (found.length > 0) {
+        result.push({ category, tags: found });
+      }
+    }
+    return result;
+  }, [availableFilterTags]);
+
+  const communityFilterTags = useMemo(() => {
+    return availableFilterTags.filter((t) => !officialTagSet.has(t.label));
+  }, [availableFilterTags]);
 
   const allExistingTags = useMemo(() => {
     const tags = new Set<string>();
@@ -1691,97 +1741,138 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </button>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(() => {
-                  const MAX_VISIBLE_TAGS = 8;
-                  const staticFilters = ['All', 'Favorites', 'My recipes'];
-                  const allTagFilters = availableFilterTags.map((t) => t.label);
-                  const visible =
-                    allTagFilters.length <= MAX_VISIBLE_TAGS
-                      ? allTagFilters
-                      : allTagFilters.slice(0, MAX_VISIBLE_TAGS);
-                  const hidden =
-                    allTagFilters.length > MAX_VISIBLE_TAGS
-                      ? allTagFilters.slice(MAX_VISIBLE_TAGS)
-                      : [];
-                  const allItems = [...staticFilters, ...visible];
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {['All', 'Favorites', 'My recipes'].map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => setActiveTag(tag)}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                        activeTag === tag
+                          ? 'bg-[var(--theme-accent)] text-white'
+                          : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+
+                {officialFilterTags.map(({ category, tags }) => {
+                  const MAX_PER_CATEGORY = 5;
+                  const visible = tags.slice(0, MAX_PER_CATEGORY);
+                  const hidden = tags.slice(MAX_PER_CATEGORY);
 
                   return (
-                    <>
-                      {allItems.map((tag) => {
-                        const tagInfo = availableFilterTags.find(
-                          (t) => t.label === tag
-                        );
-                        return (
+                    <div key={category}>
+                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-text-muted)]">
+                        {category}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {visible.map(({ label, count }) => (
                           <button
-                            key={tag}
-                            onClick={() => setActiveTag(tag)}
-                            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                              activeTag === tag
-                                ? 'bg-[var(--theme-accent)] text-white'
+                            key={label}
+                            onClick={() => setActiveTag(label)}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                              activeTag === label
+                                ? 'bg-[var(--theme-accent)] text-white shadow-sm'
                                 : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
                             }`}
                           >
-                            {tag}
-                            {tagInfo && (
-                              <span
-                                className={`inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${
-                                  activeTag === tag
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-[var(--theme-border)] text-[var(--theme-text-muted)]'
-                                }`}
-                              >
-                                {tagInfo.count}
-                              </span>
-                            )}
+                            {label}
+                            <span
+                              className={`inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${
+                                activeTag === label
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-[var(--theme-border)] text-[var(--theme-text-muted)]'
+                              }`}
+                            >
+                              {count}
+                            </span>
                           </button>
-                        );
-                      })}
-                      {hidden.length > 0 && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowAllTags(!showAllTags)}
-                            className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                              showAllTags || hidden.includes(activeTag)
-                                ? 'bg-[var(--theme-accent)] text-white'
-                                : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                            }`}
-                          >
-                            {showAllTags ? 'Less' : `+${hidden.length} more`}
-                          </button>
-                          {showAllTags && (
-                            <div className="absolute left-0 top-full z-30 mt-2 flex flex-wrap gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 shadow-cozy-lg">
-                              {hidden.map((tag) => {
-                                const tagInfo = availableFilterTags.find(
-                                  (t) => t.label === tag
-                                );
-                                return (
+                        ))}
+                        {hidden.length > 0 && (
+                          <div className="relative">
+                            <button
+                              onClick={() =>
+                                setShowAllTags(showAllTags === category ? '' : category)
+                              }
+                              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition ${
+                                showAllTags === category
+                                  ? 'bg-[var(--theme-accent)] text-white'
+                                  : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                              }`}
+                            >
+                              {showAllTags === category ? 'Less' : `+${hidden.length}`}
+                            </button>
+                            {showAllTags === category && (
+                              <div className="absolute left-0 top-full z-30 mt-2 flex flex-wrap gap-1.5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 shadow-cozy-lg">
+                                {hidden.map(({ label, count }) => (
                                   <button
-                                    key={tag}
+                                    key={label}
                                     onClick={() => {
-                                      setActiveTag(tag);
-                                      setShowAllTags(false);
+                                      setActiveTag(label);
+                                      setShowAllTags('');
                                     }}
                                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
-                                      activeTag === tag
+                                      activeTag === label
                                         ? 'bg-[var(--theme-accent)] text-white'
                                         : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface)] hover:text-[var(--theme-text)]'
                                     }`}
                                   >
-                                    {tag}
+                                    {label}
                                     <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
-                                      {tagInfo?.count ?? 0}
+                                      {count}
                                     </span>
                                   </button>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
-                })()}
+                })}
+
+                {communityFilterTags.length > 0 && (
+                  <div>
+                    <button
+                      onClick={() =>
+                        setShowAllTags(showAllTags === '__community' ? '' : '__community')
+                      }
+                      className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-text-muted)] hover:text-[var(--theme-text)] transition"
+                    >
+                      Community ({communityFilterTags.length})
+                      <svg
+                        className={`h-3 w-3 transition ${showAllTags === '__community' ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {showAllTags === '__community' && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {communityFilterTags.map(({ label, count }) => (
+                          <button
+                            key={label}
+                            onClick={() => setActiveTag(label)}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                              activeTag === label
+                                ? 'bg-[var(--theme-accent)] text-white shadow-sm'
+                                : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                            }`}
+                          >
+                            {label}
+                            <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
+                              {count}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -2259,21 +2350,29 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     disabled={draft.tags.length >= 10}
                   />
                   {tagSuggestions.length > 0 && (
-                    <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-cozy-lg">
-                      {tagSuggestions.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            updateDraft('tags', [...draft.tags, tag]);
-                            setNewTagValue('');
-                          }}
-                          className="w-full px-3 py-1.5 text-left text-sm text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] transition"
-                        >
-                          {tag}
-                        </button>
-                      ))}
+                    <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-cozy-lg">
+                      {tagSuggestions.map((tag) => {
+                        const category = tagCategoryMap.get(tag.toLowerCase());
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              updateDraft('tags', [...draft.tags, tag]);
+                              setNewTagValue('');
+                            }}
+                            className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] transition"
+                          >
+                            <span>{tag}</span>
+                            {category && (
+                              <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--theme-text-muted)]">
+                                {category}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
