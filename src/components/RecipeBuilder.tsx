@@ -158,6 +158,12 @@ const EXAMPLE_DRAFT: RecipeDraft = {
 const normalizeText = (value: string) =>
   value.trim().toLowerCase().replace(/\s+/g, ' ');
 
+const normalizeTag = (value: string) => {
+  const trimmed = value.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return '';
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+};
+
 const buildRecipeFingerprint = (draft: RecipeDraft) => {
   const ingredientParts = draft.ingredients
     .map((ingredient) =>
@@ -301,6 +307,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
+  const [showAllTags, setShowAllTags] = useState(false);
   const [discoverQuery, setDiscoverQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentView, setCurrentView] = useState<RecipeBuilderView>(
@@ -642,8 +649,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const addTag = () => {
-    const normalizedTag = newTagValue.trim();
+    const normalizedTag = normalizeTag(newTagValue);
     if (!normalizedTag) return;
+    if (draft.tags.length >= 10) return;
 
     const exists = draft.tags.some(
       (tag) => tag.toLowerCase() === normalizedTag.toLowerCase()
@@ -660,7 +668,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const removeTag = (tagToRemove: string) => {
     updateDraft(
       'tags',
-      draft.tags.filter((tag) => tag !== tagToRemove)
+      draft.tags.filter((tag) => tag.toLowerCase() !== tagToRemove.toLowerCase())
     );
   };
 
@@ -705,7 +713,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ? favoriteRecipeIds.has(recipe.id)
             : activeTag === 'My recipes'
               ? Boolean(currentUserId) && recipe.ownerId === currentUserId
-              : recipe.tags.some((tag) => tag === activeTag);
+              : recipe.tags.some((tag) => tag.toLowerCase() === activeTag.toLowerCase());
 
       if (!query) return matchesTag;
 
@@ -732,19 +740,46 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [activeTag, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes, sortOrder]);
 
   const availableFilterTags = useMemo(() => {
-    const uniqueTags = new Set<string>();
+    const tagMap = new Map<string, { label: string; count: number }>();
 
     for (const recipe of feedRecipes) {
       for (const tag of recipe.tags) {
-        const normalizedTag = tag.trim();
-        if (normalizedTag) uniqueTags.add(normalizedTag);
+        const normalized = normalizeTag(tag);
+        if (!normalized) continue;
+        const key = normalized.toLowerCase();
+        const existing = tagMap.get(key);
+        if (existing) {
+          existing.count++;
+        } else {
+          tagMap.set(key, { label: normalized, count: 1 });
+        }
       }
     }
 
-    return Array.from(uniqueTags).sort((left, right) =>
-      left.localeCompare(right)
-    );
+    return Array.from(tagMap.values())
+      .sort((a, b) => b.count - a.count);
   }, [feedRecipes]);
+
+  const allExistingTags = useMemo(() => {
+    const tags = new Set<string>();
+    for (const recipe of feedRecipes) {
+      for (const tag of recipe.tags) {
+        const normalized = normalizeTag(tag);
+        if (normalized) tags.add(normalized);
+      }
+    }
+    return Array.from(tags).sort();
+  }, [feedRecipes]);
+
+  const tagSuggestions = useMemo(() => {
+    const query = newTagValue.trim().toLowerCase();
+    if (!query || draft.tags.length >= 10) return [];
+    return allExistingTags.filter(
+      (tag) =>
+        tag.toLowerCase().includes(query) &&
+        !draft.tags.some((t) => t.toLowerCase() === tag.toLowerCase())
+    ).slice(0, 8);
+  }, [newTagValue, allExistingTags, draft.tags]);
 
   const updateImageFile = (file?: File) => {
     if (!file) return;
@@ -877,7 +912,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         description: recipeData.description || '',
         notes: recipeData.notes || '',
         prepTime: recipeData.prepTime || '',
-        tags: (recipeData.tags?.filter(Boolean) as string[]) ?? [],
+        tags: (recipeData.tags?.filter(Boolean) as string[])?.map(normalizeTag) ?? [],
         imageUrl: recipeData.imageUrl || '',
         instructions: instructions.length ? instructions : [''],
         utensils: (recipeData.utensils?.filter(Boolean) as string[]) ?? [],
@@ -1657,21 +1692,96 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {['All', 'Favorites', 'My recipes', ...availableFilterTags].map(
-                  (tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => setActiveTag(tag)}
-                      className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
-                        activeTag === tag
-                          ? 'bg-[var(--theme-accent)] text-white'
-                          : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  )
-                )}
+                {(() => {
+                  const MAX_VISIBLE_TAGS = 8;
+                  const staticFilters = ['All', 'Favorites', 'My recipes'];
+                  const allTagFilters = availableFilterTags.map((t) => t.label);
+                  const visible =
+                    allTagFilters.length <= MAX_VISIBLE_TAGS
+                      ? allTagFilters
+                      : allTagFilters.slice(0, MAX_VISIBLE_TAGS);
+                  const hidden =
+                    allTagFilters.length > MAX_VISIBLE_TAGS
+                      ? allTagFilters.slice(MAX_VISIBLE_TAGS)
+                      : [];
+                  const allItems = [...staticFilters, ...visible];
+
+                  return (
+                    <>
+                      {allItems.map((tag) => {
+                        const tagInfo = availableFilterTags.find(
+                          (t) => t.label === tag
+                        );
+                        return (
+                          <button
+                            key={tag}
+                            onClick={() => setActiveTag(tag)}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                              activeTag === tag
+                                ? 'bg-[var(--theme-accent)] text-white'
+                                : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                            }`}
+                          >
+                            {tag}
+                            {tagInfo && (
+                              <span
+                                className={`inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${
+                                  activeTag === tag
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-[var(--theme-border)] text-[var(--theme-text-muted)]'
+                                }`}
+                              >
+                                {tagInfo.count}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                      {hidden.length > 0 && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowAllTags(!showAllTags)}
+                            className={`inline-flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                              showAllTags || hidden.includes(activeTag)
+                                ? 'bg-[var(--theme-accent)] text-white'
+                                : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                            }`}
+                          >
+                            {showAllTags ? 'Less' : `+${hidden.length} more`}
+                          </button>
+                          {showAllTags && (
+                            <div className="absolute left-0 top-full z-30 mt-2 flex flex-wrap gap-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 shadow-cozy-lg">
+                              {hidden.map((tag) => {
+                                const tagInfo = availableFilterTags.find(
+                                  (t) => t.label === tag
+                                );
+                                return (
+                                  <button
+                                    key={tag}
+                                    onClick={() => {
+                                      setActiveTag(tag);
+                                      setShowAllTags(false);
+                                    }}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
+                                      activeTag === tag
+                                        ? 'bg-[var(--theme-accent)] text-white'
+                                        : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface)] hover:text-[var(--theme-text)]'
+                                    }`}
+                                  >
+                                    {tag}
+                                    <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
+                                      {tagInfo?.count ?? 0}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </>
           )}
@@ -2134,26 +2244,51 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
             <div className="grid gap-2">
               <span className="text-sm font-semibold">Tags</span>
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <input
-                  value={newTagValue}
-                  onChange={(event) => setNewTagValue(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key !== 'Enter') return;
-                    event.preventDefault();
-                    addTag();
-                  }}
-                  placeholder="e.g., Quick, Vegetarian, Dessert"
-                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none"
-                />
+              <div className="relative grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="relative">
+                  <input
+                    value={newTagValue}
+                    onChange={(event) => setNewTagValue(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter') return;
+                      event.preventDefault();
+                      addTag();
+                    }}
+                    placeholder="e.g., Quick, Vegetarian, Dessert"
+                    className="ak-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+                    disabled={draft.tags.length >= 10}
+                  />
+                  {tagSuggestions.length > 0 && (
+                    <div className="absolute left-0 top-full z-30 mt-1 w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-cozy-lg">
+                      {tagSuggestions.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            updateDraft('tags', [...draft.tags, tag]);
+                            setNewTagValue('');
+                          }}
+                          className="w-full px-3 py-1.5 text-left text-sm text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] transition"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button
                   type="button"
                   onClick={addTag}
-                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold"
+                  disabled={draft.tags.length >= 10}
+                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
                 >
                   Add tag
                 </button>
               </div>
+              {draft.tags.length >= 10 && (
+                <p className="text-xs text-[var(--theme-text-muted)]">Maximum of 10 tags allowed</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {draft.tags.map((tag) => (
                   <button
