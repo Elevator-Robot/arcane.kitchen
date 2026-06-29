@@ -1970,14 +1970,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {expandedRecipe.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="ak-button-primary rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                    {expandedRecipe.tags.map((tag) => {
+                      const category = tagCategoryMap.get(tag.toLowerCase());
+                      return (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--theme-accent)] px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                        >
+                          {tag}
+                          {category && (
+                            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-medium uppercase leading-none tracking-wide">
+                              {category}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
                   </div>
 
                   <div className="grid gap-5 lg:grid-cols-2">
