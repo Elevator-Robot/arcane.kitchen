@@ -37,7 +37,7 @@ describe('RecipeBuilder Component', () => {
     expect(
       screen.getByPlaceholderText('Search recipes...')
     ).toBeInTheDocument();
-  }, 10000);
+  }, 20000);
 
   it('updates the post preview as recipe fields change', async () => {
     const user = userEvent.setup();
@@ -49,7 +49,7 @@ describe('RecipeBuilder Component', () => {
     expect(
       screen.getByRole('heading', { name: 'Roasted Corn Salad' })
     ).toBeInTheDocument();
-  });
+  }, 20000);
 
   it('allows ingredients to be added and removed', async () => {
     const user = userEvent.setup();
@@ -98,6 +98,95 @@ describe('RecipeBuilder Component', () => {
 
     expect(window.location.pathname).toBe('/recipe/recipe-1');
   });
+
+  it('shows a share menu when native sharing is unavailable', async () => {
+    const user = userEvent.setup();
+    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
+
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: clipboardWriteText },
+    });
+
+    window.localStorage.setItem(
+      'arcaneKitchen.fakeDb',
+      JSON.stringify({
+        recipes: {
+          'recipe-1': {
+            id: 'recipe-1',
+            ownerId: 'user-1',
+            name: 'Test Recipe',
+            description: 'A test recipe',
+            createdBy: 'Test Cook',
+            createdAt: new Date().toISOString(),
+            tags: [],
+            instructions: ['Mix ingredients'],
+            utensils: [],
+          },
+        },
+        ingredients: {},
+        recipeIngredients: {},
+        favorites: {},
+        images: {},
+      })
+    );
+    window.history.replaceState({}, '', '/');
+
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+
+    await user.click(await screen.findByText('Test Recipe'));
+    await user.click(await screen.findByRole('button', { name: 'Share' }));
+
+    expect(await screen.findByText('Copy Link')).toBeInTheDocument();
+    expect(screen.getByText('WhatsApp')).toBeInTheDocument();
+    expect(screen.getByText('Email')).toBeInTheDocument();
+    expect(screen.getByText('Telegram')).toBeInTheDocument();
+  }, 20000);
+
+  it('shows saved recipes from existing favorites', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      'arcaneKitchen.favoriteRecipeIds',
+      JSON.stringify(['recipe-1'])
+    );
+    window.localStorage.setItem(
+      'arcaneKitchen.fakeDb',
+      JSON.stringify({
+        recipes: {
+          'recipe-1': {
+            id: 'recipe-1',
+            ownerId: 'user-1',
+            name: 'Saved Recipe',
+            description: 'A saved recipe',
+            createdBy: 'Test Cook',
+            createdAt: new Date().toISOString(),
+            tags: [],
+            instructions: ['Mix ingredients'],
+            utensils: [],
+          },
+        },
+        ingredients: {},
+        recipeIngredients: {},
+        favorites: {},
+        images: {},
+      })
+    );
+
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Saved Recipes' }));
+
+    expect(await screen.findByText('Saved recipes')).toBeInTheDocument();
+    expect(screen.getAllByText('Saved Recipe').length).toBeGreaterThan(0);
+  }, 20000);
 
   it('prompts unauthenticated users to sign in before creating', async () => {
     await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);

@@ -26,6 +26,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 ## Profile & Avatars
 
 - Profile data (display name, bio, avatar) is stored in localStorage under `arcaneKitchen.profileData.{userId}`
+- The profile menu includes a Saved Recipes view that surfaces recipes already saved through the existing favorites flow; it uses the same saved recipe IDs and does not introduce a second save system.
 - Avatars are preset fantasy/D&D-themed portraits in `public/images/avatars/` (36 PNG files)
 - Users select an avatar from a grid in the Profile page — no custom photo upload
 - Selected avatar filename is saved in `profileData.avatar`; displayed via `<img src="/images/avatars/{filename}" />`

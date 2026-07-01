@@ -8,7 +8,16 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
-import { ArrowLeft, Bookmark, Minimize2, Share2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bookmark,
+  Copy,
+  Mail,
+  MessageCircle,
+  Minimize2,
+  Send,
+  Share2,
+} from 'lucide-react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
@@ -29,14 +38,19 @@ const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
 const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
-type RecipeBuilderView = 'Discover' | 'Build' | 'Profile';
+type RecipeBuilderView = 'Discover' | 'Build' | 'Profile' | 'SavedRecipes';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
   if (typeof window === 'undefined' || !window.localStorage) return 'Discover';
 
   const savedView = window.localStorage.getItem(RECIPE_BUILDER_VIEW_KEY);
 
-  if (savedView === 'Discover' || savedView === 'Build' || savedView === 'Profile') {
+  if (
+    savedView === 'Discover' ||
+    savedView === 'Build' ||
+    savedView === 'Profile' ||
+    savedView === 'SavedRecipes'
+  ) {
     return savedView;
   }
 
@@ -126,6 +140,143 @@ interface RecipeQuantity {
   amount?: string;
   unit?: string;
 }
+
+interface FeedRecipeCardProps {
+  recipe: FeedRecipe;
+  isFavorited: boolean;
+  isPendingFavorite: boolean;
+  onOpenRecipe: (recipe: FeedRecipe) => void;
+  onToggleFavorite: (recipeId: string) => void;
+  onEditRecipe?: (recipeId: string, recipeOwnerId: string) => void;
+  onDeleteRecipe?: (recipeId: string, recipeOwnerId: string) => void;
+  loadingEditRecipeId?: string | null;
+  deletingRecipeIds?: Set<string>;
+  armedDeleteRecipeIds?: Set<string>;
+  currentUserId?: string | null;
+  isAuthenticated?: boolean;
+}
+
+const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
+  recipe,
+  isFavorited,
+  isPendingFavorite,
+  onOpenRecipe,
+  onToggleFavorite,
+  onEditRecipe,
+  onDeleteRecipe,
+  loadingEditRecipeId,
+  deletingRecipeIds,
+  armedDeleteRecipeIds,
+  currentUserId,
+  isAuthenticated,
+}) => (
+  <article
+    key={recipe.id}
+    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
+    onClick={() => void onOpenRecipe(recipe)}
+  >
+    <div className="relative aspect-[4/3] overflow-hidden">
+      {isPlaceholder(recipe.image) ? (
+        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
+          <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+          </svg>
+          <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+        </div>
+      ) : (
+        <img
+          src={recipe.image}
+          alt={recipe.name}
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
+          {recipe.rating}
+        </div>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            void onToggleFavorite(recipe.id);
+          }}
+          disabled={isPendingFavorite}
+          aria-label={`Favorite ${recipe.name}`}
+          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
+            isFavorited
+              ? 'bg-[var(--theme-accent)] text-white'
+              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
+          }`}
+        >
+          {isFavorited ? '♥' : '♡'}
+        </button>
+      </div>
+    </div>
+    <div className="p-4">
+      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
+        {recipe.name}
+      </h3>
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
+        <span>by {recipe.author}</span>
+        {isRecipeNew(recipe) && (
+          <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+            New
+          </span>
+        )}
+      </div>
+      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {recipe.time}
+        </span>
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+          {recipe.saves} saves
+        </span>
+      </div>
+      {isAuthenticated && currentUserId && recipe.ownerId === currentUserId && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void onEditRecipe?.(recipe.id, recipe.ownerId);
+            }}
+            disabled={loadingEditRecipeId === recipe.id}
+            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
+          >
+            {loadingEditRecipeId === recipe.id ? 'Opening...' : 'Edit'}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void onDeleteRecipe?.(recipe.id, recipe.ownerId);
+            }}
+            disabled={deletingRecipeIds?.has(recipe.id)}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+              armedDeleteRecipeIds?.has(recipe.id)
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
+            }`}
+          >
+            {deletingRecipeIds?.has(recipe.id)
+              ? 'Deleting...'
+              : armedDeleteRecipeIds?.has(recipe.id)
+                ? 'Delete permanently'
+                : 'Delete'}
+          </button>
+        </div>
+      )}
+    </div>
+  </article>
+);
 
 const IMAGE_PLACEHOLDER = '__no_image__';
 const neutralImagePlaceholder = IMAGE_PLACEHOLDER;
@@ -386,6 +537,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [shareNotice, setShareNotice] = useState('');
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -394,6 +546,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -786,6 +939,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       utensils: previous.utensils.filter((_, i) => i !== index),
     }));
   };
+
+  const savedRecipes = useMemo(
+    () => feedRecipes.filter((recipe) => favoriteRecipeIds.has(recipe.id)),
+    [favoriteRecipeIds, feedRecipes]
+  );
 
   const visibleFeedRecipes = useMemo(() => {
     const query = discoverQuery.trim().toLowerCase();
@@ -1673,10 +1831,60 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     [expandedRecipeId, feedRecipes]
   );
 
+  const getRecipeShareUrl = (recipe: FeedRecipe) => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}${getRecipeRoutePath(recipe.id)}`;
+  };
+
+  const copyRecipeLink = async (shareUrl: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else if (typeof window !== 'undefined') {
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = shareUrl;
+        temporaryInput.setAttribute('readonly', '');
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.left = '-9999px';
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(temporaryInput);
+      }
+      setShareNotice('Recipe link copied to clipboard');
+    } catch {
+      setShareNotice('Could not copy the recipe link');
+    }
+
+    setShowShareMenu(false);
+  };
+
+  const openShareLink = (shareUrl: string, platform: 'whatsapp' | 'email' | 'telegram') => {
+    const encodedUrl = encodeURIComponent(shareUrl);
+    let shareTarget = '';
+
+    if (platform === 'whatsapp') {
+      shareTarget = `https://wa.me/?text=${encodeURIComponent(`Check out this recipe: ${shareUrl}`)}`;
+    } else if (platform === 'email') {
+      const subject = encodeURIComponent('Check out this recipe');
+      const body = encodeURIComponent(`Check out this recipe\n\n${shareUrl}`);
+      shareTarget = `mailto:?subject=${subject}&body=${body}`;
+    } else if (platform === 'telegram') {
+      shareTarget = `https://t.me/share/url?url=${encodedUrl}`;
+    }
+
+    if (shareTarget) {
+      window.open(shareTarget, '_blank', 'noopener,noreferrer');
+      setShareNotice(`Opened ${platform === 'whatsapp' ? 'WhatsApp' : platform === 'email' ? 'Email' : 'Telegram'}`);
+    }
+
+    setShowShareMenu(false);
+  };
+
   const shareRecipe = async (recipe: FeedRecipe) => {
     if (typeof window === 'undefined') return;
 
-    const shareUrl = `${window.location.origin}${getRecipeRoutePath(recipe.id)}`;
+    const shareUrl = getRecipeShareUrl(recipe);
 
     try {
       if (typeof navigator !== 'undefined' && navigator.share) {
@@ -1686,18 +1894,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           url: shareUrl,
         });
         setShareNotice('Recipe link shared');
-      } else if (
-        typeof navigator !== 'undefined' &&
-        navigator.clipboard?.writeText
-      ) {
-        await navigator.clipboard.writeText(shareUrl);
-        setShareNotice('Recipe link copied to clipboard');
+        setShowShareMenu(false);
       } else {
-        setShareNotice('Sharing is not available in this browser');
+        setShowShareMenu((previous) => !previous);
+        return;
       }
     } catch (error: any) {
       if (error?.name === 'AbortError') return;
       setShareNotice('Sharing is not available right now');
+      setShowShareMenu(false);
     }
 
     if (shareNoticeTimeoutRef.current) {
@@ -1711,12 +1916,26 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   useEffect(() => {
+    if (!showShareMenu) return undefined;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        shareMenuRef.current &&
+        !shareMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowShareMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+
     return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
       if (shareNoticeTimeoutRef.current) {
         clearTimeout(shareNoticeTimeoutRef.current);
       }
     };
-  }, []);
+  }, [showShareMenu]);
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
@@ -1792,6 +2011,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                         </svg>
                         Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExpandedRecipeId(null);
+                          if (typeof window !== 'undefined') {
+                            window.history.replaceState({}, '', '/');
+                          }
+                          setCurrentView('SavedRecipes');
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0110.186 0z" />
+                        </svg>
+                        Saved Recipes
                       </button>
                       <div className="my-1 border-t border-[var(--theme-border)]" />
                       <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]">
@@ -2083,7 +2318,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         by {expandedRecipe.author}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {shareNotice && (
+                        <div className="w-full rounded-lg border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
+                          {shareNotice}
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
@@ -2100,14 +2340,52 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         <Bookmark className="h-4 w-4" aria-hidden="true" />
                         {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => void shareRecipe(expandedRecipe)}
-                        className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                      >
-                        <Share2 className="h-4 w-4" aria-hidden="true" />
-                        Share
-                      </button>
+                      <div className="relative" ref={shareMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => void shareRecipe(expandedRecipe)}
+                          className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                          Share
+                        </button>
+                        {showShareMenu && (
+                          <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow-cozy-lg">
+                            <button
+                              type="button"
+                              onClick={() => void copyRecipeLink(getRecipeShareUrl(expandedRecipe))}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Copy className="h-4 w-4" aria-hidden="true" />
+                              Copy Link
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'whatsapp')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                              WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'email')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Mail className="h-4 w-4" aria-hidden="true" />
+                              Email
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'telegram')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Send className="h-4 w-4" aria-hidden="true" />
+                              Telegram
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
                         {expandedRecipe.rating}
                       </div>
@@ -2262,114 +2540,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : visibleFeedRecipes.length ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleFeedRecipes.map((recipe) => (
-                  <article
+                  <FeedRecipeCard
                     key={recipe.id}
-                    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
-                    onClick={() => void expandRecipe(recipe)}
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {isPlaceholder(recipe.image) ? (
-                        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
-                          <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                          </svg>
-                          <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
-                        </div>
-                      ) : (
-                        <img
-                          src={recipe.image}
-                          alt={recipe.name}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
-                          {recipe.rating}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void toggleFavoriteRecipe(recipe.id);
-                          }}
-                          disabled={pendingFavoriteRecipeIds.has(recipe.id)}
-                          aria-label={`Favorite ${recipe.name}`}
-                          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
-                            favoriteRecipeIds.has(recipe.id)
-                              ? 'bg-[var(--theme-accent)] text-white'
-                              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
-                          }`}
-                        >
-                          {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
-                        {recipe.name}
-                      </h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
-                        <span>by {recipe.author}</span>
-                        {isRecipeNew(recipe) && (
-                          <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
-                            New
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
-                        <span className="flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {recipe.time}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                          </svg>
-                          {recipe.saves} saves
-                        </span>
-                      </div>
-                      {isAuthenticated && recipe.ownerId === currentUserId && (
-                        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void startEditRecipe(recipe.id, recipe.ownerId);
-                            }}
-                            disabled={loadingEditRecipeId === recipe.id}
-                            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
-                          >
-                            {loadingEditRecipeId === recipe.id
-                              ? 'Opening...'
-                              : 'Edit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void deleteRecipe(recipe.id, recipe.ownerId);
-                            }}
-                            disabled={deletingRecipeIds.has(recipe.id)}
-                            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
-                              armedDeleteRecipeIds.has(recipe.id)
-                                ? 'bg-red-600 hover:bg-red-700'
-                                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
-                            }`}
-                          >
-                            {deletingRecipeIds.has(recipe.id)
-                              ? 'Deleting...'
-                              : armedDeleteRecipeIds.has(recipe.id)
-                                ? 'Delete permanently'
-                                : 'Delete'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </article>
+                    recipe={recipe}
+                    isFavorited={favoriteRecipeIds.has(recipe.id)}
+                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                    onOpenRecipe={expandRecipe}
+                    onToggleFavorite={toggleFavoriteRecipe}
+                    onEditRecipe={startEditRecipe}
+                    onDeleteRecipe={deleteRecipe}
+                    loadingEditRecipeId={loadingEditRecipeId}
+                    deletingRecipeIds={deletingRecipeIds}
+                    armedDeleteRecipeIds={armedDeleteRecipeIds}
+                    currentUserId={currentUserId}
+                    isAuthenticated={isAuthenticated}
+                  />
                 ))}
               </div>
             ) : (
@@ -2736,6 +2921,64 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </button>
             </div>
           )}
+        </section>
+
+        <section
+          id="saved-recipes"
+          key={currentView === 'SavedRecipes' ? 'saved-recipes-visible' : 'saved-recipes-hidden'}
+          className={`min-h-0 overflow-y-auto ${
+            currentView === 'SavedRecipes' ? 'flex flex-col' : 'hidden'
+          }`}
+        >
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Saved recipes</h2>
+                <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                  Recipes you've bookmarked from the shared feed.
+                </p>
+              </div>
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+              >
+                Back to Discover
+              </button>
+            </div>
+
+            {savedRecipes.length ? (
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {savedRecipes.map((recipe) => (
+                  <FeedRecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    isFavorited={favoriteRecipeIds.has(recipe.id)}
+                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                    onOpenRecipe={(selectedRecipe) => {
+                      void expandRecipe(selectedRecipe);
+                    }}
+                    onToggleFavorite={toggleFavoriteRecipe}
+                    onEditRecipe={startEditRecipe}
+                    onDeleteRecipe={deleteRecipe}
+                    loadingEditRecipeId={loadingEditRecipeId}
+                    deletingRecipeIds={deletingRecipeIds}
+                    armedDeleteRecipeIds={armedDeleteRecipeIds}
+                    currentUserId={currentUserId}
+                    isAuthenticated={isAuthenticated}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-10 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  No saved recipes yet
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                  Save recipes from Discover to keep them close at hand here.
+                </p>
+              </div>
+            )}
+          </div>
         </section>
 
         <section
