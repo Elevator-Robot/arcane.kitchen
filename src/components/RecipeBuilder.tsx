@@ -37,6 +37,8 @@ const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
 const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
+const DRAFT_STORAGE_KEY = 'arcaneKitchen.recipeDraft';
+const DRAFT_MAX_AGE = 24 * 60 * 60 * 1000;
 type RecipeBuilderView = 'Discover' | 'Build' | 'Profile' | 'SavedRecipes';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
@@ -299,6 +301,115 @@ const EMPTY_DRAFT: RecipeDraft = {
   utensils: [],
 };
 
+interface SavedDraft {
+  draft: RecipeDraft;
+  editingRecipeId: string | null;
+  savedAt: number;
+}
+
+const DRAFT_IMAGE_KEY = 'arcaneKitchen.draftImage';
+
+function openDraftDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('arcaneKitchenDraft', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('kv');
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getDraftImage(): Promise<string | null> {
+  try {
+    const db = await openDraftDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('kv', 'readonly');
+      const request = tx.objectStore('kv').get(DRAFT_IMAGE_KEY);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function saveDraftImage(dataUrl: string): Promise<void> {
+  const db = await openDraftDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('kv', 'readwrite');
+    const request = tx.objectStore('kv').put(dataUrl, DRAFT_IMAGE_KEY);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function removeDraftImage(): Promise<void> {
+  try {
+    const db = await openDraftDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('kv', 'readwrite');
+      const request = tx.objectStore('kv').delete(DRAFT_IMAGE_KEY);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+const isDraftEmpty = (draft: RecipeDraft) =>
+  !draft.name.trim() &&
+  !draft.description.trim() &&
+  draft.ingredients.every((i) => !i.name.trim()) &&
+  draft.instructions.every((i) => !i.trim()) &&
+  !draft.tags.length &&
+  !draft.utensils.length &&
+  !draft.prepTime.trim();
+
+const getInitialDraft = (): RecipeDraft => {
+  if (typeof window === 'undefined' || !window.localStorage) return EMPTY_DRAFT;
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return EMPTY_DRAFT;
+    const saved: SavedDraft = JSON.parse(raw);
+    if (Date.now() - saved.savedAt > DRAFT_MAX_AGE) {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return EMPTY_DRAFT;
+    }
+    if (saved.draft && !isDraftEmpty(saved.draft)) {
+      return saved.draft;
+    }
+  } catch {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  }
+  return EMPTY_DRAFT;
+};
+
+const getInitialEditingRecipeId = (): string | null => {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const saved: SavedDraft = JSON.parse(raw);
+    if (Date.now() - saved.savedAt > DRAFT_MAX_AGE) return null;
+    return saved.editingRecipeId || null;
+  } catch {
+    return null;
+  }
+};
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const parts = dataUrl.split(',');
+  const mime = parts[0]?.match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bytes = atob(parts[1] || '');
+  const array = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    array[i] = bytes.charCodeAt(i);
+  }
+  return new File([array], filename, { type: mime });
+}
+
 const EXAMPLE_DRAFT: RecipeDraft = {
   name: 'Summer Tomato Toasts',
   description:
@@ -497,7 +608,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
-  const [draft, setDraft] = useState<RecipeDraft>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<RecipeDraft>(getInitialDraft);
+  const [draftRestored, setDraftRestored] = useState(
+    () => !isDraftEmpty(getInitialDraft())
+  );
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [showAllTags, setShowAllTags] = useState('');
@@ -547,7 +661,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
-  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
+  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(
+    getInitialEditingRecipeId
+  );
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
     null
   );
@@ -695,6 +811,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [currentView]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const saved: SavedDraft = { draft, editingRecipeId, savedAt: Date.now() };
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
+  }, [draft, editingRecipeId]);
+
+  useEffect(() => {
     if (!isAuthenticated && currentView === 'Build') {
       setCurrentView('Discover');
     }
@@ -739,6 +861,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       window.removeEventListener('popstate', syncRecipeRoute);
     };
   }, [expandedRecipeId, feedRecipes, isLoadingFeed]);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+    setCurrentView('Build');
+    setPublishMessage('Draft restored from your last session.');
+    setPublishMessageTone('success');
+
+    getDraftImage().then((dataUrl) => {
+      if (dataUrl) {
+        setImagePreviewUrl(dataUrl);
+        setSelectedImageFile(dataUrlToFile(dataUrl, 'recipe-image.jpg'));
+      }
+    });
+  }, [draftRestored]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1058,6 +1194,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setDraft((previous) => ({ ...previous, imageUrl: '' }));
     setPublishMessage('');
     setPublishMessageTone('error');
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      setImagePreviewUrl(dataUrl);
+      void saveDraftImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   const startCreateRecipe = () => {
@@ -1073,7 +1217,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
+    void removeDraftImage();
     setDraft(EMPTY_DRAFT);
+    setDraftRestored(false);
+    if (typeof window !== 'undefined') localStorage.removeItem(DRAFT_STORAGE_KEY);
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -1089,7 +1236,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
+    void removeDraftImage();
     setDraft(EXAMPLE_DRAFT);
+    setDraftRestored(false);
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -1532,7 +1681,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
       setPublishMessageTone('success');
       setSelectedImageFile(null);
+      void removeDraftImage();
       setEditingRecipeId(null);
+      setDraftRestored(false);
+      if (typeof window !== 'undefined') localStorage.removeItem(DRAFT_STORAGE_KEY);
       await loadRecipes();
       setActiveTag('All');
       setDiscoverQuery('');
