@@ -8,7 +8,15 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
-import { Minimize2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bookmark,
+  Copy,
+  Mail,
+  MessageCircle,
+  Send,
+  Share2,
+} from 'lucide-react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
@@ -29,14 +37,21 @@ const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
 const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
-type RecipeBuilderView = 'Discover' | 'Build' | 'Profile';
+const DRAFT_STORAGE_KEY = 'arcaneKitchen.recipeDraft';
+const DRAFT_MAX_AGE = 24 * 60 * 60 * 1000;
+type RecipeBuilderView = 'Discover' | 'Build' | 'Profile' | 'SavedRecipes';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
   if (typeof window === 'undefined' || !window.localStorage) return 'Discover';
 
   const savedView = window.localStorage.getItem(RECIPE_BUILDER_VIEW_KEY);
 
-  if (savedView === 'Discover' || savedView === 'Build' || savedView === 'Profile') {
+  if (
+    savedView === 'Discover' ||
+    savedView === 'Build' ||
+    savedView === 'Profile' ||
+    savedView === 'SavedRecipes'
+  ) {
     return savedView;
   }
 
@@ -63,6 +78,20 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
 
 const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
   currentUser?.userId || userAttributes?.sub || null;
+
+const getRecipeIdFromPath = (pathname?: string | null) => {
+  if (!pathname) return null;
+
+  const match = pathname.match(/^\/recipe\/([^/?#]+)$/i);
+  if (!match?.[1]) return null;
+
+  return decodeURIComponent(match[1]);
+};
+
+const getRecipeRoutePath = (recipeId?: string | null) => {
+  if (!recipeId) return '/';
+  return `/recipe/${encodeURIComponent(recipeId)}`;
+};
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
@@ -113,6 +142,143 @@ interface RecipeQuantity {
   unit?: string;
 }
 
+interface FeedRecipeCardProps {
+  recipe: FeedRecipe;
+  isFavorited: boolean;
+  isPendingFavorite: boolean;
+  onOpenRecipe: (recipe: FeedRecipe) => void;
+  onToggleFavorite: (recipeId: string) => void;
+  onEditRecipe?: (recipeId: string, recipeOwnerId: string) => void;
+  onDeleteRecipe?: (recipeId: string, recipeOwnerId: string) => void;
+  loadingEditRecipeId?: string | null;
+  deletingRecipeIds?: Set<string>;
+  armedDeleteRecipeIds?: Set<string>;
+  currentUserId?: string | null;
+  isAuthenticated?: boolean;
+}
+
+const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
+  recipe,
+  isFavorited,
+  isPendingFavorite,
+  onOpenRecipe,
+  onToggleFavorite,
+  onEditRecipe,
+  onDeleteRecipe,
+  loadingEditRecipeId,
+  deletingRecipeIds,
+  armedDeleteRecipeIds,
+  currentUserId,
+  isAuthenticated,
+}) => (
+  <article
+    key={recipe.id}
+    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
+    onClick={() => void onOpenRecipe(recipe)}
+  >
+    <div className="relative aspect-[4/3] overflow-hidden">
+      {isPlaceholder(recipe.image) ? (
+        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
+          <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+          </svg>
+          <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+        </div>
+      ) : (
+        <img
+          src={recipe.image}
+          alt={recipe.name}
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
+          {recipe.rating}
+        </div>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            void onToggleFavorite(recipe.id);
+          }}
+          disabled={isPendingFavorite}
+          aria-label={`Favorite ${recipe.name}`}
+          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
+            isFavorited
+              ? 'bg-[var(--theme-accent)] text-white'
+              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
+          }`}
+        >
+          {isFavorited ? '♥' : '♡'}
+        </button>
+      </div>
+    </div>
+    <div className="p-4">
+      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
+        {recipe.name}
+      </h3>
+      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
+        <span>by {recipe.author}</span>
+        {isRecipeNew(recipe) && (
+          <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+            New
+          </span>
+        )}
+      </div>
+      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {recipe.time}
+        </span>
+        <span className="flex items-center gap-1">
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          </svg>
+          {recipe.saves} saves
+        </span>
+      </div>
+      {isAuthenticated && currentUserId && recipe.ownerId === currentUserId && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void onEditRecipe?.(recipe.id, recipe.ownerId);
+            }}
+            disabled={loadingEditRecipeId === recipe.id}
+            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
+          >
+            {loadingEditRecipeId === recipe.id ? 'Opening...' : 'Edit'}
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void onDeleteRecipe?.(recipe.id, recipe.ownerId);
+            }}
+            disabled={deletingRecipeIds?.has(recipe.id)}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+              armedDeleteRecipeIds?.has(recipe.id)
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
+            }`}
+          >
+            {deletingRecipeIds?.has(recipe.id)
+              ? 'Deleting...'
+              : armedDeleteRecipeIds?.has(recipe.id)
+                ? 'Delete permanently'
+                : 'Delete'}
+          </button>
+        </div>
+      )}
+    </div>
+  </article>
+);
+
 const IMAGE_PLACEHOLDER = '__no_image__';
 const neutralImagePlaceholder = IMAGE_PLACEHOLDER;
 const isPlaceholder = (src: string) => src === IMAGE_PLACEHOLDER || src === neutralImagePlaceholder;
@@ -134,6 +300,115 @@ const EMPTY_DRAFT: RecipeDraft = {
   ingredients: [{ id: 0, name: '', amount: '', unit: '' }],
   utensils: [],
 };
+
+interface SavedDraft {
+  draft: RecipeDraft;
+  editingRecipeId: string | null;
+  savedAt: number;
+}
+
+const DRAFT_IMAGE_KEY = 'arcaneKitchen.draftImage';
+
+function openDraftDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('arcaneKitchenDraft', 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore('kv');
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function getDraftImage(): Promise<string | null> {
+  try {
+    const db = await openDraftDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('kv', 'readonly');
+      const request = tx.objectStore('kv').get(DRAFT_IMAGE_KEY);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function saveDraftImage(dataUrl: string): Promise<void> {
+  const db = await openDraftDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('kv', 'readwrite');
+    const request = tx.objectStore('kv').put(dataUrl, DRAFT_IMAGE_KEY);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function removeDraftImage(): Promise<void> {
+  try {
+    const db = await openDraftDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('kv', 'readwrite');
+      const request = tx.objectStore('kv').delete(DRAFT_IMAGE_KEY);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
+const isDraftEmpty = (draft: RecipeDraft) =>
+  !draft.name.trim() &&
+  !draft.description.trim() &&
+  draft.ingredients.every((i) => !i.name.trim()) &&
+  draft.instructions.every((i) => !i.trim()) &&
+  !draft.tags.length &&
+  !draft.utensils.length &&
+  !draft.prepTime.trim();
+
+const getInitialDraft = (): RecipeDraft => {
+  if (typeof window === 'undefined' || !window.localStorage) return EMPTY_DRAFT;
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return EMPTY_DRAFT;
+    const saved: SavedDraft = JSON.parse(raw);
+    if (Date.now() - saved.savedAt > DRAFT_MAX_AGE) {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return EMPTY_DRAFT;
+    }
+    if (saved.draft && !isDraftEmpty(saved.draft)) {
+      return saved.draft;
+    }
+  } catch {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  }
+  return EMPTY_DRAFT;
+};
+
+const getInitialEditingRecipeId = (): string | null => {
+  if (typeof window === 'undefined' || !window.localStorage) return null;
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const saved: SavedDraft = JSON.parse(raw);
+    if (Date.now() - saved.savedAt > DRAFT_MAX_AGE) return null;
+    return saved.editingRecipeId || null;
+  } catch {
+    return null;
+  }
+};
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const parts = dataUrl.split(',');
+  const mime = parts[0]?.match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bytes = atob(parts[1] || '');
+  const array = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    array[i] = bytes.charCodeAt(i);
+  }
+  return new File([array], filename, { type: mime });
+}
 
 const EXAMPLE_DRAFT: RecipeDraft = {
   name: 'Summer Tomato Toasts',
@@ -333,7 +608,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
-  const [draft, setDraft] = useState<RecipeDraft>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<RecipeDraft>(getInitialDraft);
+  const [draftRestored, setDraftRestored] = useState(
+    () => !isDraftEmpty(getInitialDraft())
+  );
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [showAllTags, setShowAllTags] = useState('');
@@ -371,6 +649,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     string | null
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
+  const [shareNotice, setShareNotice] = useState('');
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -378,8 +658,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
   const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
+  const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
-  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
+  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(
+    getInitialEditingRecipeId
+  );
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
     null
   );
@@ -527,10 +811,70 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [currentView]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const saved: SavedDraft = { draft, editingRecipeId, savedAt: Date.now() };
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
+  }, [draft, editingRecipeId]);
+
+  useEffect(() => {
     if (!isAuthenticated && currentView === 'Build') {
       setCurrentView('Discover');
     }
   }, [currentView, isAuthenticated]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncRecipeRoute = () => {
+      const recipeIdFromPath = getRecipeIdFromPath(window.location.pathname);
+
+      if (!recipeIdFromPath) {
+        if (expandedRecipeId) {
+          setExpandedRecipeId(null);
+        }
+        setExpandedRecipeMessage('');
+        return;
+      }
+
+      if (isLoadingFeed) return;
+
+      const matchingRecipe = feedRecipes.find((recipe) => recipe.id === recipeIdFromPath);
+
+      if (!matchingRecipe) {
+        setExpandedRecipeId(null);
+        setExpandedRecipeMessage('Recipe could not be found.');
+        if (window.location.pathname !== '/') {
+          window.history.replaceState({}, '', '/');
+        }
+        return;
+      }
+
+      if (expandedRecipeId !== matchingRecipe.id) {
+        void expandRecipe(matchingRecipe);
+      }
+    };
+
+    window.addEventListener('popstate', syncRecipeRoute);
+    syncRecipeRoute();
+
+    return () => {
+      window.removeEventListener('popstate', syncRecipeRoute);
+    };
+  }, [expandedRecipeId, feedRecipes, isLoadingFeed]);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+    setCurrentView('Build');
+    setPublishMessage('Draft restored from your last session.');
+    setPublishMessageTone('success');
+
+    getDraftImage().then((dataUrl) => {
+      if (dataUrl) {
+        setImagePreviewUrl(dataUrl);
+        setSelectedImageFile(dataUrlToFile(dataUrl, 'recipe-image.jpg'));
+      }
+    });
+  }, [draftRestored]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -731,6 +1075,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }));
   };
 
+  const savedRecipes = useMemo(
+    () => feedRecipes.filter((recipe) => favoriteRecipeIds.has(recipe.id)),
+    [favoriteRecipeIds, feedRecipes]
+  );
+
   const visibleFeedRecipes = useMemo(() => {
     const query = discoverQuery.trim().toLowerCase();
 
@@ -845,6 +1194,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setDraft((previous) => ({ ...previous, imageUrl: '' }));
     setPublishMessage('');
     setPublishMessageTone('error');
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result as string;
+      setImagePreviewUrl(dataUrl);
+      void saveDraftImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   const startCreateRecipe = () => {
@@ -853,10 +1210,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return;
     }
 
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
+
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
+    void removeDraftImage();
     setDraft(EMPTY_DRAFT);
+    setDraftRestored(false);
+    if (typeof window !== 'undefined') localStorage.removeItem(DRAFT_STORAGE_KEY);
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -865,10 +1229,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const loadExampleRecipe = () => {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
+
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
+    void removeDraftImage();
     setDraft(EXAMPLE_DRAFT);
+    setDraftRestored(false);
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -1311,7 +1681,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
       setPublishMessageTone('success');
       setSelectedImageFile(null);
+      void removeDraftImage();
       setEditingRecipeId(null);
+      setDraftRestored(false);
+      if (typeof window !== 'undefined') localStorage.removeItem(DRAFT_STORAGE_KEY);
       await loadRecipes();
       setActiveTag('All');
       setDiscoverQuery('');
@@ -1319,12 +1692,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setCurrentView('Discover');
     } catch (error) {
       console.error('Failed to save recipe:', error);
-      const message =
-        error instanceof Error && error.message.includes('Missing bucket name')
-          ? 'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.'
-          : isEditingRecipe
-            ? 'Update failed. Check your sandbox deployment and auth.'
-            : 'Publish failed. Check your sandbox deployment and auth.';
+
+      let message = isEditingRecipe
+        ? 'Update failed. Check your sandbox deployment and auth.'
+        : 'Publish failed. Check your sandbox deployment and auth.';
+
+      if (error instanceof Error) {
+        if (error.message.includes('Missing bucket name')) {
+          message =
+            'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.';
+        } else if (
+          error.message.includes('storage is full') ||
+          error.message.includes('quota has been exceeded')
+        ) {
+          message =
+            'Not enough storage space for this image. Try a smaller photo or clear your browser storage for this site.';
+        }
+      }
 
       setPublishMessage(message);
       setPublishMessageTone('error');
@@ -1409,25 +1793,47 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const expandRecipe = async (recipe: FeedRecipe) => {
-    if (!isAuthenticated) {
-      onRequestAuth?.();
-      return;
-    }
-
     setExpandedRecipeId(recipe.id);
     setExpandedRecipeMessage('');
+    setCurrentView('Discover');
+
+    if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
+      window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
+    }
 
     if (expandedRecipeIngredients[recipe.id]) return;
 
     setLoadingExpandedRecipeId(recipe.id);
 
     try {
-      const { data, errors } = await client.models.RecipeIngredient.list({
-        filter: {
-          recipeId: { eq: recipe.id },
-        },
-        authMode: 'userPool',
-      });
+      const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
+        ? ['userPool', 'identityPool']
+        : ['identityPool'];
+
+      let data: Array<any> = [];
+      let errors: Array<{ message: string }> | undefined;
+
+      for (const authMode of authModes) {
+        const result = await client.models.RecipeIngredient.list({
+          filter: {
+            recipeId: { eq: recipe.id },
+          },
+          authMode,
+        });
+
+        data = result.data;
+        errors = result.errors;
+
+        if (!errors?.length) break;
+
+        const isNotAuthorized = errors.some((error) =>
+          error.message.toLowerCase().includes('not authorized')
+        );
+
+        if (!isNotAuthorized || authMode === authModes[authModes.length - 1]) {
+          break;
+        }
+      }
 
       if (errors?.length) {
         throw new Error(errors.map((error: any) => error.message).join(', '));
@@ -1483,6 +1889,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const collapseExpandedRecipe = () => {
     setExpandedRecipeId(null);
     setExpandedRecipeMessage('');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/');
+    }
   };
 
   const deleteRecipe = async (recipeId: string, recipeOwnerId: string) => {
@@ -1548,6 +1957,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setExpandedRecipeId((previous) =>
         previous === recipeId ? null : previous
       );
+      if (typeof window !== 'undefined' && window.location.pathname === getRecipeRoutePath(recipeId)) {
+        window.history.replaceState({}, '', '/');
+      }
       setFavoriteRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
@@ -1580,6 +1992,112 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         : null,
     [expandedRecipeId, feedRecipes]
   );
+
+  const getRecipeShareUrl = (recipe: FeedRecipe) => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}${getRecipeRoutePath(recipe.id)}`;
+  };
+
+  const copyRecipeLink = async (shareUrl: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else if (typeof window !== 'undefined') {
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = shareUrl;
+        temporaryInput.setAttribute('readonly', '');
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.left = '-9999px';
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(temporaryInput);
+      }
+      setShareNotice('Recipe link copied to clipboard');
+    } catch {
+      setShareNotice('Could not copy the recipe link');
+    }
+
+    setShowShareMenu(false);
+  };
+
+  const openShareLink = (shareUrl: string, platform: 'whatsapp' | 'email' | 'telegram') => {
+    const encodedUrl = encodeURIComponent(shareUrl);
+    let shareTarget = '';
+
+    if (platform === 'whatsapp') {
+      shareTarget = `https://wa.me/?text=${encodeURIComponent(`Check out this recipe: ${shareUrl}`)}`;
+    } else if (platform === 'email') {
+      const subject = encodeURIComponent('Check out this recipe');
+      const body = encodeURIComponent(`Check out this recipe\n\n${shareUrl}`);
+      shareTarget = `mailto:?subject=${subject}&body=${body}`;
+    } else if (platform === 'telegram') {
+      shareTarget = `https://t.me/share/url?url=${encodedUrl}`;
+    }
+
+    if (shareTarget) {
+      window.open(shareTarget, '_blank', 'noopener,noreferrer');
+      setShareNotice(`Opened ${platform === 'whatsapp' ? 'WhatsApp' : platform === 'email' ? 'Email' : 'Telegram'}`);
+    }
+
+    setShowShareMenu(false);
+  };
+
+  const shareRecipe = async (recipe: FeedRecipe) => {
+    if (typeof window === 'undefined') return;
+
+    const shareUrl = getRecipeShareUrl(recipe);
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: recipe.name,
+          text: recipe.description || 'Check out this recipe',
+          url: shareUrl,
+        });
+        setShareNotice('Recipe link shared');
+        setShowShareMenu(false);
+      } else {
+        setShowShareMenu((previous) => !previous);
+        return;
+      }
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
+      setShareNotice('Sharing is not available right now');
+      setShowShareMenu(false);
+    }
+
+    if (shareNoticeTimeoutRef.current) {
+      clearTimeout(shareNoticeTimeoutRef.current);
+    }
+
+    shareNoticeTimeoutRef.current = setTimeout(() => {
+      setShareNotice('');
+      shareNoticeTimeoutRef.current = null;
+    }, 2400);
+  };
+
+  useEffect(() => {
+    if (!showShareMenu) return undefined;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        shareMenuRef.current &&
+        !shareMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowShareMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      if (shareNoticeTimeoutRef.current) {
+        clearTimeout(shareNoticeTimeoutRef.current);
+      }
+    };
+  }, [showShareMenu]);
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
@@ -1655,6 +2173,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                         </svg>
                         Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExpandedRecipeId(null);
+                          if (typeof window !== 'undefined') {
+                            window.history.replaceState({}, '', '/');
+                          }
+                          setCurrentView('SavedRecipes');
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0110.186 0z" />
+                        </svg>
+                        Saved Recipes
                       </button>
                       <div className="my-1 border-t border-[var(--theme-border)]" />
                       <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]">
@@ -1903,6 +2437,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : expandedRecipe ? (
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
+                  <button
+                    type="button"
+                    onClick={collapseExpandedRecipe}
+                    className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-sm font-medium text-white transition hover:bg-black"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    Back
+                  </button>
                   {isPlaceholder(expandedRecipe.image) ? (
                     <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
                       <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1918,15 +2460,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       className="h-64 w-full object-cover sm:h-80"
                     />
                   )}
-                  <button
-                    type="button"
-                    onClick={collapseExpandedRecipe}
-                    aria-label="Shrink recipe"
-                    title="Shrink recipe"
-                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-md bg-black/70 text-white transition hover:bg-black"
-                  >
-                    <Minimize2 className="h-4 w-4" aria-hidden="true" />
-                  </button>
+
                 </div>
                 <div className="grid gap-5 p-4 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1938,22 +2472,74 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         by {expandedRecipe.author}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {shareNotice && (
+                        <div className="w-full rounded-lg border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
+                          {shareNotice}
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
                         disabled={pendingFavoriteRecipeIds.has(
                           expandedRecipe.id
                         )}
-                        aria-label={`Favorite ${expandedRecipe.name}`}
-                        className={`grid h-9 w-9 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
+                        aria-label={`Save ${expandedRecipe.name}`}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
                             ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white'
                             : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] hover:bg-[var(--theme-bg-soft)]'
                         }`}
                       >
-                        {favoriteRecipeIds.has(expandedRecipe.id) ? '♥' : '♡'}
+                        <Bookmark className="h-4 w-4" aria-hidden="true" />
+                        {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
                       </button>
+                      <div className="relative" ref={shareMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => void shareRecipe(expandedRecipe)}
+                          className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                          Share
+                        </button>
+                        {showShareMenu && (
+                          <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow-cozy-lg">
+                            <button
+                              type="button"
+                              onClick={() => void copyRecipeLink(getRecipeShareUrl(expandedRecipe))}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Copy className="h-4 w-4" aria-hidden="true" />
+                              Copy Link
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'whatsapp')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                              WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'email')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Mail className="h-4 w-4" aria-hidden="true" />
+                              Email
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'telegram')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Send className="h-4 w-4" aria-hidden="true" />
+                              Telegram
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
                         {expandedRecipe.rating}
                       </div>
@@ -2108,114 +2694,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : visibleFeedRecipes.length ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {visibleFeedRecipes.map((recipe) => (
-                  <article
+                  <FeedRecipeCard
                     key={recipe.id}
-                    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
-                    onClick={() => void expandRecipe(recipe)}
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {isPlaceholder(recipe.image) ? (
-                        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
-                          <svg className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                          </svg>
-                          <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
-                        </div>
-                      ) : (
-                        <img
-                          src={recipe.image}
-                          alt={recipe.name}
-                          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
-                          {recipe.rating}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void toggleFavoriteRecipe(recipe.id);
-                          }}
-                          disabled={pendingFavoriteRecipeIds.has(recipe.id)}
-                          aria-label={`Favorite ${recipe.name}`}
-                          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
-                            favoriteRecipeIds.has(recipe.id)
-                              ? 'bg-[var(--theme-accent)] text-white'
-                              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
-                          }`}
-                        >
-                          {favoriteRecipeIds.has(recipe.id) ? '♥' : '♡'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
-                        {recipe.name}
-                      </h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
-                        <span>by {recipe.author}</span>
-                        {isRecipeNew(recipe) && (
-                          <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
-                            New
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
-                        <span className="flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {recipe.time}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                          </svg>
-                          {recipe.saves} saves
-                        </span>
-                      </div>
-                      {isAuthenticated && recipe.ownerId === currentUserId && (
-                        <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void startEditRecipe(recipe.id, recipe.ownerId);
-                            }}
-                            disabled={loadingEditRecipeId === recipe.id}
-                            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
-                          >
-                            {loadingEditRecipeId === recipe.id
-                              ? 'Opening...'
-                              : 'Edit'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void deleteRecipe(recipe.id, recipe.ownerId);
-                            }}
-                            disabled={deletingRecipeIds.has(recipe.id)}
-                            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
-                              armedDeleteRecipeIds.has(recipe.id)
-                                ? 'bg-red-600 hover:bg-red-700'
-                                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
-                            }`}
-                          >
-                            {deletingRecipeIds.has(recipe.id)
-                              ? 'Deleting...'
-                              : armedDeleteRecipeIds.has(recipe.id)
-                                ? 'Delete permanently'
-                                : 'Delete'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </article>
+                    recipe={recipe}
+                    isFavorited={favoriteRecipeIds.has(recipe.id)}
+                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                    onOpenRecipe={expandRecipe}
+                    onToggleFavorite={toggleFavoriteRecipe}
+                    onEditRecipe={startEditRecipe}
+                    onDeleteRecipe={deleteRecipe}
+                    loadingEditRecipeId={loadingEditRecipeId}
+                    deletingRecipeIds={deletingRecipeIds}
+                    armedDeleteRecipeIds={armedDeleteRecipeIds}
+                    currentUserId={currentUserId}
+                    isAuthenticated={isAuthenticated}
+                  />
                 ))}
               </div>
             ) : (
@@ -2582,6 +3075,64 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </button>
             </div>
           )}
+        </section>
+
+        <section
+          id="saved-recipes"
+          key={currentView === 'SavedRecipes' ? 'saved-recipes-visible' : 'saved-recipes-hidden'}
+          className={`min-h-0 overflow-y-auto ${
+            currentView === 'SavedRecipes' ? 'flex flex-col' : 'hidden'
+          }`}
+        >
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Saved recipes</h2>
+                <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                  Recipes you've bookmarked from the shared feed.
+                </p>
+              </div>
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+              >
+                Back to Discover
+              </button>
+            </div>
+
+            {savedRecipes.length ? (
+              <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {savedRecipes.map((recipe) => (
+                  <FeedRecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    isFavorited={favoriteRecipeIds.has(recipe.id)}
+                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                    onOpenRecipe={(selectedRecipe) => {
+                      void expandRecipe(selectedRecipe);
+                    }}
+                    onToggleFavorite={toggleFavoriteRecipe}
+                    onEditRecipe={startEditRecipe}
+                    onDeleteRecipe={deleteRecipe}
+                    loadingEditRecipeId={loadingEditRecipeId}
+                    deletingRecipeIds={deletingRecipeIds}
+                    armedDeleteRecipeIds={armedDeleteRecipeIds}
+                    currentUserId={currentUserId}
+                    isAuthenticated={isAuthenticated}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-10 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  No saved recipes yet
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                  Save recipes from Discover to keep them close at hand here.
+                </p>
+              </div>
+            )}
+          </div>
         </section>
 
         <section

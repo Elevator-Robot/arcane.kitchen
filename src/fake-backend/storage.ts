@@ -1,18 +1,49 @@
-const IMAGES_KEY = 'arcaneKitchen.fakeImages';
+const DB_NAME = 'arcaneKitchen';
+const STORE_NAME = 'images';
 const STORAGE_CONFIG_KEY = 'arcaneKitchen.storageConfigured';
 
-function loadImages(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(IMAGES_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    /* ignore */
-  }
-  return {};
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(STORE_NAME);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }
 
-function saveImages(images: Record<string, string>): void {
-  localStorage.setItem(IMAGES_KEY, JSON.stringify(images));
+function getImage(path: string): Promise<string | undefined> {
+  return openDb().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const request = tx.objectStore(STORE_NAME).get(path);
+      request.onsuccess = () => resolve(request.result || undefined);
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+function putImage(path: string, dataUrl: string): Promise<void> {
+  return openDb().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const request = tx.objectStore(STORE_NAME).put(dataUrl, path);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  });
+}
+
+function deleteImage(path: string): Promise<void> {
+  return openDb().then((db) => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const request = tx.objectStore(STORE_NAME).delete(path);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  });
 }
 
 export function markStorageConfigured(): void {
@@ -27,8 +58,7 @@ export async function fakeGetUrl(input: {
   path: string;
   options?: { expiresIn?: number };
 }): Promise<{ url: URL }> {
-  const images = loadImages();
-  const dataUrl = images[input.path];
+  const dataUrl = await getImage(input.path);
   if (dataUrl) {
     const blob = dataUrlToBlob(dataUrl);
     const url = URL.createObjectURL(blob);
@@ -46,19 +76,34 @@ export function fakeUploadData(input: {
   data: File | Blob;
   options?: { contentType?: string; preventOverwrite?: boolean };
 }): { result: Promise<{ path: string }> } {
-  const images = loadImages();
+  const resultPromise = (async () => {
+    if (input.options?.preventOverwrite) {
+      const existing = await getImage(input.path);
+      if (existing) {
+        throw new Error('Object already exists: ' + input.path);
+      }
+    }
 
-  if (input.options?.preventOverwrite && images[input.path]) {
-    throw new Error('Object already exists: ' + input.path);
-  }
-
-  const resultPromise = blobToDataUrl(input.data).then((dataUrl) => {
-    images[input.path] = dataUrl;
-    saveImages(images);
+    const dataUrl = await blobToDataUrl(input.data);
+    await putImage(input.path, dataUrl);
     return { path: input.path };
-  });
+  })();
 
   return { result: resultPromise };
+}
+
+export async function fakeDeleteImage(path: string): Promise<void> {
+  await deleteImage(path);
+}
+
+export async function fakeClearAllImages(): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const request = tx.objectStore(STORE_NAME).clear();
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
