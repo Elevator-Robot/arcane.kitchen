@@ -14,7 +14,6 @@ import {
   Copy,
   Mail,
   MessageCircle,
-  Minimize2,
   Send,
   Share2,
 } from 'lucide-react';
@@ -1541,12 +1540,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setCurrentView('Discover');
     } catch (error) {
       console.error('Failed to save recipe:', error);
-      const message =
-        error instanceof Error && error.message.includes('Missing bucket name')
-          ? 'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.'
-          : isEditingRecipe
-            ? 'Update failed. Check your sandbox deployment and auth.'
-            : 'Publish failed. Check your sandbox deployment and auth.';
+
+      let message = isEditingRecipe
+        ? 'Update failed. Check your sandbox deployment and auth.'
+        : 'Publish failed. Check your sandbox deployment and auth.';
+
+      if (error instanceof Error) {
+        if (error.message.includes('Missing bucket name')) {
+          message =
+            'Photo uploads need the latest backend deployment. Run npm run deploy:sandbox, then restart the frontend.';
+        } else if (
+          error.message.includes('storage is full') ||
+          error.message.includes('quota has been exceeded')
+        ) {
+          message =
+            'Not enough storage space for this image. Try a smaller photo or clear your browser storage for this site.';
+        }
+      }
 
       setPublishMessage(message);
       setPublishMessageTone('error');
@@ -2298,15 +2308,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       className="h-64 w-full object-cover sm:h-80"
                     />
                   )}
-                  <button
-                    type="button"
-                    onClick={collapseExpandedRecipe}
-                    aria-label="Shrink recipe"
-                    title="Shrink recipe"
-                    className="absolute right-3 top-3 grid h-9 w-9 place-items-center rounded-md bg-black/70 text-white transition hover:bg-black"
-                  >
-                    <Minimize2 className="h-4 w-4" aria-hidden="true" />
-                  </button>
+
                 </div>
                 <div className="grid gap-5 p-4 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
