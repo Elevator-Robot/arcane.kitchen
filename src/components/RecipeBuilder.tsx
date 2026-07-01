@@ -8,7 +8,7 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
-import { Minimize2 } from 'lucide-react';
+import { ArrowLeft, Bookmark, Minimize2, Share2 } from 'lucide-react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
@@ -63,6 +63,20 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
 
 const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
   currentUser?.userId || userAttributes?.sub || null;
+
+const getRecipeIdFromPath = (pathname?: string | null) => {
+  if (!pathname) return null;
+
+  const match = pathname.match(/^\/recipe\/([^/?#]+)$/i);
+  if (!match?.[1]) return null;
+
+  return decodeURIComponent(match[1]);
+};
+
+const getRecipeRoutePath = (recipeId?: string | null) => {
+  if (!recipeId) return '/';
+  return `/recipe/${encodeURIComponent(recipeId)}`;
+};
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
@@ -371,6 +385,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     string | null
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
+  const [shareNotice, setShareNotice] = useState('');
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -378,6 +393,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
   const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
+  const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -531,6 +547,46 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setCurrentView('Discover');
     }
   }, [currentView, isAuthenticated]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const syncRecipeRoute = () => {
+      const recipeIdFromPath = getRecipeIdFromPath(window.location.pathname);
+
+      if (!recipeIdFromPath) {
+        if (expandedRecipeId) {
+          setExpandedRecipeId(null);
+        }
+        setExpandedRecipeMessage('');
+        return;
+      }
+
+      if (isLoadingFeed) return;
+
+      const matchingRecipe = feedRecipes.find((recipe) => recipe.id === recipeIdFromPath);
+
+      if (!matchingRecipe) {
+        setExpandedRecipeId(null);
+        setExpandedRecipeMessage('Recipe could not be found.');
+        if (window.location.pathname !== '/') {
+          window.history.replaceState({}, '', '/');
+        }
+        return;
+      }
+
+      if (expandedRecipeId !== matchingRecipe.id) {
+        void expandRecipe(matchingRecipe);
+      }
+    };
+
+    window.addEventListener('popstate', syncRecipeRoute);
+    syncRecipeRoute();
+
+    return () => {
+      window.removeEventListener('popstate', syncRecipeRoute);
+    };
+  }, [expandedRecipeId, feedRecipes, isLoadingFeed]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -853,6 +909,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return;
     }
 
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
+
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
@@ -865,6 +925,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const loadExampleRecipe = () => {
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.replaceState({}, '', '/');
+    }
+
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
@@ -1409,25 +1473,47 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const expandRecipe = async (recipe: FeedRecipe) => {
-    if (!isAuthenticated) {
-      onRequestAuth?.();
-      return;
-    }
-
     setExpandedRecipeId(recipe.id);
     setExpandedRecipeMessage('');
+    setCurrentView('Discover');
+
+    if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
+      window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
+    }
 
     if (expandedRecipeIngredients[recipe.id]) return;
 
     setLoadingExpandedRecipeId(recipe.id);
 
     try {
-      const { data, errors } = await client.models.RecipeIngredient.list({
-        filter: {
-          recipeId: { eq: recipe.id },
-        },
-        authMode: 'userPool',
-      });
+      const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
+        ? ['userPool', 'identityPool']
+        : ['identityPool'];
+
+      let data: Array<any> = [];
+      let errors: Array<{ message: string }> | undefined;
+
+      for (const authMode of authModes) {
+        const result = await client.models.RecipeIngredient.list({
+          filter: {
+            recipeId: { eq: recipe.id },
+          },
+          authMode,
+        });
+
+        data = result.data;
+        errors = result.errors;
+
+        if (!errors?.length) break;
+
+        const isNotAuthorized = errors.some((error) =>
+          error.message.toLowerCase().includes('not authorized')
+        );
+
+        if (!isNotAuthorized || authMode === authModes[authModes.length - 1]) {
+          break;
+        }
+      }
 
       if (errors?.length) {
         throw new Error(errors.map((error: any) => error.message).join(', '));
@@ -1483,6 +1569,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const collapseExpandedRecipe = () => {
     setExpandedRecipeId(null);
     setExpandedRecipeMessage('');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/');
+    }
   };
 
   const deleteRecipe = async (recipeId: string, recipeOwnerId: string) => {
@@ -1548,6 +1637,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setExpandedRecipeId((previous) =>
         previous === recipeId ? null : previous
       );
+      if (typeof window !== 'undefined' && window.location.pathname === getRecipeRoutePath(recipeId)) {
+        window.history.replaceState({}, '', '/');
+      }
       setFavoriteRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
@@ -1580,6 +1672,51 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         : null,
     [expandedRecipeId, feedRecipes]
   );
+
+  const shareRecipe = async (recipe: FeedRecipe) => {
+    if (typeof window === 'undefined') return;
+
+    const shareUrl = `${window.location.origin}${getRecipeRoutePath(recipe.id)}`;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: recipe.name,
+          text: recipe.description || 'Check out this recipe',
+          url: shareUrl,
+        });
+        setShareNotice('Recipe link shared');
+      } else if (
+        typeof navigator !== 'undefined' &&
+        navigator.clipboard?.writeText
+      ) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareNotice('Recipe link copied to clipboard');
+      } else {
+        setShareNotice('Sharing is not available in this browser');
+      }
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
+      setShareNotice('Sharing is not available right now');
+    }
+
+    if (shareNoticeTimeoutRef.current) {
+      clearTimeout(shareNoticeTimeoutRef.current);
+    }
+
+    shareNoticeTimeoutRef.current = setTimeout(() => {
+      setShareNotice('');
+      shareNoticeTimeoutRef.current = null;
+    }, 2400);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (shareNoticeTimeoutRef.current) {
+        clearTimeout(shareNoticeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
@@ -1903,6 +2040,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : expandedRecipe ? (
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
+                  <button
+                    type="button"
+                    onClick={collapseExpandedRecipe}
+                    className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-sm font-medium text-white transition hover:bg-black"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    Back
+                  </button>
                   {isPlaceholder(expandedRecipe.image) ? (
                     <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
                       <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1945,14 +2090,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         disabled={pendingFavoriteRecipeIds.has(
                           expandedRecipe.id
                         )}
-                        aria-label={`Favorite ${expandedRecipe.name}`}
-                        className={`grid h-9 w-9 place-items-center rounded-full border text-sm transition disabled:opacity-60 ${
+                        aria-label={`Save ${expandedRecipe.name}`}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
                             ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white'
                             : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] hover:bg-[var(--theme-bg-soft)]'
                         }`}
                       >
-                        {favoriteRecipeIds.has(expandedRecipe.id) ? '♥' : '♡'}
+                        <Bookmark className="h-4 w-4" aria-hidden="true" />
+                        {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void shareRecipe(expandedRecipe)}
+                        className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                      >
+                        <Share2 className="h-4 w-4" aria-hidden="true" />
+                        Share
                       </button>
                       <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
                         {expandedRecipe.rating}
