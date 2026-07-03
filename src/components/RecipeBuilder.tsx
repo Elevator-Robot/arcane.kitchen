@@ -664,12 +664,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!showUserMenu) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
         setShowUserMenu(false);
       }
     };
@@ -2161,19 +2161,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <div className="flex items-center gap-2">
             {onSignOut ? (
-              <div className="relative">
+              <div ref={menuContainerRef} className="relative">
                 <button
                   onClick={() => setShowUserMenu((p) => !p)}
                   className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white transition-transform duration-300 group-hover:scale-150">
+                  <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white transition-transform duration-300 ${showUserMenu ? 'scale-150' : ''} group-hover:scale-150`}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       creatorName.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <span className="max-w-[100px] translate-x-0 truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]">
+                  <span className={`max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 ${showUserMenu ? 'translate-x-1 text-[var(--theme-accent)]' : ''} group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]`}>
                     {savedProfileData.displayName}
                   </span>
                   <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2181,7 +2181,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </svg>
                 </button>
                 {showUserMenu && (
-                  <div ref={menuRef} className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
+                  <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
                       <button
                         onClick={() => { setCurrentView('Profile'); setShowUserMenu(false); }}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
