@@ -2164,16 +2164,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu((p) => !p)}
-                  className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
+                  className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white">
+                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white transition-transform duration-300 group-hover:scale-150">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       creatorName.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <span className="max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)]">
+                  <span className="max-w-[100px] translate-x-0 truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]">
                     {savedProfileData.displayName}
                   </span>
                   <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -3157,91 +3157,95 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-2xl">
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xl font-bold text-white">
-                {selectedAvatar ? (
-                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                ) : (
-                  creatorName.charAt(0).toUpperCase()
-                )}
+            <div className="flex gap-8">
+              <div className="shrink-0">
+                <div className="relative flex h-48 w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
+                  {selectedAvatar ? (
+                    <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    creatorName.charAt(0).toUpperCase()
+                  )}
+                </div>
               </div>
-              <div>
-                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
-                <p className="text-sm text-[var(--theme-text-muted)]">
-                  {userAttributes?.email || currentUser?.username}
-                </p>
-              </div>
-            </div>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div>
+                  <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
+                  <p className="text-sm text-[var(--theme-text-muted)]">
+                    {userAttributes?.email || currentUser?.username}
+                  </p>
+                </div>
 
-            <div className="mt-6">
-              <div className="mb-3 flex items-center gap-2">
-                <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
-                <button
-                  onClick={shuffleAvatars}
-                  className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
-                  title="Shuffle avatars"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </div>
-              <div className="grid grid-cols-6 gap-2">
-                {shuffledAvatars.map(({ file, url }) => (
+                <div className="mt-6">
+                  <div className="mb-3 flex items-center gap-2">
+                    <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
+                    <button
+                      onClick={shuffleAvatars}
+                      className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
+                      title="Shuffle avatars"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
+                    {shuffledAvatars.map(({ file, url }) => (
+                      <button
+                        key={file}
+                        onClick={() => setSelectedAvatar(file)}
+                        className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
+                          selectedAvatar === file
+                            ? 'border-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)]'
+                            : 'border-transparent hover:border-[var(--theme-border)]'
+                        }`}
+                      >
+                        <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-8 grid gap-5">
+                  <label className="grid gap-1.5">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
+                    <input
+                      ref={profileNameRef}
+                      defaultValue={savedProfileData.displayName}
+                      placeholder="Your display name"
+                      className="ak-input rounded-lg px-3 py-2 text-sm outline-none transition"
+                    />
+                  </label>
+
+                  <label className="grid gap-1.5">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
+                    <textarea
+                      ref={profileBioRef}
+                      defaultValue={savedProfileData.bio}
+                      placeholder="A short bio about yourself"
+                      rows={3}
+                      className="ak-input h-20 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-6 flex gap-3">
                   <button
-                    key={file}
-                    onClick={() => setSelectedAvatar(file)}
-                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                      selectedAvatar === file
-                        ? 'border-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)]'
-                        : 'border-transparent hover:border-[var(--theme-border)]'
-                    }`}
+                    onClick={saveProfile}
+                    className="rounded-lg bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
                   >
-                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    Save
                   </button>
-                ))}
+                  <button
+                    onClick={() => {
+                      setSelectedAvatar(savedProfileData.avatar);
+                      setCurrentView('Discover');
+                    }}
+                    className="rounded-lg border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-8 grid gap-5">
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
-                <input
-                  ref={profileNameRef}
-                  defaultValue={savedProfileData.displayName}
-                  placeholder="Your display name"
-                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none transition"
-                />
-              </label>
-
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
-                <textarea
-                  ref={profileBioRef}
-                  defaultValue={savedProfileData.bio}
-                  placeholder="A short bio about yourself"
-                  rows={3}
-                  className="ak-input h-20 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
-                />
-              </label>
-            </div>
-
-            <div className="mt-8 flex gap-3">
-              <button
-                onClick={saveProfile}
-                className="rounded-lg bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedAvatar(savedProfileData.avatar);
-                  setCurrentView('Discover');
-                }}
-                className="rounded-lg border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </section>
