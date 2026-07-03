@@ -23,18 +23,11 @@ import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
-import {
-  isFakeBackend,
-  getFakeClient,
-  fakeUploadData,
-  fakeGetUrl,
-} from '../fake-backend';
+import { getCloudFrontDomain } from '../amplifyConfig';
 
-const client: any = isFakeBackend()
-  ? getFakeClient()
-  : generateClient<Schema>();
-const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
-const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
+const client: any = generateClient<Schema>();
+const doGetUrl = getUrl;
+const doUploadData = uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
 const DRAFT_STORAGE_KEY = 'arcaneKitchen.recipeDraft';
@@ -506,9 +499,21 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
 const isRemoteUrl = (value?: string | null) =>
   Boolean(value && /^https?:\/\//i.test(value));
 
+const getCloudFrontDomainOrDefault = () => {
+  const fromConfig = getCloudFrontDomain();
+  if (fromConfig) return fromConfig;
+  if (typeof import.meta !== 'undefined') return import.meta.env.VITE_CLOUDFRONT_DOMAIN;
+  return undefined;
+};
+
 const getRecipeImageSource = async (imageUrl?: string | null) => {
   if (!imageUrl) return neutralImagePlaceholder;
   if (isRemoteUrl(imageUrl)) return imageUrl;
+
+  const cdnDomain = getCloudFrontDomainOrDefault();
+  if (cdnDomain) {
+    return `https://${cdnDomain}/${imageUrl}`;
+  }
 
   try {
     const { url } = await doGetUrl({
@@ -1355,6 +1360,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )
           .filter(Boolean),
       }));
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/');
+      }
       setNewTagValue('');
       setExpandedRecipeId(null);
       setCurrentView('Build');
@@ -1550,7 +1558,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             description: draft.description.trim(),
             notes: draft.notes?.trim() || undefined,
             createdBy: creatorName,
-            createdAt: new Date().toISOString(),
             instructions: draft.instructions
               .map((instruction) => instruction.trim())
               .filter(Boolean),
@@ -2149,7 +2156,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 >
                   <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       creatorName.charAt(0).toUpperCase()
                     )}
@@ -2280,7 +2287,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   {['All', 'Favorites', 'My recipes'].map((tag) => (
                     <button
                       key={tag}
-                      onClick={() => setActiveTag(tag)}
+                      onClick={() => setActiveTag(activeTag === tag ? 'All' : tag)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
                         activeTag === tag
                           ? 'bg-[var(--theme-accent)] text-white'
@@ -2306,7 +2313,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         {visible.map(({ label, count }) => (
                           <button
                             key={label}
-                            onClick={() => setActiveTag(label)}
+                            onClick={() => setActiveTag(activeTag === label ? 'All' : label)}
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                               activeTag === label
                                 ? 'bg-[var(--theme-accent)] text-white shadow-sm'
@@ -2345,7 +2352,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                   <button
                                     key={label}
                                     onClick={() => {
-                                      setActiveTag(label);
+                                      setActiveTag(activeTag === label ? 'All' : label);
                                       setShowAllTags('');
                                     }}
                                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
@@ -2390,7 +2397,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         {communityFilterTags.map(({ label, count }) => (
                           <button
                             key={label}
-                            onClick={() => setActiveTag(label)}
+                            onClick={() => setActiveTag(activeTag === label ? 'All' : label)}
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                               activeTag === label
                                 ? 'bg-[var(--theme-accent)] text-white shadow-sm'
@@ -2648,7 +2655,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
                   {isAuthenticated &&
                     expandedRecipe.ownerId === currentUserId && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
                         <button
                           type="button"
                           onClick={() =>
@@ -2658,11 +2665,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             )
                           }
                           disabled={loadingEditRecipeId === expandedRecipe.id}
-                          className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                          className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
                         >
                           {loadingEditRecipeId === expandedRecipe.id
                             ? 'Opening...'
-                            : 'Edit recipe'}
+                            : 'Edit'}
                         </button>
                         <button
                           type="button"
@@ -2673,19 +2680,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             )
                           }
                           disabled={deletingRecipeIds.has(expandedRecipe.id)}
-                          className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
-                            deletingRecipeIds.has(expandedRecipe.id)
-                              ? 'w-28 px-2.5'
-                              : armedDeleteRecipeIds.has(expandedRecipe.id)
-                                ? 'w-36 px-3'
-                                : 'w-28 px-3'
+                          className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+                            armedDeleteRecipeIds.has(expandedRecipe.id)
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
                           }`}
                         >
                           {deletingRecipeIds.has(expandedRecipe.id)
                             ? 'Deleting...'
                             : armedDeleteRecipeIds.has(expandedRecipe.id)
                               ? 'Delete permanently'
-                              : 'Delete recipe'}
+                              : 'Delete'}
                         </button>
                       </div>
                     )}
@@ -3146,7 +3151,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="flex items-center gap-4">
               <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xl font-bold text-white">
                 {selectedAvatar ? (
-                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" className="h-full w-full object-cover" />
+                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   creatorName.charAt(0).toUpperCase()
                 )}
@@ -3183,7 +3188,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         : 'border-transparent hover:border-[var(--theme-border)]'
                     }`}
                   >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>

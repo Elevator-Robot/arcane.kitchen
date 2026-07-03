@@ -13,12 +13,6 @@ import {
 } from 'aws-amplify/auth';
 import RecipeBuilder from './components/RecipeBuilder';
 import SignInForm from './components/SignInForm';
-import {
-  isFakeBackend,
-  fakeGetCurrentUser,
-  fakeFetchUserAttributes,
-  fakeSignOut,
-} from './fake-backend';
 
 const authFormFields = {
   signIn: {
@@ -48,7 +42,7 @@ const authServices = {
     const password = input.password;
     const agreeToTerms = input.__agreeToTerms === true;
 
-    if (!isFakeBackend() && !hasAmplifyAuthConfig()) {
+    if (!hasAmplifyAuthConfig()) {
       throw new Error('Authentication is not configured yet. Please try again later.');
     }
 
@@ -286,7 +280,7 @@ function App() {
   const refreshAuthState = useCallback(async () => {
     setAuthNotice(null);
 
-    if (!isFakeBackend() && !hasAmplifyAuthConfig()) {
+    if (!hasAmplifyAuthConfig()) {
       setAuthNotice('Authentication is not configured yet. Please try again later.');
       setCurrentUser(null);
       setUserAttributes(null);
@@ -297,12 +291,8 @@ function App() {
     }
 
     try {
-      const user = isFakeBackend()
-        ? await fakeGetCurrentUser()
-        : await getCurrentUser();
-      const attributes = isFakeBackend()
-        ? await fakeFetchUserAttributes()
-        : await fetchUserAttributes();
+      const user = await getCurrentUser();
+      const attributes = await fetchUserAttributes();
 
       const userIdentifier =
         user?.userId ||
@@ -342,11 +332,7 @@ function App() {
   }, [isAuthenticated, showAuth]);
 
   const handleSignOut = async () => {
-    if (isFakeBackend()) {
-      await fakeSignOut();
-    } else {
-      await amplifySignOut();
-    }
+    await amplifySignOut();
     setCurrentUser(null);
     setUserAttributes(null);
     setIsAuthenticated(false);

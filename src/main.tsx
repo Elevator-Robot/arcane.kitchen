@@ -4,7 +4,8 @@ import App from './App.tsx';
 import './index.css';
 import { Amplify } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
-import { initFakeBackend, isFakeBackend } from './fake-backend';
+import { setCloudFrontDomain } from './amplifyConfig';
+
 
 const loadAmplifyOutputs = async () => {
   try {
@@ -42,14 +43,11 @@ if ('serviceWorker' in navigator) {
 }
 
 const bootstrap = async () => {
-  if (isFakeBackend()) {
-    initFakeBackend();
-  } else {
-    const outputs = await loadAmplifyOutputs();
+  const outputs = await loadAmplifyOutputs();
 
-    if (outputs) {
-      Amplify.configure(outputs);
-    }
+  if (outputs) {
+    Amplify.configure(outputs);
+    setCloudFrontDomain(outputs?.custom?.CloudFrontDomain);
   }
 
   ReactDOM.createRoot(document.getElementById('root')!).render(

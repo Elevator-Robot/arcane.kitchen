@@ -2,13 +2,34 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { storage } from './storage/resource';
-import { Aspects, CfnResource, Tags } from 'aws-cdk-lib';
+import { Aspects, CfnResource, Tags, CfnOutput } from 'aws-cdk-lib';
 import type { IConstruct } from 'constructs';
+import { Distribution, ViewerProtocolPolicy, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
+import { S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
 
 const backend = defineBackend({
   auth,
   data,
   storage,
+});
+
+const cdn = new Distribution(backend.storage.stack, 'RecipeImagesCDN', {
+  defaultBehavior: {
+    origin: new S3Origin(backend.storage.resources.bucket),
+    viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    compress: true,
+  },
+  priceClass: PriceClass.PRICE_CLASS_100,
+  comment: 'CDN for Arcane Kitchen recipe images',
+});
+
+new CfnOutput(backend.storage.stack, 'CloudFrontDomain', {
+  value: cdn.distributionDomainName,
+  description: 'CloudFront domain for serving recipe images',
+});
+
+backend.addOutput({
+  custom: { CloudFrontDomain: cdn.distributionDomainName },
 });
 
 const COGNITO_DOMAIN_PREFIX = 'arcanekitchen';

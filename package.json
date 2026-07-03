@@ -61,9 +61,12 @@
     "postcss": "^8.4.49",
     "postcss-cli": "^11.0.0",
     "prettier": "^3.6.2",
+    "sharp": "^0.35.3",
+    "svgo": "^4.0.1",
     "tsx": "^4.7.2",
     "typescript": "^5.8.2",
     "vite": "^5.4.10",
+    "vite-plugin-image-optimizer": "^2.0.3",
     "vitest": "^4.0.2"
   }
 }

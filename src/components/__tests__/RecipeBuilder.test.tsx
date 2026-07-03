@@ -7,15 +7,82 @@ import {
   unauthenticatedRecipeBuilderProps,
 } from '../../test/test-utils';
 
-vi.mock('../../fake-backend', async () => {
-  const actual = await vi.importActual<typeof import('../../fake-backend')>(
-    '../../fake-backend'
-  );
-  return {
-    ...actual,
-    isFakeBackend: () => true,
-  };
+const createMockRecipe = (overrides: Record<string, unknown> = {}) => ({
+  id: 'recipe-1',
+  ownerId: 'user-1',
+  name: 'Test Recipe',
+  description: 'A test recipe',
+  createdBy: 'Test Cook',
+  createdAt: new Date().toISOString(),
+  imageUrl: undefined,
+  prepTime: undefined,
+  tags: [],
+  instructions: ['Mix ingredients'],
+  utensils: [],
+  ratings: [],
+  recipeFingerprint: undefined,
+  recipeNameKey: undefined,
+  notes: undefined,
+  ...overrides,
 });
+
+const { mockRecipeList, mockRecipeGetUrl, mockRecipeUploadData } =
+  vi.hoisted(() => ({
+    mockRecipeList: vi
+      .fn()
+      .mockResolvedValue({ data: [], errors: undefined }),
+    mockRecipeGetUrl: vi
+      .fn()
+      .mockResolvedValue({ url: new URL('https://example.com/image.jpg') }),
+    mockRecipeUploadData: vi
+      .fn()
+      .mockReturnValue({ result: Promise.resolve({ path: 'test-path' }) }),
+  }));
+
+vi.mock('aws-amplify/data', () => ({
+  generateClient: () => ({
+    models: {
+      Recipe: {
+        list: mockRecipeList,
+        get: vi.fn().mockResolvedValue({ data: null, errors: undefined }),
+        create: vi
+          .fn()
+          .mockResolvedValue({ data: { id: 'new-id' }, errors: undefined }),
+        update: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+      },
+      Ingredient: {
+        create: vi
+          .fn()
+          .mockResolvedValue({
+            data: { id: 'ing-1' },
+            errors: undefined,
+          }),
+        get: vi
+          .fn()
+          .mockResolvedValue({
+            data: { name: 'Test Ingredient' },
+            errors: undefined,
+          }),
+      },
+      RecipeIngredient: {
+        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+        create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+      },
+      Favorite: {
+        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+        create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+      },
+    },
+  }),
+}));
+
+vi.mock('aws-amplify/storage', () => ({
+  getUrl: mockRecipeGetUrl,
+  uploadData: mockRecipeUploadData,
+}));
 
 const renderRecipeBuilder = async (props: Record<string, unknown> = {}) => {
   const { default: RecipeBuilder } = await import('../RecipeBuilder');
@@ -26,6 +93,7 @@ describe('RecipeBuilder Component', () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
+    mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
   });
 
   it('renders the social recipe workspace', async () => {
@@ -67,28 +135,10 @@ describe('RecipeBuilder Component', () => {
   }, 10000);
 
   it('updates the browser URL when a recipe is opened', async () => {
-    window.localStorage.setItem(
-      'arcaneKitchen.fakeDb',
-      JSON.stringify({
-        recipes: {
-          'recipe-1': {
-            id: 'recipe-1',
-            ownerId: 'user-1',
-            name: 'Test Recipe',
-            description: 'A test recipe',
-            createdBy: 'Test Cook',
-            createdAt: new Date().toISOString(),
-            tags: [],
-            instructions: ['Mix ingredients'],
-            utensils: [],
-          },
-        },
-        ingredients: {},
-        recipeIngredients: {},
-        favorites: {},
-        images: {},
-      })
-    );
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe()],
+      errors: undefined,
+    });
     window.history.replaceState({}, '', '/');
 
     const user = userEvent.setup();
@@ -112,28 +162,10 @@ describe('RecipeBuilder Component', () => {
       value: { writeText: clipboardWriteText },
     });
 
-    window.localStorage.setItem(
-      'arcaneKitchen.fakeDb',
-      JSON.stringify({
-        recipes: {
-          'recipe-1': {
-            id: 'recipe-1',
-            ownerId: 'user-1',
-            name: 'Test Recipe',
-            description: 'A test recipe',
-            createdBy: 'Test Cook',
-            createdAt: new Date().toISOString(),
-            tags: [],
-            instructions: ['Mix ingredients'],
-            utensils: [],
-          },
-        },
-        ingredients: {},
-        recipeIngredients: {},
-        favorites: {},
-        images: {},
-      })
-    );
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe()],
+      errors: undefined,
+    });
     window.history.replaceState({}, '', '/');
 
     await renderRecipeBuilder(defaultRecipeBuilderProps);
@@ -153,28 +185,10 @@ describe('RecipeBuilder Component', () => {
       'arcaneKitchen.favoriteRecipeIds',
       JSON.stringify(['recipe-1'])
     );
-    window.localStorage.setItem(
-      'arcaneKitchen.fakeDb',
-      JSON.stringify({
-        recipes: {
-          'recipe-1': {
-            id: 'recipe-1',
-            ownerId: 'user-1',
-            name: 'Saved Recipe',
-            description: 'A saved recipe',
-            createdBy: 'Test Cook',
-            createdAt: new Date().toISOString(),
-            tags: [],
-            instructions: ['Mix ingredients'],
-            utensils: [],
-          },
-        },
-        ingredients: {},
-        recipeIngredients: {},
-        favorites: {},
-        images: {},
-      })
-    );
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe({ name: 'Saved Recipe' })],
+      errors: undefined,
+    });
 
     await renderRecipeBuilder({
       ...defaultRecipeBuilderProps,

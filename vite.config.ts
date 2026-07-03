@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -8,7 +9,15 @@ export default defineConfig({
     port: 5173,
     allowedHosts: ['localhost', 'c388-136-62-118-167.ngrok-free.app'],
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    ViteImageOptimizer({
+      png: {
+        quality: 70,
+        palette: true,
+      },
+    }),
+  ],
   test: {
     globals: true,
     environment: 'jsdom',
