@@ -2129,24 +2129,30 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
-      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-2.5 lg:px-6">
-          <div className="flex items-center gap-8">
-            <div className="flex items-start gap-3">
-              <img
-                src="/logo-no-background.svg"
-                alt="Arcane Kitchen logo"
-                draggable={false}
-                className="pointer-events-none select-none h-12 w-12 object-contain brightness-[0.3]"
-              />
-              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)] select-none">
+      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className="rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+                aria-label="Home"
+              >
+                <img
+                  src="/logo-no-background.svg"
+                  alt=""
+                  draggable={false}
+                  className="h-14 w-14 object-contain brightness-[0.3] pointer-events-none"
+                />
+              </button>
+              <span className="font-heading text-base font-semibold text-[var(--theme-text)] select-none">
                 Arcane Kitchen
               </span>
             </div>
             <nav className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setCurrentView('Discover')}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-md px-2 py-1 text-sm font-medium transition ${
                   currentView === 'Discover'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
@@ -2156,7 +2162,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </button>
               <button
                 onClick={startCreateRecipe}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-md px-2 py-1 text-sm font-medium transition ${
                   currentView === 'Build'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
