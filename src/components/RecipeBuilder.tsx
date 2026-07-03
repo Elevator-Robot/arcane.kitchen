@@ -664,7 +664,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [bioCharCount, setBioCharCount] = useState(0);
   const [profileDirty, setProfileDirty] = useState(false);
   const MAX_BIO_CHARS = 200;
-  const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuContainerRef = useRef<HTMLDivElement>(null);
@@ -695,16 +694,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     : null;
 
   const loadProfileData = useCallback(() => {
-    if (!PROFILE_DATA_KEY) return { displayName: creatorName, bio: '', avatar: null };
+    if (!PROFILE_DATA_KEY) return { bio: '', avatar: null };
     try {
       const saved = localStorage.getItem(PROFILE_DATA_KEY);
       if (saved) {
         const data = JSON.parse(saved);
-        return { displayName: data.displayName || creatorName, bio: data.bio || '', avatar: data.avatar || null };
+        return { bio: data.bio || '', avatar: data.avatar || null };
       }
     } catch { /* ignore */ }
-    return { displayName: creatorName, bio: '', avatar: null };
-  }, [PROFILE_DATA_KEY, creatorName]);
+    return { bio: '', avatar: null };
+  }, [PROFILE_DATA_KEY]);
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -742,9 +741,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   const saveProfile = () => {
     if (PROFILE_DATA_KEY) {
-      const displayName = profileNameRef.current?.value || '';
       const bio = profileBioRef.current?.value || '';
-      localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ displayName, bio, avatar: selectedAvatar }));
+      localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ bio, avatar: selectedAvatar }));
       setProfileDirty(false);
     }
     setCurrentView('Discover');
@@ -1527,7 +1525,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             recipeFingerprint,
           },
           {
-            authMode: 'userPool',
+            authMode: 'userPool' as const,
           }
         );
 
@@ -2188,7 +2186,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     )}
                   </div>
                   <span className={`max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 ${showUserMenu ? 'translate-x-1 text-[var(--theme-accent)]' : ''} group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]`}>
-                    {savedProfileData.displayName}
+                    {creatorName}
                   </span>
                   <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -3174,8 +3172,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="flex-col sm:flex-row flex gap-8">
               <div className="shrink-0">
                 <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
-                  {selectedAvatar ? (
-                    <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {(selectedAvatar || savedProfileData.avatar) ? (
+                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || savedProfileData.avatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
                     creatorName.charAt(0).toUpperCase()
                   )}
@@ -3208,9 +3206,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         key={file}
                         onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
                         className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                           selectedAvatar === file
-                             ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
-                             : 'border-transparent hover:border-[var(--theme-border)]'
+                           (selectedAvatar || savedProfileData.avatar) === file
+                              ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
+                              : 'border-transparent hover:border-[var(--theme-border)]'
                         }`}
                       >
                         <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -3220,17 +3218,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
 
                 <div className="mt-8 grid gap-5">
-                  <label className="grid gap-1.5">
-                    <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
-                    <input
-                      ref={profileNameRef}
-                      defaultValue={savedProfileData.displayName}
-                      placeholder="Your display name"
-                      onChange={() => setProfileDirty(true)}
-                      className="ak-input rounded px-3 py-2 text-sm outline-none transition"
-                    />
-                  </label>
-
                   <label className="grid gap-1.5">
                     <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
                     <textarea
@@ -3252,7 +3239,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={saveProfile}
-                    className="rounded bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+                    className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                   >
                     Save
                   </button>
@@ -3313,7 +3300,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <button
                       onClick={publishRecipe}
                       disabled={isPublishing}
-                      className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-60"
+                      className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
                     >
                       {isPublishing
                         ? isEditingRecipe
