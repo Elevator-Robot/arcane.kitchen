@@ -14,6 +14,7 @@ const schema = a.schema({
       tags: a.string().array(),
       utensils: a.string().array(),
       imageUrl: a.string(),
+      notes: a.string(),
       recipeNameKey: a.string(),
       recipeFingerprint: a.string(),
       ratings: a.json().array(),

@@ -23,18 +23,10 @@ import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
-import {
-  isFakeBackend,
-  getFakeClient,
-  fakeUploadData,
-  fakeGetUrl,
-} from '../fake-backend';
 
-const client: any = isFakeBackend()
-  ? getFakeClient()
-  : generateClient<Schema>();
-const doGetUrl = isFakeBackend() ? fakeGetUrl : getUrl;
-const doUploadData = isFakeBackend() ? fakeUploadData : uploadData;
+const client: any = generateClient<Schema>();
+const doGetUrl = getUrl;
+const doUploadData = uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
 const DRAFT_STORAGE_KEY = 'arcaneKitchen.recipeDraft';
@@ -1559,7 +1551,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             description: draft.description.trim(),
             notes: draft.notes?.trim() || undefined,
             createdBy: creatorName,
-            createdAt: new Date().toISOString(),
             instructions: draft.instructions
               .map((instruction) => instruction.trim())
               .filter(Boolean),
