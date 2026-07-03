@@ -1356,6 +1356,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )
           .filter(Boolean),
       }));
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/');
+      }
       setNewTagValue('');
       setExpandedRecipeId(null);
       setCurrentView('Build');
