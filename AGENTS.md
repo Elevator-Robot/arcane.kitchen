@@ -32,14 +32,12 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Selected avatar filename is saved in `profileData.avatar`; displayed via `<img src="/images/avatars/{filename}" />`
 - Fallback: if no avatar selected, shows the initial letter of the display name
 
-## Fake Backend (`src/fake-backend/`)
+## CloudFront CDN
 
-- In `development` mode (`npm run dev`), a localStorage-backed fake backend replaces Amplify (Cognito, AppSync, S3) entirely
-- Auth is auto-authenticated with a hardcoded fake user (`fakelog@arcane.kitchen`)
-- Recipes, ingredients, favorites, and images are all stored in `localStorage` under `arcaneKitchen.fakeDb` and `arcaneKitchen.fakeImages`
-- Storage config is injected via `Amplify.configure()` so `hasStorageConfig()` returns `true`
-- The selection is driven by `import.meta.env.MODE === 'development'` checks; Vite statically replaces this in builds so production bundles don't activate the fake path
-- No sandbox or `amplify_outputs.json` is needed in dev mode
+- `amplify/backend.ts` creates a CloudFront distribution (via CDK escape hatch) and exports its domain via `CfnOutput` + `backend.addOutput({ custom: { CloudFrontDomain } })`
+- On bootstrap, `src/main.tsx` reads `outputs.custom.CloudFrontDomain` from `amplify_outputs.json` and stores it via `setCloudFrontDomain()` in `src/amplifyConfig.ts`
+- `getRecipeImageSource` in `RecipeBuilder.tsx` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var
+- No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
 
 ## Agent checklist for every PR
 

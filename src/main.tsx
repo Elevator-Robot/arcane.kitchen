@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { Amplify } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
+import { setCloudFrontDomain } from './amplifyConfig';
 
 
 const loadAmplifyOutputs = async () => {
@@ -46,6 +47,7 @@ const bootstrap = async () => {
 
   if (outputs) {
     Amplify.configure(outputs);
+    setCloudFrontDomain(outputs?.custom?.CloudFrontDomain);
   }
 
   ReactDOM.createRoot(document.getElementById('root')!).render(

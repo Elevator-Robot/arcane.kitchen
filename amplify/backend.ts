@@ -28,6 +28,10 @@ new CfnOutput(backend.storage.stack, 'CloudFrontDomain', {
   description: 'CloudFront domain for serving recipe images',
 });
 
+backend.addOutput({
+  custom: { CloudFrontDomain: cdn.distributionDomainName },
+});
+
 const COGNITO_DOMAIN_PREFIX = 'arcanekitchen';
 const MAX_COGNITO_DOMAIN_LENGTH = 63;
 

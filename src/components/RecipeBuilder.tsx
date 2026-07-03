@@ -23,6 +23,7 @@ import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
+import { getCloudFrontDomain } from '../amplifyConfig';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
@@ -498,17 +499,20 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
 const isRemoteUrl = (value?: string | null) =>
   Boolean(value && /^https?:\/\//i.test(value));
 
-const CLOUDFRONT_DOMAIN =
-  typeof import.meta !== 'undefined'
-    ? import.meta.env.VITE_CLOUDFRONT_DOMAIN
-    : undefined;
+const getCloudFrontDomainOrDefault = () => {
+  const fromConfig = getCloudFrontDomain();
+  if (fromConfig) return fromConfig;
+  if (typeof import.meta !== 'undefined') return import.meta.env.VITE_CLOUDFRONT_DOMAIN;
+  return undefined;
+};
 
 const getRecipeImageSource = async (imageUrl?: string | null) => {
   if (!imageUrl) return neutralImagePlaceholder;
   if (isRemoteUrl(imageUrl)) return imageUrl;
 
-  if (CLOUDFRONT_DOMAIN) {
-    return `https://${CLOUDFRONT_DOMAIN}/${imageUrl}`;
+  const cdnDomain = getCloudFrontDomainOrDefault();
+  if (cdnDomain) {
+    return `https://${cdnDomain}/${imageUrl}`;
   }
 
   try {
