@@ -661,6 +661,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
+  const [bioCharCount, setBioCharCount] = useState(0);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const MAX_BIO_CHARS = 200;
   const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -717,19 +720,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     ? avatarEntries.find((e) => e.file === savedProfileData.avatar)?.url || null
     : null;
 
-  const shuffleAvatars = useCallback(() => {
-    const copy = [...avatarEntries];
-    for (let i = copy.length - 1; i > 0; i--) {
+  const shuffleAvatars = useCallback((exclude?: string | null) => {
+    const pool = exclude
+      ? avatarEntries.filter((a) => a.file !== exclude)
+      : [...avatarEntries];
+    for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    setShuffledAvatars(copy.slice(0, 6));
+    setShuffledAvatars(pool.slice(0, 6));
   }, [avatarEntries]);
 
   useEffect(() => {
     if (currentView === 'Profile') {
       setSelectedAvatar(savedProfileData.avatar);
-      shuffleAvatars();
+      shuffleAvatars(savedProfileData.avatar);
+      setBioCharCount(savedProfileData.bio?.length || 0);
+      setProfileDirty(false);
     }
   }, [currentView]);
 
@@ -738,6 +745,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const displayName = profileNameRef.current?.value || '';
       const bio = profileBioRef.current?.value || '';
       localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ displayName, bio, avatar: selectedAvatar }));
+      setProfileDirty(false);
     }
     setCurrentView('Discover');
   };
@@ -3157,9 +3165,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-2xl">
-            <div className="flex gap-8">
+            <div className="flex-col sm:flex-row flex gap-8">
               <div className="shrink-0">
-                <div className="relative flex h-48 w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
+                <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
                   {selectedAvatar ? (
                     <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
@@ -3179,7 +3187,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   <div className="mb-3 flex items-center gap-2">
                     <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
                     <button
-                      onClick={shuffleAvatars}
+                      onClick={() => shuffleAvatars(selectedAvatar)}
                       className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
                       title="Shuffle avatars"
                     >
@@ -3192,11 +3200,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     {shuffledAvatars.map(({ file, url }) => (
                       <button
                         key={file}
-                        onClick={() => setSelectedAvatar(file)}
+                        onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
                         className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                          selectedAvatar === file
-                            ? 'border-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)]'
-                            : 'border-transparent hover:border-[var(--theme-border)]'
+                           selectedAvatar === file
+                             ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
+                             : 'border-transparent hover:border-[var(--theme-border)]'
                         }`}
                       >
                         <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -3212,6 +3220,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       ref={profileNameRef}
                       defaultValue={savedProfileData.displayName}
                       placeholder="Your display name"
+                      onChange={() => setProfileDirty(true)}
                       className="ak-input rounded px-3 py-2 text-sm outline-none transition"
                     />
                   </label>
@@ -3223,8 +3232,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       defaultValue={savedProfileData.bio}
                       placeholder="A short bio about yourself"
                       rows={3}
+                      maxLength={MAX_BIO_CHARS}
+                      onChange={(e) => {
+                        setBioCharCount(e.target.value.length);
+                        setProfileDirty(true);
+                      }}
                       className="ak-input h-20 resize-none rounded px-3 py-2 text-sm outline-none transition"
                     />
+                    <p className="text-xs text-[var(--theme-text-muted)] text-right">{bioCharCount}/{MAX_BIO_CHARS}</p>
                   </label>
                 </div>
 
@@ -3237,8 +3252,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      setSelectedAvatar(savedProfileData.avatar);
-                      setCurrentView('Discover');
+                      if (!profileDirty || window.confirm('Discard unsaved changes?')) {
+                        setSelectedAvatar(savedProfileData.avatar);
+                        setCurrentView('Discover');
+                      }
                     }}
                     className="rounded border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                   >
@@ -3308,7 +3325,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)]">
                 {isPlaceholder(imagePreviewUrl) ? (
                   <div
-                    className="group flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-alt)] transition-all hover:border-[var(--theme-accent)] hover:bg-[var(--theme-accent)]/5"
+                    className="group flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-alt)] transition-all hover:border-[var(--theme-text)] hover:bg-[var(--theme-surface)]"
                     role="button"
                     tabIndex={0}
                     onClick={() => {
