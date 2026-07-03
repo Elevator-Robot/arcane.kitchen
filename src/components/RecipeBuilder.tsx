@@ -704,7 +704,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [PROFILE_DATA_KEY, creatorName]);
 
   const avatarEntries = useMemo(
-    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.png', { eager: true })).map(([path, mod]) => ({
+    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
       file: path.split('/').pop()!,
       url: mod.default,
     })),

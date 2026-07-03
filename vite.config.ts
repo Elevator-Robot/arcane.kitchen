@@ -16,6 +16,10 @@ export default defineConfig({
         quality: 70,
         palette: true,
       },
+      webp: {
+        quality: 80,
+        alphaQuality: 80,
+      },
     }),
   ],
   test: {
