@@ -506,9 +506,18 @@ const buildRecipeFingerprint = (draft: RecipeDraft) => {
 const isRemoteUrl = (value?: string | null) =>
   Boolean(value && /^https?:\/\//i.test(value));
 
+const CLOUDFRONT_DOMAIN =
+  typeof import.meta !== 'undefined'
+    ? import.meta.env.VITE_CLOUDFRONT_DOMAIN
+    : undefined;
+
 const getRecipeImageSource = async (imageUrl?: string | null) => {
   if (!imageUrl) return neutralImagePlaceholder;
   if (isRemoteUrl(imageUrl)) return imageUrl;
+
+  if (CLOUDFRONT_DOMAIN) {
+    return `https://${CLOUDFRONT_DOMAIN}/${imageUrl}`;
+  }
 
   try {
     const { url } = await doGetUrl({
