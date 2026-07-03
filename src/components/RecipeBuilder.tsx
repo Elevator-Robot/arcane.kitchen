@@ -2156,7 +2156,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 >
                   <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       creatorName.charAt(0).toUpperCase()
                     )}
@@ -3151,7 +3151,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="flex items-center gap-4">
               <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xl font-bold text-white">
                 {selectedAvatar ? (
-                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" className="h-full w-full object-cover" />
+                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                 ) : (
                   creatorName.charAt(0).toUpperCase()
                 )}
@@ -3188,7 +3188,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         : 'border-transparent hover:border-[var(--theme-border)]'
                     }`}
                   >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
