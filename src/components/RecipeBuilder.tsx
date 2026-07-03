@@ -661,9 +661,24 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
+  const [bioCharCount, setBioCharCount] = useState(0);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const MAX_BIO_CHARS = 200;
   const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showUserMenu]);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(
@@ -692,7 +707,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [PROFILE_DATA_KEY, creatorName]);
 
   const avatarEntries = useMemo(
-    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.png', { eager: true })).map(([path, mod]) => ({
+    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
       file: path.split('/').pop()!,
       url: mod.default,
     })),
@@ -705,19 +720,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     ? avatarEntries.find((e) => e.file === savedProfileData.avatar)?.url || null
     : null;
 
-  const shuffleAvatars = useCallback(() => {
-    const copy = [...avatarEntries];
-    for (let i = copy.length - 1; i > 0; i--) {
+  const shuffleAvatars = useCallback((exclude?: string | null) => {
+    const pool = exclude
+      ? avatarEntries.filter((a) => a.file !== exclude)
+      : [...avatarEntries];
+    for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [copy[i], copy[j]] = [copy[j], copy[i]];
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    setShuffledAvatars(copy.slice(0, 6));
+    setShuffledAvatars(pool.slice(0, 6));
   }, [avatarEntries]);
 
   useEffect(() => {
     if (currentView === 'Profile') {
       setSelectedAvatar(savedProfileData.avatar);
-      shuffleAvatars();
+      shuffleAvatars(savedProfileData.avatar);
+      setBioCharCount(savedProfileData.bio?.length || 0);
+      setProfileDirty(false);
     }
   }, [currentView]);
 
@@ -726,6 +745,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const displayName = profileNameRef.current?.value || '';
       const bio = profileBioRef.current?.value || '';
       localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ displayName, bio, avatar: selectedAvatar }));
+      setProfileDirty(false);
     }
     setCurrentView('Discover');
   };
@@ -2109,24 +2129,30 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
-      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-2.5 lg:px-6">
-          <div className="flex items-center gap-8">
-            <div className="flex items-start gap-3">
-              <img
-                src="/logo-no-background.svg"
-                alt="Arcane Kitchen logo"
-                draggable={false}
-                className="pointer-events-none select-none h-12 w-12 object-contain brightness-[0.3]"
-              />
-              <span className="font-heading mt-0.5 text-lg font-semibold text-[var(--theme-text)] select-none">
+      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
+        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className="rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+                aria-label="Home"
+              >
+                <img
+                  src="/logo-no-background.svg"
+                  alt=""
+                  draggable={false}
+                  className="h-14 w-14 object-contain brightness-[0.3] pointer-events-none"
+                />
+              </button>
+              <span className="font-heading text-base font-semibold text-[var(--theme-text)] select-none">
                 Arcane Kitchen
               </span>
             </div>
             <nav className="hidden md:flex items-center gap-1">
               <button
                 onClick={() => setCurrentView('Discover')}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-md px-2 py-1 text-sm font-medium transition ${
                   currentView === 'Discover'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
@@ -2136,7 +2162,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </button>
               <button
                 onClick={startCreateRecipe}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-md px-2 py-1 text-sm font-medium transition ${
                   currentView === 'Build'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
@@ -2149,19 +2175,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <div className="flex items-center gap-2">
             {onSignOut ? (
-              <div className="relative">
+              <div ref={menuContainerRef} className="relative">
                 <button
                   onClick={() => setShowUserMenu((p) => !p)}
-                  className="flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
+                  className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
                 >
-                  <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white">
+                  <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white transition-transform duration-300 ${showUserMenu ? 'scale-150' : ''} group-hover:scale-150`}>
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                     ) : (
                       creatorName.charAt(0).toUpperCase()
                     )}
                   </div>
-                  <span className="max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)]">
+                  <span className={`max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 ${showUserMenu ? 'translate-x-1 text-[var(--theme-accent)]' : ''} group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]`}>
                     {savedProfileData.displayName}
                   </span>
                   <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -2169,9 +2195,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </svg>
                 </button>
                 {showUserMenu && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                    <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
+                  <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
                       <button
                         onClick={() => { setCurrentView('Profile'); setShowUserMenu(false); }}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
@@ -2213,8 +2237,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         </svg>
                         Logout
                       </button>
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             ) : (
@@ -2481,7 +2504,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {shareNotice && (
-                        <div className="w-full rounded-lg border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
+                        <div className="w-full rounded border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
                           {shareNotice}
                         </div>
                       )}
@@ -2782,7 +2805,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 value={draft.name}
                 onChange={(event) => updateDraft('name', event.target.value)}
                 placeholder="e.g., Grandma's Apple Pie"
-                className="ak-input rounded-lg px-3 py-2 outline-none transition"
+                className="ak-input rounded px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -2794,7 +2817,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   updateDraft('description', event.target.value)
                 }
                 placeholder="A short summary of your dish"
-                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
+                className="ak-input h-20 resize-none rounded px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -2806,7 +2829,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   updateDraft('notes', event.target.value)
                 }
                 placeholder="Add notes or tips for your recipe"
-                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
+                className="ak-input h-20 resize-none rounded px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -2852,7 +2875,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       addTag();
                     }}
                     placeholder="e.g., Quick, Vegetarian, Dessert"
-                    className="ak-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+                    className="ak-input rounded px-3 py-2 text-sm outline-none w-full"
                     disabled={draft.tags.length >= 10}
                   />
                   {tagSuggestions.length > 0 && (
@@ -2925,7 +2948,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.ingredients.map((ingredient) => (
                   <div
                     key={ingredient.id}
-                    className="ak-surface-alt grid min-w-0 gap-2 rounded-xl border p-2"
+                    className="ak-surface-alt grid min-w-0 gap-2 rounded border p-2"
                   >
                     <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
                       <input
@@ -2939,7 +2962,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="e.g., All-purpose flour"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                       <button
                         onClick={() => removeIngredient(ingredient.id)}
@@ -2961,7 +2984,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="e.g., 2"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                       <input
                         aria-label="Unit"
@@ -2974,7 +2997,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="e.g., cups"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                     </div>
                   </div>
@@ -3007,7 +3030,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         updateInstruction(index, event.target.value)
                       }
                       placeholder="e.g., Preheat oven to 375°F"
-                      className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
+                      className="ak-input h-16 resize-none rounded px-3 py-2 text-sm outline-none transition"
                     />
                     <button
                       type="button"
@@ -3036,7 +3059,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.utensils.map((utensil, index) => (
                   <div
                     key={`utensil-${index}`}
-                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded-xl border p-3"
+                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded border p-3"
                   >
                     <input
                       aria-label="Utensil"
@@ -3045,7 +3068,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         updateUtensil(index, event.target.value)
                       }
                       placeholder="e.g., Mixing bowl, Chef's knife"
-                      className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                      className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                     />
                     <button
                       onClick={() => removeUtensil(index)}
@@ -3148,91 +3171,104 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-2xl">
-            <div className="flex items-center gap-4">
-              <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xl font-bold text-white">
-                {selectedAvatar ? (
-                  <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                ) : (
-                  creatorName.charAt(0).toUpperCase()
-                )}
+            <div className="flex-col sm:flex-row flex gap-8">
+              <div className="shrink-0">
+                <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
+                  {selectedAvatar ? (
+                    <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    creatorName.charAt(0).toUpperCase()
+                  )}
+                </div>
               </div>
-              <div>
-                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
-                <p className="text-sm text-[var(--theme-text-muted)]">
-                  {userAttributes?.email || currentUser?.username}
-                </p>
-              </div>
-            </div>
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div>
+                  <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
+                  <p className="text-sm text-[var(--theme-text-muted)]">
+                    {userAttributes?.email || currentUser?.username}
+                  </p>
+                </div>
 
-            <div className="mt-6">
-              <div className="mb-3 flex items-center gap-2">
-                <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
-                <button
-                  onClick={shuffleAvatars}
-                  className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
-                  title="Shuffle avatars"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-              </div>
-              <div className="grid grid-cols-6 gap-2">
-                {shuffledAvatars.map(({ file, url }) => (
+                <div className="mt-6">
+                  <div className="mb-3 flex items-center gap-2">
+                    <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
+                    <button
+                      onClick={() => shuffleAvatars(selectedAvatar)}
+                      className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
+                      title="Shuffle avatars"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
+                    {shuffledAvatars.map(({ file, url }) => (
+                      <button
+                        key={file}
+                        onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
+                        className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
+                           selectedAvatar === file
+                             ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
+                             : 'border-transparent hover:border-[var(--theme-border)]'
+                        }`}
+                      >
+                        <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-8 grid gap-5">
+                  <label className="grid gap-1.5">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
+                    <input
+                      ref={profileNameRef}
+                      defaultValue={savedProfileData.displayName}
+                      placeholder="Your display name"
+                      onChange={() => setProfileDirty(true)}
+                      className="ak-input rounded px-3 py-2 text-sm outline-none transition"
+                    />
+                  </label>
+
+                  <label className="grid gap-1.5">
+                    <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
+                    <textarea
+                      ref={profileBioRef}
+                      defaultValue={savedProfileData.bio}
+                      placeholder="A short bio about yourself"
+                      rows={3}
+                      maxLength={MAX_BIO_CHARS}
+                      onChange={(e) => {
+                        setBioCharCount(e.target.value.length);
+                        setProfileDirty(true);
+                      }}
+                      className="ak-input h-20 resize-none rounded px-3 py-2 text-sm outline-none transition"
+                    />
+                    <p className="text-xs text-[var(--theme-text-muted)] text-right">{bioCharCount}/{MAX_BIO_CHARS}</p>
+                  </label>
+                </div>
+
+                <div className="mt-6 flex gap-3">
                   <button
-                    key={file}
-                    onClick={() => setSelectedAvatar(file)}
-                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                      selectedAvatar === file
-                        ? 'border-[var(--theme-accent)] ring-2 ring-[var(--theme-accent)]'
-                        : 'border-transparent hover:border-[var(--theme-border)]'
-                    }`}
+                    onClick={saveProfile}
+                    className="rounded bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
                   >
-                    <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    Save
                   </button>
-                ))}
+                  <button
+                    onClick={() => {
+                      if (!profileDirty || window.confirm('Discard unsaved changes?')) {
+                        setSelectedAvatar(savedProfileData.avatar);
+                        setCurrentView('Discover');
+                      }
+                    }}
+                    className="rounded border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div className="mt-8 grid gap-5">
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
-                <input
-                  ref={profileNameRef}
-                  defaultValue={savedProfileData.displayName}
-                  placeholder="Your display name"
-                  className="ak-input rounded-lg px-3 py-2 text-sm outline-none transition"
-                />
-              </label>
-
-              <label className="grid gap-1.5">
-                <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
-                <textarea
-                  ref={profileBioRef}
-                  defaultValue={savedProfileData.bio}
-                  placeholder="A short bio about yourself"
-                  rows={3}
-                  className="ak-input h-20 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
-                />
-              </label>
-            </div>
-
-            <div className="mt-8 flex gap-3">
-              <button
-                onClick={saveProfile}
-                className="rounded-lg bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => {
-                  setSelectedAvatar(savedProfileData.avatar);
-                  setCurrentView('Discover');
-                }}
-                className="rounded-lg border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-              >
-                Cancel
-              </button>
             </div>
           </div>
         </section>
@@ -3295,7 +3331,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)]">
                 {isPlaceholder(imagePreviewUrl) ? (
                   <div
-                    className="group flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-alt)] transition-all hover:border-[var(--theme-accent)] hover:bg-[var(--theme-accent)]/5"
+                    className="group flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-alt)] transition-all hover:border-[var(--theme-text)] hover:bg-[var(--theme-surface)]"
                     role="button"
                     tabIndex={0}
                     onClick={() => {
