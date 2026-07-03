@@ -2651,7 +2651,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
                   {isAuthenticated &&
                     expandedRecipe.ownerId === currentUserId && (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
                         <button
                           type="button"
                           onClick={() =>
@@ -2661,11 +2661,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             )
                           }
                           disabled={loadingEditRecipeId === expandedRecipe.id}
-                          className="ak-button-secondary inline-flex items-center justify-center rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm disabled:opacity-60"
+                          className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
                         >
                           {loadingEditRecipeId === expandedRecipe.id
                             ? 'Opening...'
-                            : 'Edit recipe'}
+                            : 'Edit'}
                         </button>
                         <button
                           type="button"
@@ -2676,19 +2676,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             )
                           }
                           disabled={deletingRecipeIds.has(expandedRecipe.id)}
-                          className={`ak-button-danger inline-flex items-center justify-center overflow-hidden whitespace-nowrap rounded-md py-1.5 text-xs font-semibold text-white shadow-sm transition-all duration-200 ease-out disabled:opacity-60 ${
-                            deletingRecipeIds.has(expandedRecipe.id)
-                              ? 'w-28 px-2.5'
-                              : armedDeleteRecipeIds.has(expandedRecipe.id)
-                                ? 'w-36 px-3'
-                                : 'w-28 px-3'
+                          className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+                            armedDeleteRecipeIds.has(expandedRecipe.id)
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
                           }`}
                         >
                           {deletingRecipeIds.has(expandedRecipe.id)
                             ? 'Deleting...'
                             : armedDeleteRecipeIds.has(expandedRecipe.id)
                               ? 'Delete permanently'
-                              : 'Delete recipe'}
+                              : 'Delete'}
                         </button>
                       </div>
                     )}
