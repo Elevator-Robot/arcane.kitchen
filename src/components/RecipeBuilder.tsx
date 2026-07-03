@@ -2490,7 +2490,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {shareNotice && (
-                        <div className="w-full rounded-lg border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
+                        <div className="w-full rounded border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
                           {shareNotice}
                         </div>
                       )}
@@ -2791,7 +2791,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 value={draft.name}
                 onChange={(event) => updateDraft('name', event.target.value)}
                 placeholder="e.g., Grandma's Apple Pie"
-                className="ak-input rounded-lg px-3 py-2 outline-none transition"
+                className="ak-input rounded px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -2803,7 +2803,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   updateDraft('description', event.target.value)
                 }
                 placeholder="A short summary of your dish"
-                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
+                className="ak-input h-20 resize-none rounded px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -2815,7 +2815,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   updateDraft('notes', event.target.value)
                 }
                 placeholder="Add notes or tips for your recipe"
-                className="ak-input h-20 resize-none rounded-lg px-3 py-2 outline-none transition"
+                className="ak-input h-20 resize-none rounded px-3 py-2 outline-none transition"
               />
             </label>
 
@@ -2861,7 +2861,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       addTag();
                     }}
                     placeholder="e.g., Quick, Vegetarian, Dessert"
-                    className="ak-input rounded-lg px-3 py-2 text-sm outline-none w-full"
+                    className="ak-input rounded px-3 py-2 text-sm outline-none w-full"
                     disabled={draft.tags.length >= 10}
                   />
                   {tagSuggestions.length > 0 && (
@@ -2934,7 +2934,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.ingredients.map((ingredient) => (
                   <div
                     key={ingredient.id}
-                    className="ak-surface-alt grid min-w-0 gap-2 rounded-xl border p-2"
+                    className="ak-surface-alt grid min-w-0 gap-2 rounded border p-2"
                   >
                     <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
                       <input
@@ -2948,7 +2948,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="e.g., All-purpose flour"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                       <button
                         onClick={() => removeIngredient(ingredient.id)}
@@ -2970,7 +2970,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="e.g., 2"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                       <input
                         aria-label="Unit"
@@ -2983,7 +2983,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           )
                         }
                         placeholder="e.g., cups"
-                        className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                     </div>
                   </div>
@@ -3016,7 +3016,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         updateInstruction(index, event.target.value)
                       }
                       placeholder="e.g., Preheat oven to 375°F"
-                      className="ak-input h-16 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
+                      className="ak-input h-16 resize-none rounded px-3 py-2 text-sm outline-none transition"
                     />
                     <button
                       type="button"
@@ -3045,7 +3045,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 {draft.utensils.map((utensil, index) => (
                   <div
                     key={`utensil-${index}`}
-                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded-xl border p-3"
+                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded border p-3"
                   >
                     <input
                       aria-label="Utensil"
@@ -3054,7 +3054,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         updateUtensil(index, event.target.value)
                       }
                       placeholder="e.g., Mixing bowl, Chef's knife"
-                      className="ak-input min-w-0 rounded-lg px-3 py-2 text-sm outline-none"
+                      className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                     />
                     <button
                       onClick={() => removeUtensil(index)}
@@ -3212,7 +3212,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       ref={profileNameRef}
                       defaultValue={savedProfileData.displayName}
                       placeholder="Your display name"
-                      className="ak-input rounded-lg px-3 py-2 text-sm outline-none transition"
+                      className="ak-input rounded px-3 py-2 text-sm outline-none transition"
                     />
                   </label>
 
@@ -3223,7 +3223,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       defaultValue={savedProfileData.bio}
                       placeholder="A short bio about yourself"
                       rows={3}
-                      className="ak-input h-20 resize-none rounded-lg px-3 py-2 text-sm outline-none transition"
+                      className="ak-input h-20 resize-none rounded px-3 py-2 text-sm outline-none transition"
                     />
                   </label>
                 </div>
@@ -3231,7 +3231,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={saveProfile}
-                    className="rounded-lg bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+                    className="rounded bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
                   >
                     Save
                   </button>
@@ -3240,7 +3240,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       setSelectedAvatar(savedProfileData.avatar);
                       setCurrentView('Discover');
                     }}
-                    className="rounded-lg border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                    className="rounded border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                   >
                     Cancel
                   </button>
