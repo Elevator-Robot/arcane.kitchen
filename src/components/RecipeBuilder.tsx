@@ -2287,7 +2287,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   {['All', 'Favorites', 'My recipes'].map((tag) => (
                     <button
                       key={tag}
-                      onClick={() => setActiveTag(tag)}
+                      onClick={() => setActiveTag(activeTag === tag ? 'All' : tag)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
                         activeTag === tag
                           ? 'bg-[var(--theme-accent)] text-white'
@@ -2313,7 +2313,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         {visible.map(({ label, count }) => (
                           <button
                             key={label}
-                            onClick={() => setActiveTag(label)}
+                            onClick={() => setActiveTag(activeTag === label ? 'All' : label)}
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                               activeTag === label
                                 ? 'bg-[var(--theme-accent)] text-white shadow-sm'
@@ -2352,7 +2352,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                   <button
                                     key={label}
                                     onClick={() => {
-                                      setActiveTag(label);
+                                      setActiveTag(activeTag === label ? 'All' : label);
                                       setShowAllTags('');
                                     }}
                                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
@@ -2397,7 +2397,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         {communityFilterTags.map(({ label, count }) => (
                           <button
                             key={label}
-                            onClick={() => setActiveTag(label)}
+                            onClick={() => setActiveTag(activeTag === label ? 'All' : label)}
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                               activeTag === label
                                 ? 'bg-[var(--theme-accent)] text-white shadow-sm'
