@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   render,
@@ -38,6 +38,14 @@ const { mockRecipeList, mockRecipeGetUrl, mockRecipeUploadData } =
       .fn()
       .mockReturnValue({ result: Promise.resolve({ path: 'test-path' }) }),
   }));
+
+const mockRecipeStorageConfig = vi.hoisted(() => vi.fn(() => ({ Storage: {} })));
+
+vi.mock('aws-amplify', () => ({
+  Amplify: {
+    getConfig: mockRecipeStorageConfig,
+  },
+}));
 
 vi.mock('aws-amplify/data', () => ({
   generateClient: () => ({
@@ -94,6 +102,9 @@ describe('RecipeBuilder Component', () => {
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
     mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
+    if (typeof indexedDB !== 'undefined') {
+      indexedDB.deleteDatabase('arcaneKitchenDraft');
+    }
   });
 
   it('renders the social recipe workspace', async () => {
@@ -200,6 +211,95 @@ describe('RecipeBuilder Component', () => {
 
     expect(await screen.findByText('Saved recipes')).toBeInTheDocument();
     expect(screen.getAllByText('Saved Recipe').length).toBeGreaterThan(0);
+  }, 20000);
+
+  it('autosaves recipe drafts and restores them from the drafts view', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Build' }));
+
+    const titleInput = screen.getAllByPlaceholderText("e.g., Grandma's Apple Pie")[0];
+    await user.type(titleInput, 'Moonlit Porridge');
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Drafts' }));
+
+    const draftsHeading = await screen.findByRole('heading', { name: 'Drafts' });
+    expect(draftsHeading).toBeInTheDocument();
+
+    const draftsSection = draftsHeading.closest('section');
+    expect(draftsSection).not.toBeNull();
+
+    expect(within(draftsSection as HTMLElement).getByText('Moonlit Porridge')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Resume' }));
+
+    expect(
+      screen.getAllByDisplayValue('Moonlit Porridge')[0]
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(screen.getByRole('button', { name: 'Drafts' }));
+    await user.click(screen.getByRole('button', { name: /Delete draft/i }));
+
+    expect(screen.queryByText('Moonlit Porridge')).not.toBeInTheDocument();
+  }, 20000);
+
+  it('removes the active draft after publishing', async () => {
+    const user = userEvent.setup();
+    const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-draft');
+    const revokeObjectUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Build' }));
+
+    const titleInput = screen.getAllByPlaceholderText("e.g., Grandma's Apple Pie")[0];
+    await user.type(titleInput, 'Published Draft')
+
+    const descriptionInput = screen.getByPlaceholderText('A short summary of your dish');
+    await user.type(descriptionInput, 'A draft that will be published');
+
+    const ingredientAmount = screen.getByLabelText('Amount');
+    const ingredientUnit = screen.getByLabelText('Unit');
+    const ingredientName = screen.getByLabelText('Ingredient');
+    await user.type(ingredientAmount, '2');
+    await user.type(ingredientUnit, 'cups');
+    await user.type(ingredientName, 'Flour');
+
+    const addPhotoDropzone = screen.getByRole('button', { name: 'Add Photo' });
+    const fileInput = addPhotoDropzone.parentElement?.querySelector('input[type="file"]') as HTMLInputElement | null;
+    expect(fileInput).not.toBeNull();
+
+    const imageFile = new File(['draft-image'], 'draft-image.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput as HTMLInputElement, imageFile);
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Drafts' }));
+    const draftsHeading = await screen.findByRole('heading', { name: 'Drafts' });
+    const draftsSection = draftsHeading.closest('section');
+    expect(draftsSection).not.toBeNull();
+    expect(within(draftsSection as HTMLElement).getByText('Published Draft')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Build' }));
+    await user.click(screen.getByRole('button', { name: 'Publish' }));
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Drafts' }));
+    const refreshedDraftsHeading = await screen.findByRole('heading', { name: 'Drafts' });
+    const refreshedDraftsSection = refreshedDraftsHeading.closest('section');
+    expect(refreshedDraftsSection).not.toBeNull();
+    expect(within(refreshedDraftsSection as HTMLElement).queryByText('Published Draft')).not.toBeInTheDocument();
+
+    createObjectUrlSpy.mockRestore();
+    revokeObjectUrlSpy.mockRestore();
   }, 20000);
 
   it('prompts unauthenticated users to sign in before creating', async () => {

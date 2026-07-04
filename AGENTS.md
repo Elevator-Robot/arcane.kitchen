@@ -34,6 +34,13 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Selected avatar filename is saved in `profileData.avatar`; displayed via `<img src={url} />`
 - Fallback: if no avatar selected, shows the initial letter of the display name
 
+## Recipe Drafts
+
+- Drafts are stored locally per user and restored automatically when that user returns to Build
+- Draft autosave is debounced and keeps title, ingredients, instructions, utensils, and image preview data
+- The profile menu includes a Drafts view with resume and delete actions, alongside Saved Recipes
+- Successful publish removes the active draft record
+
 ## CloudFront CDN
 
 - `amplify/backend.ts` creates a CloudFront distribution (via CDK escape hatch) and exports its domain via `CfnOutput` + `backend.addOutput({ custom: { CloudFrontDomain } })`

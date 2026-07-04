@@ -24,15 +24,24 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
 import { getCloudFrontDomain } from '../amplifyConfig';
+import {
+  deleteRecipeDraft,
+  EMPTY_RECIPE_DRAFT,
+  getLatestRecipeDraft,
+  isRecipeDraftEmpty,
+  loadRecipeDraftsForOwner,
+  saveRecipeDraft,
+  type RecipeDraft,
+  type RecipeDraftRecord,
+  type RecipeIngredientDraft,
+} from '../utils/recipeDrafts';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
 const doUploadData = uploadData;
 const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
-const DRAFT_STORAGE_KEY = 'arcaneKitchen.recipeDraft';
-const DRAFT_MAX_AGE = 24 * 60 * 60 * 1000;
-type RecipeBuilderView = 'Discover' | 'Build' | 'Profile' | 'SavedRecipes';
+type RecipeBuilderView = 'Discover' | 'Build' | 'Profile' | 'SavedRecipes' | 'Drafts';
 
 const getInitialRecipeBuilderView = (): RecipeBuilderView => {
   if (typeof window === 'undefined' || !window.localStorage) return 'Discover';
@@ -43,7 +52,8 @@ const getInitialRecipeBuilderView = (): RecipeBuilderView => {
     savedView === 'Discover' ||
     savedView === 'Build' ||
     savedView === 'Profile' ||
-    savedView === 'SavedRecipes'
+    savedView === 'SavedRecipes' ||
+    savedView === 'Drafts'
   ) {
     return savedView;
   }
@@ -70,7 +80,7 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
 };
 
 const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
-  currentUser?.userId || userAttributes?.sub || null;
+  currentUser?.userId || currentUser?.username || userAttributes?.sub || null;
 
 const getRecipeIdFromPath = (pathname?: string | null) => {
   if (!pathname) return null;
@@ -92,25 +102,6 @@ interface RecipeBuilderProps {
   userAttributes?: any;
   onRequestAuth?: () => void;
   onSignOut?: () => void;
-}
-
-interface RecipeIngredientDraft {
-  id: number;
-  name: string;
-  amount: string;
-  unit: string;
-}
-
-interface RecipeDraft {
-  name: string;
-  description: string;
-  notes?: string;
-  prepTime: string;
-  tags: string[];
-  imageUrl: string;
-  instructions: string[];
-  ingredients: RecipeIngredientDraft[];
-  utensils: string[];
 }
 
 interface FeedRecipe {
@@ -280,116 +271,6 @@ const isRecipeNew = (recipe: FeedRecipe) => {
   if (!recipe.createdAt) return false;
   const createdAt = dayjs(recipe.createdAt);
   return createdAt.isValid() && dayjs().diff(createdAt, 'day') < 30;
-};
-
-const EMPTY_DRAFT: RecipeDraft = {
-  name: '',
-  description: '',
-  notes: '',
-  prepTime: '',
-  tags: [],
-  imageUrl: '',
-  instructions: [''],
-  ingredients: [{ id: 0, name: '', amount: '', unit: '' }],
-  utensils: [],
-};
-
-interface SavedDraft {
-  draft: RecipeDraft;
-  editingRecipeId: string | null;
-  savedAt: number;
-}
-
-const DRAFT_IMAGE_KEY = 'arcaneKitchen.draftImage';
-
-function openDraftDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('arcaneKitchenDraft', 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore('kv');
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function getDraftImage(): Promise<string | null> {
-  try {
-    const db = await openDraftDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('kv', 'readonly');
-      const request = tx.objectStore('kv').get(DRAFT_IMAGE_KEY);
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    return null;
-  }
-}
-
-async function saveDraftImage(dataUrl: string): Promise<void> {
-  const db = await openDraftDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('kv', 'readwrite');
-    const request = tx.objectStore('kv').put(dataUrl, DRAFT_IMAGE_KEY);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-async function removeDraftImage(): Promise<void> {
-  try {
-    const db = await openDraftDb();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('kv', 'readwrite');
-      const request = tx.objectStore('kv').delete(DRAFT_IMAGE_KEY);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    /* ignore */
-  }
-}
-
-const isDraftEmpty = (draft: RecipeDraft) =>
-  !draft.name.trim() &&
-  !draft.description.trim() &&
-  draft.ingredients.every((i) => !i.name.trim()) &&
-  draft.instructions.every((i) => !i.trim()) &&
-  !draft.tags.length &&
-  !draft.utensils.length &&
-  !draft.prepTime.trim();
-
-const getInitialDraft = (): RecipeDraft => {
-  if (typeof window === 'undefined' || !window.localStorage) return EMPTY_DRAFT;
-  try {
-    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!raw) return EMPTY_DRAFT;
-    const saved: SavedDraft = JSON.parse(raw);
-    if (Date.now() - saved.savedAt > DRAFT_MAX_AGE) {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
-      return EMPTY_DRAFT;
-    }
-    if (saved.draft && !isDraftEmpty(saved.draft)) {
-      return saved.draft;
-    }
-  } catch {
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
-  }
-  return EMPTY_DRAFT;
-};
-
-const getInitialEditingRecipeId = (): string | null => {
-  if (typeof window === 'undefined' || !window.localStorage) return null;
-  try {
-    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!raw) return null;
-    const saved: SavedDraft = JSON.parse(raw);
-    if (Date.now() - saved.savedAt > DRAFT_MAX_AGE) return null;
-    return saved.editingRecipeId || null;
-  } catch {
-    return null;
-  }
 };
 
 function dataUrlToFile(dataUrl: string, filename: string): File {
@@ -613,10 +494,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
-  const [draft, setDraft] = useState<RecipeDraft>(getInitialDraft);
-  const [draftRestored, setDraftRestored] = useState(
-    () => !isDraftEmpty(getInitialDraft())
-  );
+  const [draft, setDraft] = useState<RecipeDraft>(EMPTY_RECIPE_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [showAllTags, setShowAllTags] = useState('');
@@ -640,6 +518,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [publishMessageTone, setPublishMessageTone] = useState<
     'error' | 'success'
   >('error');
+  const [draftRecords, setDraftRecords] = useState<RecipeDraftRecord[]>([]);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
     getInitialFavoriteRecipeIds
   );
@@ -656,6 +535,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [shareNotice, setShareNotice] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -668,6 +549,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuContainerRef = useRef<HTMLDivElement>(null);
+  const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftHydratedRef = useRef(false);
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -681,9 +564,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [showUserMenu]);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
-  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(
-    getInitialEditingRecipeId
-  );
+  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
     null
   );
@@ -715,6 +596,57 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   );
 
   const savedProfileData = loadProfileData();
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setDraftRecords([]);
+      setDraftId(null);
+      setDraftImageDataUrl(null);
+      setDraft(EMPTY_RECIPE_DRAFT);
+      setEditingRecipeId(null);
+      setImagePreviewUrl(neutralImagePlaceholder);
+      setSelectedImageFile(null);
+      draftHydratedRef.current = true;
+      return;
+    }
+
+    let cancelled = false;
+    draftHydratedRef.current = true;
+
+    const hydrateDrafts = async () => {
+      const records = await loadRecipeDraftsForOwner(currentUserId);
+
+      if (cancelled) return;
+
+      setDraftRecords(records);
+
+      const latestDraft = records[0] || (await getLatestRecipeDraft(currentUserId));
+
+      if (cancelled) return;
+
+      if (latestDraft) {
+        setDraft(latestDraft.draft);
+        setDraftId(latestDraft.id);
+        setDraftImageDataUrl(latestDraft.imageDataUrl);
+        setEditingRecipeId(latestDraft.editingRecipeId);
+        setImagePreviewUrl(latestDraft.imageDataUrl || neutralImagePlaceholder);
+        setSelectedImageFile(
+          latestDraft.imageDataUrl
+            ? dataUrlToFile(latestDraft.imageDataUrl, 'recipe-image.jpg')
+            : null
+        );
+        setCurrentView('Build');
+        setPublishMessage('Draft restored from your last session.');
+        setPublishMessageTone('success');
+      }
+    };
+
+    void hydrateDrafts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUserId]);
 
   const avatarUrl = savedProfileData.avatar
     ? avatarEntries.find((e) => e.file === savedProfileData.avatar)?.url || null
@@ -836,12 +768,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [currentView]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    const saved: SavedDraft = { draft, editingRecipeId, savedAt: Date.now() };
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(saved));
-  }, [draft, editingRecipeId]);
-
-  useEffect(() => {
     if (!isAuthenticated && currentView === 'Build') {
       setCurrentView('Discover');
     }
@@ -886,20 +812,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       window.removeEventListener('popstate', syncRecipeRoute);
     };
   }, [expandedRecipeId, feedRecipes, isLoadingFeed]);
-
-  useEffect(() => {
-    if (!draftRestored) return;
-    setCurrentView('Build');
-    setPublishMessage('Draft restored from your last session.');
-    setPublishMessageTone('success');
-
-    getDraftImage().then((dataUrl) => {
-      if (dataUrl) {
-        setImagePreviewUrl(dataUrl);
-        setSelectedImageFile(dataUrlToFile(dataUrl, 'recipe-image.jpg'));
-      }
-    });
-  }, [draftRestored]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -989,6 +901,64 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
     };
   }, [imagePreviewUrl]);
+
+  useEffect(() => {
+    if (
+      !draftHydratedRef.current ||
+      !isAuthenticated ||
+      !currentUserId ||
+      currentView !== 'Build'
+    ) {
+      return;
+    }
+
+    if (isRecipeDraftEmpty(draft) && !draftId && !draftImageDataUrl) {
+      return;
+    }
+
+    if (draftAutosaveTimeoutRef.current) {
+      clearTimeout(draftAutosaveTimeoutRef.current);
+    }
+
+    draftAutosaveTimeoutRef.current = setTimeout(() => {
+      void (async () => {
+        const savedDraft = await saveRecipeDraft({
+          ownerId: currentUserId,
+          draft,
+          editingRecipeId,
+          imageDataUrl: draftImageDataUrl,
+          draftId,
+        });
+
+        if (savedDraft) {
+          setDraftId(savedDraft.id);
+          setDraftImageDataUrl(savedDraft.imageDataUrl);
+          setDraftRecords((previous) => {
+            const next = previous.filter(
+              (record) => record.id !== savedDraft.id || record.ownerId !== currentUserId
+            );
+            return [savedDraft, ...next].sort(
+              (left, right) => right.updatedAt - left.updatedAt
+            );
+          });
+        } else if (draftId) {
+          setDraftId(null);
+          setDraftImageDataUrl(null);
+          setDraftRecords((previous) =>
+            previous.filter(
+              (record) => record.ownerId !== currentUserId || record.id !== draftId
+            )
+          );
+        }
+      })();
+    }, 450);
+
+    return () => {
+      if (draftAutosaveTimeoutRef.current) {
+        clearTimeout(draftAutosaveTimeoutRef.current);
+      }
+    };
+  }, [currentUserId, currentView, draft, draftId, draftImageDataUrl, editingRecipeId, isAuthenticated]);
 
   const updateDraft = <K extends keyof RecipeDraft>(
     field: K,
@@ -1104,6 +1074,42 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     () => feedRecipes.filter((recipe) => favoriteRecipeIds.has(recipe.id)),
     [favoriteRecipeIds, feedRecipes]
   );
+
+  const resumeDraft = (draftRecord: RecipeDraftRecord) => {
+    setDraft(draftRecord.draft);
+    setDraftId(draftRecord.id);
+    setDraftImageDataUrl(draftRecord.imageDataUrl);
+    setEditingRecipeId(draftRecord.editingRecipeId);
+    setImagePreviewUrl(draftRecord.imageDataUrl || neutralImagePlaceholder);
+    setSelectedImageFile(
+      draftRecord.imageDataUrl
+        ? dataUrlToFile(draftRecord.imageDataUrl, 'recipe-image.jpg')
+        : null
+    );
+    setPublishMessage('Draft loaded.');
+    setPublishMessageTone('success');
+    setCurrentView('Build');
+  };
+
+  const removeDraftRecord = async (draftRecord: RecipeDraftRecord) => {
+    if (!currentUserId) return;
+
+    await deleteRecipeDraft(currentUserId, draftRecord.id);
+    setDraftRecords((previous) =>
+      previous.filter(
+        (record) => record.ownerId !== currentUserId || record.id !== draftRecord.id
+      )
+    );
+
+    if (draftId === draftRecord.id) {
+      setDraft(EMPTY_RECIPE_DRAFT);
+      setDraftId(null);
+      setDraftImageDataUrl(null);
+      setEditingRecipeId(null);
+      setSelectedImageFile(null);
+      setImagePreviewUrl(neutralImagePlaceholder);
+    }
+  };
 
   const visibleFeedRecipes = useMemo(() => {
     const query = discoverQuery.trim().toLowerCase();
@@ -1224,7 +1230,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     reader.onloadend = () => {
       const dataUrl = reader.result as string;
       setImagePreviewUrl(dataUrl);
-      void saveDraftImage(dataUrl);
+      setDraftImageDataUrl(dataUrl);
     };
     reader.readAsDataURL(file);
   };
@@ -1240,12 +1246,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
 
     setEditingRecipeId(null);
-    setSelectedImageFile(null);
-    setImagePreviewUrl(neutralImagePlaceholder);
-    void removeDraftImage();
-    setDraft(EMPTY_DRAFT);
-    setDraftRestored(false);
-    if (typeof window !== 'undefined') localStorage.removeItem(DRAFT_STORAGE_KEY);
+    if (!draftId && isRecipeDraftEmpty(draft)) {
+      setSelectedImageFile(null);
+      setDraftImageDataUrl(null);
+      setImagePreviewUrl(neutralImagePlaceholder);
+      setDraft(EMPTY_RECIPE_DRAFT);
+    }
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -1261,9 +1267,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setEditingRecipeId(null);
     setSelectedImageFile(null);
     setImagePreviewUrl(neutralImagePlaceholder);
-    void removeDraftImage();
     setDraft(EXAMPLE_DRAFT);
-    setDraftRestored(false);
+  setDraftImageDataUrl(null);
+  setDraftId(null);
     setPublishMessage('');
     setPublishMessageTone('error');
     setNewTagValue('');
@@ -1350,6 +1356,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const resolvedImage = await getRecipeImageSource(recipeData.imageUrl);
 
       setEditingRecipeId(recipeId);
+      setDraftId(null);
+      setDraftImageDataUrl(null);
       setSelectedImageFile(null);
       setImagePreviewUrl(resolvedImage);
       setDraft({
@@ -1708,10 +1716,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
       setPublishMessageTone('success');
       setSelectedImageFile(null);
-      void removeDraftImage();
       setEditingRecipeId(null);
-      setDraftRestored(false);
-      if (typeof window !== 'undefined') localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setDraft(EMPTY_RECIPE_DRAFT);
+      setDraftImageDataUrl(null);
+      if (draftId) {
+        await deleteRecipeDraft(currentUserId, draftId);
+      }
+      setDraftId(null);
+      setDraftRecords((previous) =>
+        previous.filter((record) => record.ownerId !== currentUserId || record.id !== draftId)
+      );
+      setImagePreviewUrl(neutralImagePlaceholder);
       await loadRecipes();
       setActiveTag('All');
       setDiscoverQuery('');
@@ -2220,6 +2235,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0110.186 0z" />
                         </svg>
                         Saved Recipes
+                      </button>
+                      <button
+                        onClick={() => {
+                          setExpandedRecipeId(null);
+                          if (typeof window !== 'undefined') {
+                            window.history.replaceState({}, '', '/');
+                          }
+                          setCurrentView('Drafts');
+                          setShowUserMenu(false);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Drafts
                       </button>
                       <div className="my-1 border-t border-[var(--theme-border)]" />
                       <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]">
@@ -3157,6 +3188,91 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                   Save recipes from Discover to keep them close at hand here.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section
+          id="drafts"
+          key={currentView === 'Drafts' ? 'drafts-visible' : 'drafts-hidden'}
+          className={`min-h-0 overflow-y-auto ${
+            currentView === 'Drafts' ? 'flex flex-col' : 'hidden'
+          }`}
+        >
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  Drafts
+                </h2>
+                <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                  Continue recipes you were already building.
+                </p>
+              </div>
+              <button
+                onClick={() => setCurrentView('Discover')}
+                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+              >
+                Back to Discover
+              </button>
+            </div>
+
+            {draftRecords.length ? (
+              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {draftRecords.map((draftRecord) => (
+                  <article
+                    key={draftRecord.id}
+                    className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-5 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-accent)]">
+                          Draft
+                        </p>
+                        <h3 className="mt-2 font-heading text-lg font-semibold text-[var(--theme-text)]">
+                          {draftRecord.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                          Last modified {dayjs(draftRecord.updatedAt).format('MMM D, YYYY h:mm A')}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void removeDraftRecord(draftRecord)}
+                        className="rounded-full border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-700"
+                      >
+                        Delete
+                      </button>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => resumeDraft(draftRecord)}
+                        className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--theme-accent-strong)]"
+                      >
+                        Resume
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void removeDraftRecord(draftRecord)}
+                        className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                      >
+                        Delete draft
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-10 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  No drafts yet
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                  Start a recipe in Build and it will be saved here automatically.
                 </p>
               </div>
             )}
