@@ -2220,12 +2220,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         Saved Recipes
                       </button>
                       <div className="my-1 border-t border-[var(--theme-border)]" />
-                      <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]">
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501 1.07 1.605 2.578 2.868 4.355 3.577-1.77.71-3.278 1.972-4.347 3.577a1.067 1.067 0 01-.865.501c-1.153.086-2.294.213-3.423.379-1.584.233-2.707 1.626-2.707 3.228v2.393m15.75-3.37c0-1.6-1.123-2.994-2.707-3.227-1.129-.166-2.27-.293-3.423-.379a1.067 1.067 0 01-.865-.5c-1.07-1.606-2.578-2.868-4.355-3.578 1.77-.71 3.278-1.972 4.347-3.577.195-.291.515-.475.865-.5 1.153-.086 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6m-15.75 0c0-1.6 1.123-2.994 2.707-3.227 1.129-.166 2.27-.293 3.423-.379a1.067 1.067 0 01.865-.5c1.07-1.605 2.578-2.868 4.355-3.577-1.77.709-3.278 1.972-4.347 3.577-.195.291-.515.475-.865.501-1.153.086-2.294.213-3.423.379-1.584.233-2.707 1.626-2.707 3.228v1.5" />
+                      <a
+                        href="https://x.com/ElevatorRobot"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                         </svg>
                         Feedback & Support
-                      </button>
+                      </a>
                       <button
                         onClick={onSignOut}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
