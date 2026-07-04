@@ -28,6 +28,62 @@ const authFormFields = {
   },
 };
 
+type AuthState = {
+  isAuthenticated: boolean;
+  currentUser: any | null;
+  userAttributes: any | null;
+  isInitialized: boolean;
+};
+
+type PersistedAuthState = {
+  isAuthenticated: boolean;
+  userId: string | null;
+  username: string | null;
+  email: string | null;
+};
+
+const AUTH_STORAGE_KEY = 'arcaneKitchen.authState';
+
+const getPersistedAuthState = (): PersistedAuthState | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const saved = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+    if (!saved) {
+      return null;
+    }
+
+    const parsed = JSON.parse(saved) as Partial<PersistedAuthState>;
+    return {
+      isAuthenticated: Boolean(parsed.isAuthenticated),
+      userId: parsed.userId ?? null,
+      username: parsed.username ?? null,
+      email: parsed.email ?? null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistAuthState = (authState: PersistedAuthState | null) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (!authState) {
+      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
+  } catch {
+    // ignore storage failures
+  }
+};
+
 const hasAmplifyAuthConfig = () => {
   try {
     return Boolean((Amplify.getConfig() as { Auth?: unknown })?.Auth);
@@ -242,9 +298,16 @@ function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userAttributes, setUserAttributes] = useState<any>(null);
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    const persisted = getPersistedAuthState();
+    return {
+      isAuthenticated: persisted?.isAuthenticated ?? false,
+      currentUser: null,
+      userAttributes: null,
+      isInitialized: persisted !== null,
+    };
+  });
+  const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized } = authState;
   const [showAuth, setShowAuth] = useState(false);
   const [showAgreementPrompt, setShowAgreementPrompt] = useState(false);
   const [agreementPendingUserKey, setAgreementPendingUserKey] = useState<string | null>(null);
@@ -282,9 +345,13 @@ function App() {
 
     if (!hasAmplifyAuthConfig()) {
       setAuthNotice('Authentication is not configured yet. Please try again later.');
-      setCurrentUser(null);
-      setUserAttributes(null);
-      setIsAuthenticated(false);
+      setAuthState({
+        isAuthenticated: false,
+        currentUser: null,
+        userAttributes: null,
+        isInitialized: true,
+      });
+      persistAuthState(null);
       setShowAgreementPrompt(false);
       setAgreementPendingUserKey(null);
       return;
@@ -301,9 +368,20 @@ function App() {
         attributes?.email ||
         null;
 
-      setCurrentUser(user);
-      setUserAttributes(attributes);
-      setIsAuthenticated(true);
+      const nextAuthState = {
+        isAuthenticated: true,
+        currentUser: user,
+        userAttributes: attributes,
+        isInitialized: true,
+      };
+
+      setAuthState(nextAuthState);
+      persistAuthState({
+        isAuthenticated: true,
+        userId: user?.userId || attributes?.sub || null,
+        username: user?.username || null,
+        email: attributes?.email || null,
+      });
 
       if (!hasAcceptedAgreement(userIdentifier)) {
         setAgreementPendingUserKey(userIdentifier);
@@ -313,9 +391,18 @@ function App() {
         setShowAgreementPrompt(false);
       }
     } catch {
-      setCurrentUser(null);
-      setUserAttributes(null);
-      setIsAuthenticated(false);
+      setAuthState({
+        isAuthenticated: false,
+        currentUser: null,
+        userAttributes: null,
+        isInitialized: true,
+      });
+      persistAuthState({
+        isAuthenticated: false,
+        userId: null,
+        username: null,
+        email: null,
+      });
       setShowAgreementPrompt(false);
       setAgreementPendingUserKey(null);
     }
@@ -333,9 +420,18 @@ function App() {
 
   const handleSignOut = async () => {
     await amplifySignOut();
-    setCurrentUser(null);
-    setUserAttributes(null);
-    setIsAuthenticated(false);
+    setAuthState({
+      isAuthenticated: false,
+      currentUser: null,
+      userAttributes: null,
+      isInitialized: true,
+    });
+    persistAuthState({
+      isAuthenticated: false,
+      userId: null,
+      username: null,
+      email: null,
+    });
   };
 
   const handleAuthComplete = useCallback(async () => {
@@ -371,6 +467,16 @@ function App() {
     event.preventDefault();
     form.requestSubmit();
   };
+
+  if (!isAuthInitialized) {
+    return (
+      <div className="flex h-screen items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+        <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-6 py-4 text-sm font-medium text-[var(--theme-text-muted)]">
+          Preparing your kitchen…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
