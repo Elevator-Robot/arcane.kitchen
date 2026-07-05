@@ -2125,7 +2125,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [showShareMenu]);
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
+    <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
@@ -2271,8 +2271,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           {!expandedRecipeId && (
             <>
               <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Search recipes</h2>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="relative flex-1 min-w-[200px]">
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
                   <input
                     value={discoverQuery}
                     onChange={(event) => setDiscoverQuery(event.target.value)}
@@ -2283,32 +2283,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <div className="relative min-w-[180px]">
-                  <label className="sr-only" htmlFor="discover-sort-order">
-                    Sort recipes
-                  </label>
-                  <select
-                    id="discover-sort-order"
-                    value={sortOrder}
-                    onChange={(event) => setSortOrder(event.target.value as 'asc' | 'desc')}
-                    className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                <div className="flex gap-3">
+                  <div className="relative flex-1 sm:flex-none sm:min-w-[140px]">
+                    <label className="sr-only" htmlFor="discover-sort-order">
+                      Sort recipes
+                    </label>
+                    <select
+                      id="discover-sort-order"
+                      value={sortOrder}
+                      onChange={(event) => setSortOrder(event.target.value as 'asc' | 'desc')}
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                    >
+                      <option value="desc">Newest first</option>
+                      <option value="asc">Oldest first</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={startCreateRecipe}
+                    title="Create a recipe"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent)] text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] active:scale-95"
                   >
-                    <option value="desc">Newest first</option>
-                    <option value="asc">Oldest first</option>
-                  </select>
-                </div>
-                <button
-                  onClick={startCreateRecipe}
-                  title="Create a recipe"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent)] text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] active:scale-95"
-                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                 </button>
               </div>
+            </div>
 
-              <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
                   {['All', 'Favorites', 'My recipes'].map((tag) => (
                     <button

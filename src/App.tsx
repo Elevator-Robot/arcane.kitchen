@@ -374,7 +374,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+    <div className="h-screen overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         currentUser={currentUser}
