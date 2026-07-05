@@ -149,7 +149,7 @@ interface CommentItemData {
 interface CommentItemProps {
   comment: CommentItemData;
   replies: CommentItemData[];
-  rootId: string;
+  isReply: boolean;
   currentUserId: string | null;
   onReply: (id: string, author: string) => void;
   onEdit: (id: string, content: string) => void;
@@ -162,7 +162,7 @@ interface CommentItemProps {
 const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   replies,
-  rootId,
+  isReply,
   currentUserId,
   onReply,
   onEdit,
@@ -184,9 +184,20 @@ const CommentItem: React.FC<CommentItemProps> = ({
     return `${days}d ago`;
   };
 
+  const renderContent = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, i) =>
+      part.startsWith('@') ? (
+        <span key={i} className="font-medium text-[var(--theme-accent)]">{part}</span>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
+
   return (
-    <div className={replies.length > 0 ? '' : ''}>
-      <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3">
+    <div>
+      <div className={`rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 ${isReply ? 'ml-4 border-l-2 border-l-[var(--theme-border)] border-t-0 border-r-0 border-b-0 rounded-none' : ''}`}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <span className="text-sm font-medium text-[var(--theme-text)]">{comment.author}</span>
@@ -236,25 +247,27 @@ const CommentItem: React.FC<CommentItemProps> = ({
             </button>
           </div>
         ) : (
-          <p className="mt-1 text-sm text-[var(--theme-text)] whitespace-pre-wrap">{comment.content}</p>
+          <p className="mt-1 text-sm text-[var(--theme-text)] whitespace-pre-wrap">{renderContent(comment.content)}</p>
         )}
-        <div className="mt-1.5 flex gap-2">
-          <button
-            onClick={() => onReply(rootId, comment.author)}
-            className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
-          >
-            Reply
-          </button>
-        </div>
+        {!isReply && (
+          <div className="mt-1.5 flex gap-2">
+            <button
+              onClick={() => onReply(comment.id, comment.author)}
+              className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
+            >
+              Reply
+            </button>
+          </div>
+        )}
       </div>
       {replies.length > 0 && (
-        <div className="ml-4 mt-2 space-y-2 border-l-2 border-[var(--theme-border)] pl-3">
+        <div className="mt-2 space-y-2">
           {replies.map((reply) => (
             <CommentItem
               key={reply.id}
               comment={reply}
               replies={[]}
-              rootId={rootId}
+              isReply
               currentUserId={currentUserId}
               onReply={onReply}
               onEdit={onEdit}
@@ -796,6 +809,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionCursor, setMentionCursor] = useState(0);
   const [shareNotice, setShareNotice] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -2069,6 +2085,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setReplyingToAuthor('');
     setEditingCommentId(null);
     setCommentInput('');
+    setShowMentions(false);
+    setMentionQuery('');
+    setMentionCursor(0);
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', '/');
     }
@@ -2113,6 +2132,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setCommentInput('');
     setReplyingTo(null);
     setReplyingToAuthor('');
+    setShowMentions(false);
+    setMentionQuery('');
+    setMentionCursor(0);
     try {
       const result = await client.models.Comment.create({
         recipeId,
@@ -2172,6 +2194,75 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }));
     } catch {
       // ignore
+    }
+  };
+
+  const getCommentAuthors = () => {
+    const allComments = comments[expandedRecipeId || ''] || [];
+    const seen = new Set<string>();
+    const authors: string[] = [];
+    for (const c of allComments) {
+      if (!seen.has(c.author)) {
+        seen.add(c.author);
+        authors.push(c.author);
+      }
+    }
+    if (!seen.has(creatorName)) authors.unshift(creatorName);
+    return authors;
+  };
+
+  const handleCommentInput = (value: string) => {
+    setCommentInput(value);
+    const atMatch = value.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setShowMentions(true);
+      setMentionCursor(0);
+    } else {
+      setShowMentions(false);
+      setMentionQuery('');
+    }
+  };
+
+  const insertMention = (author: string) => {
+    const atIdx = commentInput.lastIndexOf('@');
+    if (atIdx === -1) return;
+    const before = commentInput.slice(0, atIdx);
+    const after = commentInput.slice(atIdx).replace(/@\w*$/, '');
+    setCommentInput(`${before}@${author} ${after}`);
+    setShowMentions(false);
+    setMentionQuery('');
+    setTimeout(() => commentInputRef.current?.focus(), 10);
+  };
+
+  const handleCommentKeyDown = (e: React.KeyboardEvent) => {
+    if (showMentions) {
+      const authors = getCommentAuthors().filter((a) =>
+        a.toLowerCase().includes(mentionQuery.toLowerCase())
+      );
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionCursor((c) => Math.min(c + 1, authors.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionCursor((c) => Math.max(c - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        if (authors[mentionCursor]) insertMention(authors[mentionCursor]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowMentions(false);
+        return;
+      }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void addComment(expandedRecipeId!, replyingTo);
     }
   };
 
@@ -2957,7 +3048,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                   key={comment.id}
                                   comment={comment}
                                   replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
-                                  rootId={comment.id}
+                                  isReply={false}
                                   currentUserId={currentUserId}
                                   onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
                                   onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
@@ -2970,39 +3061,60 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           </div>
                         )}
 
-                        <div className="flex gap-2">
-                          <input
-                            ref={commentInputRef}
-                            value={commentInput}
-                            onChange={(e) => setCommentInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                void addComment(expandedRecipe.id, replyingTo);
-                              }
-                            }}
-                            placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
-                            className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
-                              replyingTo
-                                ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
-                                : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
-                            }`}
-                          />
-                          <button
-                            onClick={() => void addComment(expandedRecipe.id, replyingTo)}
-                            disabled={!commentInput.trim()}
-                            className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {replyingTo ? 'Reply' : 'Post'}
-                          </button>
-                          {replyingTo && (
+                        <div className="relative">
+                          <div className="flex gap-2">
+                            <input
+                              ref={commentInputRef}
+                              value={commentInput}
+                              onChange={(e) => handleCommentInput(e.target.value)}
+                              onKeyDown={handleCommentKeyDown}
+                              placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
+                              className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
+                                replyingTo
+                                  ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
+                                  : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
+                              }`}
+                            />
                             <button
-                              onClick={() => { setReplyingTo(null); setReplyingToAuthor(''); setCommentInput(''); }}
-                              className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                              onClick={() => void addComment(expandedRecipe.id, replyingTo)}
+                              disabled={!commentInput.trim()}
+                              className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
-                              Cancel
+                              {replyingTo ? 'Reply' : 'Post'}
                             </button>
-                          )}
+                            {replyingTo && (
+                              <button
+                                onClick={() => { setReplyingTo(null); setReplyingToAuthor(''); setCommentInput(''); }}
+                                className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+
+                          {showMentions && (() => {
+                            const authors = getCommentAuthors().filter((a) =>
+                              a.toLowerCase().includes(mentionQuery.toLowerCase())
+                            );
+                            if (!authors.length) return null;
+                            return (
+                              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg max-h-40 overflow-y-auto">
+                                {authors.map((author, i) => (
+                                  <button
+                                    key={author}
+                                    onClick={() => insertMention(author)}
+                                    className={`w-full px-3 py-1.5 text-left text-sm transition ${
+                                      i === mentionCursor
+                                        ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                                        : 'text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)]'
+                                    }`}
+                                  >
+                                    <span className="font-medium text-[var(--theme-accent)]">@{author}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </>
                     ) : (
