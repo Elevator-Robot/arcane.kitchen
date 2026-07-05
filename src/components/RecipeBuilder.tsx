@@ -803,6 +803,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [comments, setComments] = useState<Record<string, Array<{ id: string; recipeId: string; userId: string; author: string; content: string; parentId: string | null; createdAt: string; updatedAt?: string }>>>({});
+  const [visibleCommentCount, setVisibleCommentCount] = useState<Record<string, number>>({});
+  const COMMENTS_PER_PAGE = 5;
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyingToAuthor, setReplyingToAuthor] = useState<string>('');
   const commentInputRef = useRef<HTMLInputElement>(null);
@@ -2081,6 +2083,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (expandedRecipeId) delete next[expandedRecipeId];
       return next;
     });
+    setVisibleCommentCount((prev) => {
+      const next = { ...prev };
+      if (expandedRecipeId) delete next[expandedRecipeId];
+      return next;
+    });
     setReplyingTo(null);
     setReplyingToAuthor('');
     setEditingCommentId(null);
@@ -2156,6 +2163,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         setComments((prev) => ({
           ...prev,
           [recipeId]: [newComment, ...(prev[recipeId] || [])],
+        }));
+        setVisibleCommentCount((prev) => ({
+          ...prev,
+          [recipeId]: (prev[recipeId] || COMMENTS_PER_PAGE) + 1,
         }));
       }
     } catch {
@@ -3039,27 +3050,48 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <p className="text-sm text-[var(--theme-text-muted)] mb-4">Loading comments...</p>
                         ) : (comments[expandedRecipe.id] || []).length === 0 ? (
                           <p className="text-sm text-[var(--theme-text-muted)] mb-4">No comments yet. Be the first!</p>
-                        ) : (
-                          <div className="space-y-3 mb-4">
-                            {(comments[expandedRecipe.id] || [])
-                              .filter((c) => !c.parentId)
-                              .map((comment) => (
-                                <CommentItem
-                                  key={comment.id}
-                                  comment={comment}
-                                  replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
-                                  isReply={false}
-                                  currentUserId={currentUserId}
-                                  onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
-                                  onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
-                                  onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
-                                  replyingTo={replyingTo}
-                                  editingCommentId={editingCommentId}
-                                  setEditingCommentId={setEditingCommentId}
-                                />
-                              ))}
-                          </div>
-                        )}
+                        ) : (() => {
+                          const allComments = comments[expandedRecipe.id] || [];
+                          const rootComments = allComments.filter((c) => !c.parentId);
+                          const count = visibleCommentCount[expandedRecipe.id] || COMMENTS_PER_PAGE;
+                          const visibleRoots = rootComments.slice(0, count);
+                          const hasMore = count < rootComments.length;
+
+                          return (
+                            <>
+                              <div className="space-y-3 mb-4">
+                                {visibleRoots.map((comment) => (
+                                  <CommentItem
+                                    key={comment.id}
+                                    comment={comment}
+                                    replies={allComments.filter((r) => r.parentId === comment.id)}
+                                    isReply={false}
+                                    currentUserId={currentUserId}
+                                    onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
+                                    onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
+                                    onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
+                                    replyingTo={replyingTo}
+                                    editingCommentId={editingCommentId}
+                                    setEditingCommentId={setEditingCommentId}
+                                  />
+                                ))}
+                              </div>
+                              {hasMore && (
+                                <button
+                                  onClick={() => {
+                                    setVisibleCommentCount((prev) => ({
+                                      ...prev,
+                                      [expandedRecipe.id]: (prev[expandedRecipe.id] || COMMENTS_PER_PAGE) + COMMENTS_PER_PAGE,
+                                    }));
+                                  }}
+                                  className="mb-4 w-full rounded border border-[var(--theme-border)] py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                                >
+                                  Show more ({rootComments.length - count} remaining)
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
 
                         <div className="relative">
                           <div className="flex gap-2">
