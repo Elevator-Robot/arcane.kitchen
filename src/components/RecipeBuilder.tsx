@@ -2941,7 +2941,32 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
                     {isAuthenticated ? (
                       <>
-                        <div className="flex gap-2 mb-4">
+                        {loadingComments ? (
+                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">Loading comments...</p>
+                        ) : (comments[expandedRecipe.id] || []).length === 0 ? (
+                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">No comments yet. Be the first!</p>
+                        ) : (
+                          <div className="space-y-3 mb-4">
+                            {(comments[expandedRecipe.id] || [])
+                              .filter((c) => !c.parentId)
+                              .map((comment) => (
+                                <CommentItem
+                                  key={comment.id}
+                                  comment={comment}
+                                  replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
+                                  currentUserId={currentUserId}
+                                  onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
+                                  onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
+                                  onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
+                                  replyingTo={replyingTo}
+                                  editingCommentId={editingCommentId}
+                                  setEditingCommentId={setEditingCommentId}
+                                />
+                              ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
                           <input
                             ref={commentInputRef}
                             value={commentInput}
@@ -2975,31 +3000,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             </button>
                           )}
                         </div>
-
-                        {loadingComments ? (
-                          <p className="text-sm text-[var(--theme-text-muted)]">Loading comments...</p>
-                        ) : (comments[expandedRecipe.id] || []).length === 0 ? (
-                          <p className="text-sm text-[var(--theme-text-muted)]">No comments yet. Be the first!</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {(comments[expandedRecipe.id] || [])
-                              .filter((c) => !c.parentId)
-                              .map((comment) => (
-                                <CommentItem
-                                  key={comment.id}
-                                  comment={comment}
-                                  replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
-                                  currentUserId={currentUserId}
-                                  onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
-                                  onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
-                                  onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
-                                  replyingTo={replyingTo}
-                                  editingCommentId={editingCommentId}
-                                  setEditingCommentId={setEditingCommentId}
-                                />
-                              ))}
-                          </div>
-                        )}
                       </>
                     ) : (
                       <p className="text-sm text-[var(--theme-text-muted)]">
