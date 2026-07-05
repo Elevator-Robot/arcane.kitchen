@@ -149,6 +149,7 @@ interface CommentItemData {
 interface CommentItemProps {
   comment: CommentItemData;
   replies: CommentItemData[];
+  rootId: string;
   currentUserId: string | null;
   onReply: (id: string, author: string) => void;
   onEdit: (id: string, content: string) => void;
@@ -161,6 +162,7 @@ interface CommentItemProps {
 const CommentItem: React.FC<CommentItemProps> = ({
   comment,
   replies,
+  rootId,
   currentUserId,
   onReply,
   onEdit,
@@ -238,7 +240,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
         )}
         <div className="mt-1.5 flex gap-2">
           <button
-            onClick={() => onReply(comment.id, comment.author)}
+            onClick={() => onReply(rootId, comment.author)}
             className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
           >
             Reply
@@ -252,6 +254,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               key={reply.id}
               comment={reply}
               replies={[]}
+              rootId={rootId}
               currentUserId={currentUserId}
               onReply={onReply}
               onEdit={onEdit}
@@ -2954,6 +2957,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                   key={comment.id}
                                   comment={comment}
                                   replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
+                                  rootId={comment.id}
                                   currentUserId={currentUserId}
                                   onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
                                   onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
