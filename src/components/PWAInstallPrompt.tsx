@@ -7,13 +7,30 @@ interface BeforeInstallPromptEvent extends Event {
 
 const STORAGE_KEY = 'arcaneKitchen.installPromptDismissed';
 
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+}
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
+}
+
 export default function PWAInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [isIOSBrowser, setIsIOSBrowser] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (isStandalone()) return;
     if (localStorage.getItem(STORAGE_KEY)) return;
+
+    const ios = isIOS();
+    if (ios) {
+      setIsIOSBrowser(true);
+      setTimeout(() => setShowPrompt(true), 2000);
+      return;
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
@@ -41,7 +58,7 @@ export default function PWAInstallPrompt() {
     setShowPrompt(false);
   };
 
-  if (!showPrompt || !promptEvent) return null;
+  if (!showPrompt) return null;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-[var(--theme-overlay)] backdrop-blur-md sm:items-center sm:p-4">
@@ -54,8 +71,14 @@ export default function PWAInstallPrompt() {
               </svg>
             </div>
             <div>
-              <h3 className="font-heading text-base font-semibold text-[var(--theme-text)]">Add to Home Screen</h3>
-              <p className="text-sm text-[var(--theme-text-muted)]">Install Arcane Kitchen for quick access and a better mobile experience.</p>
+              <h3 className="font-heading text-base font-semibold text-[var(--theme-text)]">
+                {isIOSBrowser ? 'Add to Home Screen' : 'Add to Home Screen'}
+              </h3>
+              <p className="text-sm text-[var(--theme-text-muted)]">
+                {isIOSBrowser
+                  ? 'Tap the share icon below, then "Add to Home Screen".'
+                  : 'Install Arcane Kitchen for quick access and a better mobile experience.'}
+              </p>
             </div>
           </div>
           <button
@@ -69,18 +92,33 @@ export default function PWAInstallPrompt() {
           </button>
         </div>
         <div className="mt-4 flex gap-3">
-          <button
-            onClick={handleInstall}
-            className="flex-1 rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--theme-accent-strong)]"
-          >
-            Install
-          </button>
-          <button
-            onClick={handleDismiss}
-            className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-          >
-            Not now
-          </button>
+          {isIOSBrowser ? (
+            <div className="w-full text-center text-xs text-[var(--theme-text-muted)]">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 103.316 6.632m0-6.632a3 3 0 10-3.316-6.632m0 0a3 3 0 01-3.316 6.632m0-6.632a3 3 0 00-3.316-6.632" />
+                </svg>
+                <span>Share</span>
+                <span className="text-[var(--theme-accent)]">→</span>
+                <span>Add to Home Screen</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={handleInstall}
+                className="flex-1 rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--theme-accent-strong)]"
+              >
+                Install
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+              >
+                Not now
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
