@@ -150,7 +150,7 @@ interface CommentItemProps {
   comment: CommentItemData;
   replies: CommentItemData[];
   currentUserId: string | null;
-  onReply: (id: string) => void;
+  onReply: (id: string, author: string) => void;
   onEdit: (id: string, content: string) => void;
   onDelete: (id: string) => void;
   replyingTo: string | null;
@@ -238,7 +238,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
         )}
         <div className="mt-1.5 flex gap-2">
           <button
-            onClick={() => onReply(comment.id)}
+            onClick={() => onReply(comment.id, comment.author)}
             className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
           >
             Reply
@@ -788,6 +788,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
   const [comments, setComments] = useState<Record<string, Array<{ id: string; recipeId: string; userId: string; author: string; content: string; parentId: string | null; createdAt: string; updatedAt?: string }>>>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingToAuthor, setReplyingToAuthor] = useState<string>('');
+  const commentInputRef = useRef<HTMLInputElement>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [commentInput, setCommentInput] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
@@ -2061,6 +2063,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return next;
     });
     setReplyingTo(null);
+    setReplyingToAuthor('');
     setEditingCommentId(null);
     setCommentInput('');
     if (typeof window !== 'undefined') {
@@ -2106,6 +2109,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const content = commentInput.trim();
     setCommentInput('');
     setReplyingTo(null);
+    setReplyingToAuthor('');
     try {
       const result = await client.models.Comment.create({
         recipeId,
@@ -2939,6 +2943,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <>
                         <div className="flex gap-2 mb-4">
                           <input
+                            ref={commentInputRef}
                             value={commentInput}
                             onChange={(e) => setCommentInput(e.target.value)}
                             onKeyDown={(e) => {
@@ -2947,8 +2952,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                 void addComment(expandedRecipe.id, replyingTo);
                               }
                             }}
-                            placeholder={replyingTo ? 'Write a reply...' : 'Add a comment...'}
-                            className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                            placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
+                            className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
+                              replyingTo
+                                ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
+                                : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
+                            }`}
                           />
                           <button
                             onClick={() => void addComment(expandedRecipe.id, replyingTo)}
@@ -2959,7 +2968,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           </button>
                           {replyingTo && (
                             <button
-                              onClick={() => { setReplyingTo(null); setCommentInput(''); }}
+                              onClick={() => { setReplyingTo(null); setReplyingToAuthor(''); setCommentInput(''); }}
                               className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
                             >
                               Cancel
@@ -2981,7 +2990,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                   comment={comment}
                                   replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
                                   currentUserId={currentUserId}
-                                  onReply={(id) => { setReplyingTo(id); setEditingCommentId(null); }}
+                                  onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
                                   onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
                                   onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
                                   replyingTo={replyingTo}
