@@ -54,6 +54,20 @@ const schema = a.schema({
       recipeId: a.id().required(),
     })
     .authorization((allow) => [allow.ownerDefinedIn('userId')]),
+
+  Comment: a
+    .model({
+      id: a.id(),
+      recipeId: a.id().required(),
+      userId: a.string().required(),
+      author: a.string().required(),
+      content: a.string().required(),
+      parentId: a.id(),
+    })
+    .authorization((allow) => [
+      allow.ownerDefinedIn('userId'),
+      allow.authenticated().to(['read']),
+    ]),
 });
 
 export const data = defineData({

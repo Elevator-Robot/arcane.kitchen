@@ -135,6 +135,138 @@ interface RecipeQuantity {
   unit?: string;
 }
 
+interface CommentItemData {
+  id: string;
+  recipeId: string;
+  userId: string;
+  author: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface CommentItemProps {
+  comment: CommentItemData;
+  replies: CommentItemData[];
+  currentUserId: string | null;
+  onReply: (id: string) => void;
+  onEdit: (id: string, content: string) => void;
+  onDelete: (id: string) => void;
+  replyingTo: string | null;
+  editingCommentId: string | null;
+  setEditingCommentId: (id: string | null) => void;
+}
+
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  replies,
+  currentUserId,
+  onReply,
+  onEdit,
+  onDelete,
+  replyingTo,
+  editingCommentId,
+  setEditingCommentId,
+}) => {
+  const [editValue, setEditValue] = useState(comment.content);
+  const isOwner = currentUserId === comment.userId;
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+
+  return (
+    <div className={replies.length > 0 ? '' : ''}>
+      <div className="rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-[var(--theme-text)]">{comment.author}</span>
+            <span className="ml-2 text-xs text-[var(--theme-text-muted)]">
+              {timeAgo(comment.createdAt)}
+              {comment.updatedAt && <span className="ml-1 italic">(edited)</span>}
+            </span>
+          </div>
+          {isOwner && (
+            <div className="flex shrink-0 gap-1">
+              <button
+                onClick={() => {
+                  if (editingCommentId === comment.id) {
+                    setEditingCommentId(null);
+                    setEditValue(comment.content);
+                  } else {
+                    setEditingCommentId(comment.id);
+                    setEditValue(comment.content);
+                  }
+                }}
+                className="rounded px-1.5 py-0.5 text-xs text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] transition"
+              >
+                {editingCommentId === comment.id ? 'Cancel' : 'Edit'}
+              </button>
+              <button
+                onClick={() => onDelete(comment.id)}
+                className="rounded px-1.5 py-0.5 text-xs text-[var(--theme-text-muted)] hover:bg-red-50 hover:text-red-600 transition"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+        {editingCommentId === comment.id ? (
+          <div className="mt-2 flex gap-2">
+            <input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-2 py-1 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--theme-accent)]"
+            />
+            <button
+              onClick={() => onEdit(comment.id, editValue)}
+              disabled={!editValue.trim()}
+              className="rounded bg-[var(--theme-accent)] px-2 py-1 text-xs font-medium text-white disabled:opacity-40"
+            >
+              Save
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-[var(--theme-text)] whitespace-pre-wrap">{comment.content}</p>
+        )}
+        <div className="mt-1.5 flex gap-2">
+          <button
+            onClick={() => onReply(comment.id)}
+            className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
+          >
+            Reply
+          </button>
+        </div>
+      </div>
+      {replies.length > 0 && (
+        <div className="ml-4 mt-2 space-y-2 border-l-2 border-[var(--theme-border)] pl-3">
+          {replies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              replies={[]}
+              currentUserId={currentUserId}
+              onReply={onReply}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              replyingTo={replyingTo}
+              editingCommentId={editingCommentId}
+              setEditingCommentId={setEditingCommentId}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface FeedRecipeCardProps {
   recipe: FeedRecipe;
   isFavorited: boolean;
@@ -654,6 +786,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     string | null
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
+  const [comments, setComments] = useState<Record<string, Array<{ id: string; recipeId: string; userId: string; author: string; content: string; parentId: string | null; createdAt: string; updatedAt?: string }>>>({});
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentInput, setCommentInput] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
   const [shareNotice, setShareNotice] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -1822,6 +1959,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setExpandedRecipeMessage('');
     setCurrentView('Discover');
 
+    if (isAuthenticated) {
+      void fetchComments(recipe.id);
+    }
+
     if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
       window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
     }
@@ -1914,8 +2055,116 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const collapseExpandedRecipe = () => {
     setExpandedRecipeId(null);
     setExpandedRecipeMessage('');
+    setComments((prev) => {
+      const next = { ...prev };
+      if (expandedRecipeId) delete next[expandedRecipeId];
+      return next;
+    });
+    setReplyingTo(null);
+    setEditingCommentId(null);
+    setCommentInput('');
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', '/');
+    }
+  };
+
+  const fetchComments = async (recipeId: string) => {
+    if (!isAuthenticated || !client) return;
+    setLoadingComments(true);
+    try {
+      const result = await client.models.Comment.list({
+        filter: { recipeId: { eq: recipeId } },
+        authMode: 'userPool',
+      });
+      if (result.data) {
+        setComments((prev) => ({
+          ...prev,
+          [recipeId]: result.data
+            .filter((c: any) => c.id && c.userId && c.content)
+            .map((c: any) => ({
+              id: c.id,
+              recipeId: c.recipeId,
+              userId: c.userId,
+              author: c.author || 'Unknown',
+              content: c.content,
+              parentId: c.parentId || null,
+              createdAt: c.createdAt || '',
+              updatedAt: c.updatedAt || undefined,
+            }))
+            .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt)),
+        }));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const addComment = async (recipeId: string, parentId: string | null = null) => {
+    if (!isAuthenticated || !client || !commentInput.trim() || !currentUserId) return;
+    const content = commentInput.trim();
+    setCommentInput('');
+    setReplyingTo(null);
+    try {
+      const result = await client.models.Comment.create({
+        recipeId,
+        userId: currentUserId,
+        author: creatorName,
+        content,
+        ...(parentId ? { parentId } : {}),
+      }, { authMode: 'userPool' });
+      if (result.data?.id) {
+        const newComment = {
+          id: result.data.id,
+          recipeId,
+          userId: currentUserId,
+          author: creatorName,
+          content,
+          parentId,
+          createdAt: result.data.createdAt || new Date().toISOString(),
+        };
+        setComments((prev) => ({
+          ...prev,
+          [recipeId]: [newComment, ...(prev[recipeId] || [])],
+        }));
+      }
+    } catch {
+      setCommentInput(content);
+    }
+  };
+
+  const editComment = async (commentId: string, recipeId: string, newContent: string) => {
+    if (!client || !newContent.trim()) return;
+    try {
+      const result = await client.models.Comment.update({
+        id: commentId,
+        content: newContent.trim(),
+      }, { authMode: 'userPool' });
+      if (result.data) {
+        setComments((prev) => ({
+          ...prev,
+          [recipeId]: (prev[recipeId] || []).map((c) =>
+            c.id === commentId ? { ...c, content: newContent.trim(), updatedAt: result.data?.updatedAt || c.updatedAt } : c
+          ),
+        }));
+        setEditingCommentId(null);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const deleteComment = async (commentId: string, recipeId: string) => {
+    if (!client) return;
+    try {
+      await client.models.Comment.delete({ id: commentId }, { authMode: 'userPool' });
+      setComments((prev) => ({
+        ...prev,
+        [recipeId]: (prev[recipeId] || []).filter((c) => c.id !== commentId),
+      }));
+    } catch {
+      // ignore
     }
   };
 
@@ -2680,6 +2929,81 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       </section>
                     )}
                   </div>
+
+                  <section className="border-t border-[var(--theme-border)] pt-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)] mb-3">
+                      Comments ({(comments[expandedRecipe.id] || []).length})
+                    </h4>
+
+                    {isAuthenticated ? (
+                      <>
+                        <div className="flex gap-2 mb-4">
+                          <input
+                            value={commentInput}
+                            onChange={(e) => setCommentInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                void addComment(expandedRecipe.id, replyingTo);
+                              }
+                            }}
+                            placeholder={replyingTo ? 'Write a reply...' : 'Add a comment...'}
+                            className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                          />
+                          <button
+                            onClick={() => void addComment(expandedRecipe.id, replyingTo)}
+                            disabled={!commentInput.trim()}
+                            className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {replyingTo ? 'Reply' : 'Post'}
+                          </button>
+                          {replyingTo && (
+                            <button
+                              onClick={() => { setReplyingTo(null); setCommentInput(''); }}
+                              className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+
+                        {loadingComments ? (
+                          <p className="text-sm text-[var(--theme-text-muted)]">Loading comments...</p>
+                        ) : (comments[expandedRecipe.id] || []).length === 0 ? (
+                          <p className="text-sm text-[var(--theme-text-muted)]">No comments yet. Be the first!</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {(comments[expandedRecipe.id] || [])
+                              .filter((c) => !c.parentId)
+                              .map((comment) => (
+                                <CommentItem
+                                  key={comment.id}
+                                  comment={comment}
+                                  replies={(comments[expandedRecipe.id] || []).filter((r) => r.parentId === comment.id)}
+                                  currentUserId={currentUserId}
+                                  onReply={(id) => { setReplyingTo(id); setEditingCommentId(null); }}
+                                  onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
+                                  onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
+                                  replyingTo={replyingTo}
+                                  editingCommentId={editingCommentId}
+                                  setEditingCommentId={setEditingCommentId}
+                                />
+                              ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-[var(--theme-text-muted)]">
+                        <button
+                          onClick={onRequestAuth}
+                          className="text-[var(--theme-accent)] hover:underline"
+                        >
+                          Log in
+                        </button>{' '}
+                        to join the conversation.
+                      </p>
+                    )}
+                  </section>
 
                   {isAuthenticated &&
                     expandedRecipe.ownerId === currentUserId && (
