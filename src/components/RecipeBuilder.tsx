@@ -2878,10 +2878,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           expandedRecipe.id
                         )}
                         aria-label={`Save ${expandedRecipe.name}`}
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition disabled:opacity-60 ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
-                            ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white'
-                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] hover:bg-[var(--theme-bg-soft)]'
+                            ? 'text-[var(--theme-accent)]'
+                            : 'text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)]'
                         }`}
                       >
                         <Bookmark className="h-4 w-4" aria-hidden="true" />
@@ -2891,7 +2891,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         <button
                           type="button"
                           onClick={() => void shareRecipe(expandedRecipe)}
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                          className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
                         >
                           <Share2 className="h-4 w-4" aria-hidden="true" />
                           Share
