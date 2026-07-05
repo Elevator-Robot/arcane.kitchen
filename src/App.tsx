@@ -13,6 +13,7 @@ import {
 } from 'aws-amplify/auth';
 import RecipeBuilder from './components/RecipeBuilder';
 import SignInForm from './components/SignInForm';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 const authFormFields = {
   signIn: {
@@ -381,6 +382,8 @@ function App() {
         onRequestAuth={() => setShowAuth(true)}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
       />
+
+      <PWAInstallPrompt />
 
       {showAgreementPrompt && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md">
