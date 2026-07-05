@@ -52,7 +52,7 @@ const bootstrap = async () => {
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <div className="min-h-screen">
+      <div className="min-h-screen overflow-x-hidden">
         <App />
       </div>
     </React.StrictMode>
