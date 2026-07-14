@@ -126,6 +126,154 @@ interface RecipeQuantity {
   unit?: string;
 }
 
+interface CommentItemData {
+  id: string;
+  recipeId: string;
+  userId: string;
+  author: string;
+  content: string;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface CommentItemProps {
+  comment: CommentItemData;
+  replies: CommentItemData[];
+  isReply: boolean;
+  currentUserId: string | null;
+  onReply: (id: string, author: string) => void;
+  onEdit: (id: string, content: string) => void;
+  onDelete: (id: string) => void;
+  replyingTo: string | null;
+  editingCommentId: string | null;
+  setEditingCommentId: (id: string | null) => void;
+}
+
+const CommentItem: React.FC<CommentItemProps> = ({
+  comment,
+  replies,
+  isReply,
+  currentUserId,
+  onReply,
+  onEdit,
+  onDelete,
+  replyingTo,
+  editingCommentId,
+  setEditingCommentId,
+}) => {
+  const [editValue, setEditValue] = useState(comment.content);
+  const isOwner = currentUserId === comment.userId;
+  const timeAgo = (dateStr: string) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  };
+
+  const renderContent = (text: string) => {
+    const parts = text.split(/(@\w+)/g);
+    return parts.map((part, i) =>
+      part.startsWith('@') ? (
+        <span key={i} className="font-medium text-[var(--theme-accent)]">{part}</span>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
+
+  return (
+    <div>
+      <div className={`rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 ${isReply ? 'ml-4 border-l-2 border-l-[var(--theme-border)] border-t-0 border-r-0 border-b-0 rounded-none' : ''}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <span className="text-sm font-medium text-[var(--theme-text)]">{comment.author}</span>
+            <span className="ml-2 text-xs text-[var(--theme-text-muted)]">
+              {timeAgo(comment.createdAt)}
+              {comment.updatedAt && <span className="ml-1 italic">(edited)</span>}
+            </span>
+          </div>
+          {isOwner && (
+            <div className="flex shrink-0 gap-1">
+              <button
+                onClick={() => {
+                  if (editingCommentId === comment.id) {
+                    setEditingCommentId(null);
+                    setEditValue(comment.content);
+                  } else {
+                    setEditingCommentId(comment.id);
+                    setEditValue(comment.content);
+                  }
+                }}
+                className="rounded px-1.5 py-0.5 text-xs text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] transition"
+              >
+                {editingCommentId === comment.id ? 'Cancel' : 'Edit'}
+              </button>
+              <button
+                onClick={() => onDelete(comment.id)}
+                className="rounded px-1.5 py-0.5 text-xs text-[var(--theme-text-muted)] hover:bg-red-50 hover:text-red-600 transition"
+              >
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+        {editingCommentId === comment.id ? (
+          <div className="mt-2 flex gap-2">
+            <input
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-2 py-1 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--theme-accent)]"
+            />
+            <button
+              onClick={() => onEdit(comment.id, editValue)}
+              disabled={!editValue.trim()}
+              className="rounded bg-[var(--theme-accent)] px-2 py-1 text-xs font-medium text-white disabled:opacity-40"
+            >
+              Save
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-sm text-[var(--theme-text)] whitespace-pre-wrap">{renderContent(comment.content)}</p>
+        )}
+        {!isReply && (
+          <div className="mt-1.5 flex gap-2">
+            <button
+              onClick={() => onReply(comment.id, comment.author)}
+              className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
+            >
+              Reply
+            </button>
+          </div>
+        )}
+      </div>
+      {replies.length > 0 && (
+        <div className="mt-2 space-y-2">
+          {replies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              replies={[]}
+              isReply
+              currentUserId={currentUserId}
+              onReply={onReply}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              replyingTo={replyingTo}
+              editingCommentId={editingCommentId}
+              setEditingCommentId={setEditingCommentId}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 interface FeedRecipeCardProps {
   recipe: FeedRecipe;
   isFavorited: boolean;
@@ -533,6 +681,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     string | null
   >(null);
   const [expandedRecipeMessage, setExpandedRecipeMessage] = useState('');
+  const [comments, setComments] = useState<Record<string, Array<{ id: string; recipeId: string; userId: string; author: string; content: string; parentId: string | null; createdAt: string; updatedAt?: string }>>>({});
+  const [visibleCommentCount, setVisibleCommentCount] = useState<Record<string, number>>({});
+  const COMMENTS_PER_PAGE = 5;
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyingToAuthor, setReplyingToAuthor] = useState<string>('');
+  const commentInputRef = useRef<HTMLInputElement>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentInput, setCommentInput] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionCursor, setMentionCursor] = useState(0);
   const [shareNotice, setShareNotice] = useState('');
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
@@ -545,7 +705,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [bioCharCount, setBioCharCount] = useState(0);
   const [profileDirty, setProfileDirty] = useState(false);
   const MAX_BIO_CHARS = 200;
-  const profileNameRef = useRef<HTMLInputElement>(null);
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuContainerRef = useRef<HTMLDivElement>(null);
@@ -576,16 +735,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     : null;
 
   const loadProfileData = useCallback(() => {
-    if (!PROFILE_DATA_KEY) return { displayName: creatorName, bio: '', avatar: null };
+    if (!PROFILE_DATA_KEY) return { bio: '', avatar: null };
     try {
       const saved = localStorage.getItem(PROFILE_DATA_KEY);
       if (saved) {
         const data = JSON.parse(saved);
-        return { displayName: data.displayName || creatorName, bio: data.bio || '', avatar: data.avatar || null };
+        return { bio: data.bio || '', avatar: data.avatar || null };
       }
     } catch { /* ignore */ }
-    return { displayName: creatorName, bio: '', avatar: null };
-  }, [PROFILE_DATA_KEY, creatorName]);
+    return { bio: '', avatar: null };
+  }, [PROFILE_DATA_KEY]);
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -674,9 +833,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   const saveProfile = () => {
     if (PROFILE_DATA_KEY) {
-      const displayName = profileNameRef.current?.value || '';
       const bio = profileBioRef.current?.value || '';
-      localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ displayName, bio, avatar: selectedAvatar }));
+      localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ bio, avatar: selectedAvatar }));
       setProfileDirty(false);
     }
     setCurrentView('Discover');
@@ -1535,7 +1693,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             recipeFingerprint,
           },
           {
-            authMode: 'userPool',
+            authMode: 'userPool' as const,
           }
         );
 
@@ -1839,6 +1997,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setExpandedRecipeMessage('');
     setCurrentView('Discover');
 
+    if (isAuthenticated) {
+      void fetchComments(recipe.id);
+    }
+
     if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
       window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
     }
@@ -1931,8 +2093,202 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const collapseExpandedRecipe = () => {
     setExpandedRecipeId(null);
     setExpandedRecipeMessage('');
+    setComments((prev) => {
+      const next = { ...prev };
+      if (expandedRecipeId) delete next[expandedRecipeId];
+      return next;
+    });
+    setVisibleCommentCount((prev) => {
+      const next = { ...prev };
+      if (expandedRecipeId) delete next[expandedRecipeId];
+      return next;
+    });
+    setReplyingTo(null);
+    setReplyingToAuthor('');
+    setEditingCommentId(null);
+    setCommentInput('');
+    setShowMentions(false);
+    setMentionQuery('');
+    setMentionCursor(0);
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', '/');
+    }
+  };
+
+  const fetchComments = async (recipeId: string) => {
+    if (!isAuthenticated || !client) return;
+    setLoadingComments(true);
+    try {
+      const result = await client.models.Comment.list({
+        filter: { recipeId: { eq: recipeId } },
+        authMode: 'userPool',
+      });
+      if (result.data) {
+        setComments((prev) => ({
+          ...prev,
+          [recipeId]: result.data
+            .filter((c: any) => c.id && c.userId && c.content)
+            .map((c: any) => ({
+              id: c.id,
+              recipeId: c.recipeId,
+              userId: c.userId,
+              author: c.author || 'Unknown',
+              content: c.content,
+              parentId: c.parentId || null,
+              createdAt: c.createdAt || '',
+              updatedAt: c.updatedAt || undefined,
+            }))
+            .sort((a: any, b: any) => b.createdAt.localeCompare(a.createdAt)),
+        }));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const addComment = async (recipeId: string, parentId: string | null = null) => {
+    if (!isAuthenticated || !client || !commentInput.trim() || !currentUserId) return;
+    const content = commentInput.trim();
+    setCommentInput('');
+    setReplyingTo(null);
+    setReplyingToAuthor('');
+    setShowMentions(false);
+    setMentionQuery('');
+    setMentionCursor(0);
+    try {
+      const result = await client.models.Comment.create({
+        recipeId,
+        userId: currentUserId,
+        author: creatorName,
+        content,
+        ...(parentId ? { parentId } : {}),
+      }, { authMode: 'userPool' });
+      if (result.data?.id) {
+        const newComment = {
+          id: result.data.id,
+          recipeId,
+          userId: currentUserId,
+          author: creatorName,
+          content,
+          parentId,
+          createdAt: result.data.createdAt || new Date().toISOString(),
+        };
+        setComments((prev) => ({
+          ...prev,
+          [recipeId]: [newComment, ...(prev[recipeId] || [])],
+        }));
+        setVisibleCommentCount((prev) => ({
+          ...prev,
+          [recipeId]: (prev[recipeId] || COMMENTS_PER_PAGE) + 1,
+        }));
+      }
+    } catch {
+      setCommentInput(content);
+    }
+  };
+
+  const editComment = async (commentId: string, recipeId: string, newContent: string) => {
+    if (!client || !newContent.trim()) return;
+    try {
+      const result = await client.models.Comment.update({
+        id: commentId,
+        content: newContent.trim(),
+      }, { authMode: 'userPool' });
+      if (result.data) {
+        setComments((prev) => ({
+          ...prev,
+          [recipeId]: (prev[recipeId] || []).map((c) =>
+            c.id === commentId ? { ...c, content: newContent.trim(), updatedAt: result.data?.updatedAt || c.updatedAt } : c
+          ),
+        }));
+        setEditingCommentId(null);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const deleteComment = async (commentId: string, recipeId: string) => {
+    if (!client) return;
+    try {
+      await client.models.Comment.delete({ id: commentId }, { authMode: 'userPool' });
+      setComments((prev) => ({
+        ...prev,
+        [recipeId]: (prev[recipeId] || []).filter((c) => c.id !== commentId),
+      }));
+    } catch {
+      // ignore
+    }
+  };
+
+  const getCommentAuthors = () => {
+    const allComments = comments[expandedRecipeId || ''] || [];
+    const seen = new Set<string>();
+    const authors: string[] = [];
+    for (const c of allComments) {
+      if (!seen.has(c.author)) {
+        seen.add(c.author);
+        authors.push(c.author);
+      }
+    }
+    if (!seen.has(creatorName)) authors.unshift(creatorName);
+    return authors;
+  };
+
+  const handleCommentInput = (value: string) => {
+    setCommentInput(value);
+    const atMatch = value.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setShowMentions(true);
+      setMentionCursor(0);
+    } else {
+      setShowMentions(false);
+      setMentionQuery('');
+    }
+  };
+
+  const insertMention = (author: string) => {
+    const atIdx = commentInput.lastIndexOf('@');
+    if (atIdx === -1) return;
+    const before = commentInput.slice(0, atIdx);
+    const after = commentInput.slice(atIdx).replace(/@\w*$/, '');
+    setCommentInput(`${before}@${author} ${after}`);
+    setShowMentions(false);
+    setMentionQuery('');
+    setTimeout(() => commentInputRef.current?.focus(), 10);
+  };
+
+  const handleCommentKeyDown = (e: React.KeyboardEvent) => {
+    if (showMentions) {
+      const authors = getCommentAuthors().filter((a) =>
+        a.toLowerCase().includes(mentionQuery.toLowerCase())
+      );
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionCursor((c) => Math.min(c + 1, authors.length - 1));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionCursor((c) => Math.max(c - 1, 0));
+        return;
+      }
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        if (authors[mentionCursor]) insertMention(authors[mentionCursor]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowMentions(false);
+        return;
+      }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      void addComment(expandedRecipeId!, replyingTo);
     }
   };
 
@@ -2142,7 +2498,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [showShareMenu]);
 
   return (
-    <main className="flex h-screen flex-col overflow-hidden bg-[var(--theme-bg)]">
+    <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
@@ -2203,7 +2559,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     )}
                   </div>
                   <span className={`max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 ${showUserMenu ? 'translate-x-1 text-[var(--theme-accent)]' : ''} group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]`}>
-                    {savedProfileData.displayName}
+                    {creatorName}
                   </span>
                   <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -2253,12 +2609,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         Drafts
                       </button>
                       <div className="my-1 border-t border-[var(--theme-border)]" />
-                      <button className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]">
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501 1.07 1.605 2.578 2.868 4.355 3.577-1.77.71-3.278 1.972-4.347 3.577a1.067 1.067 0 01-.865.501c-1.153.086-2.294.213-3.423.379-1.584.233-2.707 1.626-2.707 3.228v2.393m15.75-3.37c0-1.6-1.123-2.994-2.707-3.227-1.129-.166-2.27-.293-3.423-.379a1.067 1.067 0 01-.865-.5c-1.07-1.606-2.578-2.868-4.355-3.578 1.77-.71 3.278-1.972 4.347-3.577.195-.291.515-.475.865-.5 1.153-.086 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6m-15.75 0c0-1.6 1.123-2.994 2.707-3.227 1.129-.166 2.27-.293 3.423-.379a1.067 1.067 0 01.865-.5c1.07-1.605 2.578-2.868 4.355-3.577-1.77.709-3.278 1.972-4.347 3.577-.195.291-.515.475-.865.501-1.153.086-2.294.213-3.423.379-1.584.233-2.707 1.626-2.707 3.228v1.5" />
+                      <a
+                        href="https://x.com/ElevatorRobot"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                         </svg>
                         Feedback & Support
-                      </button>
+                      </a>
                       <button
                         onClick={onSignOut}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
@@ -2299,8 +2660,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           {!expandedRecipeId && (
             <>
               <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Search recipes</h2>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="relative flex-1 min-w-[200px]">
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative flex-1">
                   <input
                     value={discoverQuery}
                     onChange={(event) => setDiscoverQuery(event.target.value)}
@@ -2311,32 +2672,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </div>
-                <div className="relative min-w-[180px]">
-                  <label className="sr-only" htmlFor="discover-sort-order">
-                    Sort recipes
-                  </label>
-                  <select
-                    id="discover-sort-order"
-                    value={sortOrder}
-                    onChange={(event) => setSortOrder(event.target.value as 'asc' | 'desc')}
-                    className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                <div className="flex gap-3">
+                  <div className="relative flex-1 sm:flex-none sm:min-w-[140px]">
+                    <label className="sr-only" htmlFor="discover-sort-order">
+                      Sort recipes
+                    </label>
+                    <select
+                      id="discover-sort-order"
+                      value={sortOrder}
+                      onChange={(event) => setSortOrder(event.target.value as 'asc' | 'desc')}
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                    >
+                      <option value="desc">Newest first</option>
+                      <option value="asc">Oldest first</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={startCreateRecipe}
+                    title="Create a recipe"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent)] text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] active:scale-95"
                   >
-                    <option value="desc">Newest first</option>
-                    <option value="asc">Oldest first</option>
-                  </select>
-                </div>
-                <button
-                  onClick={startCreateRecipe}
-                  title="Create a recipe"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent)] text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] active:scale-95"
-                >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
                 </button>
               </div>
+            </div>
 
-              <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
                   {['All', 'Favorites', 'My recipes'].map((tag) => (
                     <button
@@ -2546,10 +2909,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           expandedRecipe.id
                         )}
                         aria-label={`Save ${expandedRecipe.name}`}
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition disabled:opacity-60 ${
+                        className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
-                            ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)] text-white'
-                            : 'border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] hover:bg-[var(--theme-bg-soft)]'
+                            ? 'text-[var(--theme-accent)]'
+                            : 'text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)]'
                         }`}
                       >
                         <Bookmark className="h-4 w-4" aria-hidden="true" />
@@ -2559,7 +2922,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         <button
                           type="button"
                           onClick={() => void shareRecipe(expandedRecipe)}
-                          className="inline-flex items-center gap-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-3 py-2 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                          className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
                         >
                           <Share2 className="h-4 w-4" aria-hidden="true" />
                           Share
@@ -2706,6 +3069,129 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       </section>
                     )}
                   </div>
+
+                  <section className="border-t border-[var(--theme-border)] pt-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)] mb-3">
+                      Comments ({(comments[expandedRecipe.id] || []).length})
+                    </h4>
+
+                    {isAuthenticated ? (
+                      <>
+                        {loadingComments ? (
+                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">Loading comments...</p>
+                        ) : (comments[expandedRecipe.id] || []).length === 0 ? (
+                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">No comments yet. Be the first!</p>
+                        ) : (() => {
+                          const allComments = comments[expandedRecipe.id] || [];
+                          const rootComments = allComments.filter((c) => !c.parentId);
+                          const count = visibleCommentCount[expandedRecipe.id] || COMMENTS_PER_PAGE;
+                          const visibleRoots = rootComments.slice(0, count);
+                          const hasMore = count < rootComments.length;
+
+                          return (
+                            <>
+                              <div className="space-y-3 mb-4">
+                                {visibleRoots.map((comment) => (
+                                  <CommentItem
+                                    key={comment.id}
+                                    comment={comment}
+                                    replies={allComments.filter((r) => r.parentId === comment.id)}
+                                    isReply={false}
+                                    currentUserId={currentUserId}
+                                    onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
+                                    onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
+                                    onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
+                                    replyingTo={replyingTo}
+                                    editingCommentId={editingCommentId}
+                                    setEditingCommentId={setEditingCommentId}
+                                  />
+                                ))}
+                              </div>
+                              {hasMore && (
+                                <button
+                                  onClick={() => {
+                                    setVisibleCommentCount((prev) => ({
+                                      ...prev,
+                                      [expandedRecipe.id]: (prev[expandedRecipe.id] || COMMENTS_PER_PAGE) + COMMENTS_PER_PAGE,
+                                    }));
+                                  }}
+                                  className="mb-4 w-full rounded border border-[var(--theme-border)] py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                                >
+                                  Show more ({rootComments.length - count} remaining)
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
+
+                        <div className="relative">
+                          <div className="flex gap-2">
+                            <input
+                              ref={commentInputRef}
+                              value={commentInput}
+                              onChange={(e) => handleCommentInput(e.target.value)}
+                              onKeyDown={handleCommentKeyDown}
+                              placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
+                              className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
+                                replyingTo
+                                  ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
+                                  : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
+                              }`}
+                            />
+                            <button
+                              onClick={() => void addComment(expandedRecipe.id, replyingTo)}
+                              disabled={!commentInput.trim()}
+                              className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {replyingTo ? 'Reply' : 'Post'}
+                            </button>
+                            {replyingTo && (
+                              <button
+                                onClick={() => { setReplyingTo(null); setReplyingToAuthor(''); setCommentInput(''); }}
+                                className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+
+                          {showMentions && (() => {
+                            const authors = getCommentAuthors().filter((a) =>
+                              a.toLowerCase().includes(mentionQuery.toLowerCase())
+                            );
+                            if (!authors.length) return null;
+                            return (
+                              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg max-h-40 overflow-y-auto">
+                                {authors.map((author, i) => (
+                                  <button
+                                    key={author}
+                                    onClick={() => insertMention(author)}
+                                    className={`w-full px-3 py-1.5 text-left text-sm transition ${
+                                      i === mentionCursor
+                                        ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                                        : 'text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)]'
+                                    }`}
+                                  >
+                                    <span className="font-medium text-[var(--theme-accent)]">@{author}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[var(--theme-text-muted)]">
+                        <button
+                          onClick={onRequestAuth}
+                          className="text-[var(--theme-accent)] hover:underline"
+                        >
+                          Log in
+                        </button>{' '}
+                        to join the conversation.
+                      </p>
+                    )}
+                  </section>
 
                   {isAuthenticated &&
                     expandedRecipe.ownerId === currentUserId && (
@@ -3290,8 +3776,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="flex-col sm:flex-row flex gap-8">
               <div className="shrink-0">
                 <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
-                  {selectedAvatar ? (
-                    <img src={avatarEntries.find((e) => e.file === selectedAvatar)?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {(selectedAvatar || savedProfileData.avatar) ? (
+                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || savedProfileData.avatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
                     creatorName.charAt(0).toUpperCase()
                   )}
@@ -3324,9 +3810,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         key={file}
                         onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
                         className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                           selectedAvatar === file
-                             ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
-                             : 'border-transparent hover:border-[var(--theme-border)]'
+                           (selectedAvatar || savedProfileData.avatar) === file
+                              ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
+                              : 'border-transparent hover:border-[var(--theme-border)]'
                         }`}
                       >
                         <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
@@ -3336,17 +3822,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
 
                 <div className="mt-8 grid gap-5">
-                  <label className="grid gap-1.5">
-                    <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
-                    <input
-                      ref={profileNameRef}
-                      defaultValue={savedProfileData.displayName}
-                      placeholder="Your display name"
-                      onChange={() => setProfileDirty(true)}
-                      className="ak-input rounded px-3 py-2 text-sm outline-none transition"
-                    />
-                  </label>
-
                   <label className="grid gap-1.5">
                     <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
                     <textarea
@@ -3368,7 +3843,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <div className="mt-6 flex gap-3">
                   <button
                     onClick={saveProfile}
-                    className="rounded bg-[var(--theme-accent)] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+                    className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                   >
                     Save
                   </button>
@@ -3429,7 +3904,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <button
                       onClick={publishRecipe}
                       disabled={isPublishing}
-                      className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-60"
+                      className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
                     >
                       {isPublishing
                         ? isEditingRecipe
