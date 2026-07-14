@@ -198,3 +198,8 @@ conversation_history.pkl
 .serena
 .DS_Store
 coverage/
+aws/
+project_import_debug.ts
+*.zip
+*.tar.gz
+auth-pr.patch

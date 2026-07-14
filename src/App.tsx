@@ -51,7 +51,7 @@ const getPersistedAuthState = (): PersistedAuthState | null => {
   }
 
   try {
-    const saved = window.sessionStorage.getItem(AUTH_STORAGE_KEY);
+    const saved = window.localStorage.getItem(AUTH_STORAGE_KEY);
     if (!saved) {
       return null;
     }
@@ -75,11 +75,11 @@ const persistAuthState = (authState: PersistedAuthState | null) => {
 
   try {
     if (!authState) {
-      window.sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
       return;
     }
 
-    window.sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
   } catch {
     // ignore storage failures
   }
@@ -398,12 +398,7 @@ function App() {
         userAttributes: null,
         isInitialized: true,
       });
-      persistAuthState({
-        isAuthenticated: false,
-        userId: null,
-        username: null,
-        email: null,
-      });
+      persistAuthState(null);
       setShowAgreementPrompt(false);
       setAgreementPendingUserKey(null);
     }
@@ -427,12 +422,7 @@ function App() {
       userAttributes: null,
       isInitialized: true,
     });
-    persistAuthState({
-      isAuthenticated: false,
-      userId: null,
-      username: null,
-      email: null,
-    });
+    persistAuthState(null);
   };
 
   const handleAuthComplete = useCallback(async () => {
