@@ -934,7 +934,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const syncRecipeRoute = () => {
+    const syncRecipeRoute = async () => {
       const recipeIdFromPath = getRecipeIdFromPath(window.location.pathname);
 
       if (!recipeIdFromPath) {
@@ -945,31 +945,70 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         return;
       }
 
-      if (isLoadingFeed) return;
-
       const matchingRecipe = feedRecipes.find((recipe) => recipe.id === recipeIdFromPath);
 
-      if (!matchingRecipe) {
+      if (matchingRecipe) {
+        if (expandedRecipeId !== matchingRecipe.id) {
+          void expandRecipe(matchingRecipe);
+        }
+        return;
+      }
+
+      if (isLoadingFeed || expandedRecipeId === recipeIdFromPath) return;
+
+      // Not in the currently loaded feed page — fetch it directly by id
+      // instead of assuming it doesn't exist.
+      try {
+        const authMode = isAuthenticated ? 'userPool' : 'identityPool';
+        const result = await client.models.Recipe.get(
+          { id: recipeIdFromPath },
+          { authMode }
+        );
+
+        if (result.errors?.length || !result.data) {
+          throw new Error('not found');
+        }
+
+        const recipe = result.data;
+        const directRecipe: FeedRecipe = {
+          id: recipe.id as string,
+          ownerId: recipe.ownerId || '',
+          name: recipe.name,
+          author: recipe.createdBy || 'Arcane cook',
+          createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
+          description: recipe.description || 'No description yet.',
+          image: await getRecipeImageSource(recipe.imageUrl),
+          time: recipe.prepTime || 'Prep time open',
+          rating: getBackendRating(recipe.ratings),
+          saves: 'New',
+          tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
+          instructions: (recipe.instructions?.filter(Boolean) as string[]) ?? [],
+          utensils: (recipe.utensils?.filter(Boolean) as string[]) ?? [],
+        };
+
+        setFeedRecipes((previous) =>
+          previous.some((existing) => existing.id === directRecipe.id)
+            ? previous
+            : [directRecipe, ...previous]
+        );
+
+        void expandRecipe(directRecipe);
+      } catch {
         setExpandedRecipeId(null);
         setExpandedRecipeMessage('Recipe could not be found.');
         if (window.location.pathname !== '/') {
           window.history.replaceState({}, '', '/');
         }
-        return;
-      }
-
-      if (expandedRecipeId !== matchingRecipe.id) {
-        void expandRecipe(matchingRecipe);
       }
     };
 
     window.addEventListener('popstate', syncRecipeRoute);
-    syncRecipeRoute();
+    void syncRecipeRoute();
 
     return () => {
       window.removeEventListener('popstate', syncRecipeRoute);
     };
-  }, [expandedRecipeId, feedRecipes, isLoadingFeed]);
+  }, [expandedRecipeId, feedRecipes, isLoadingFeed, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) {
