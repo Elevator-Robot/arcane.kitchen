@@ -29,6 +29,62 @@ const authFormFields = {
   },
 };
 
+type AuthState = {
+  isAuthenticated: boolean;
+  currentUser: any | null;
+  userAttributes: any | null;
+  isInitialized: boolean;
+};
+
+type PersistedAuthState = {
+  isAuthenticated: boolean;
+  userId: string | null;
+  username: string | null;
+  email: string | null;
+};
+
+const AUTH_STORAGE_KEY = 'arcaneKitchen.authState';
+
+const getPersistedAuthState = (): PersistedAuthState | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const saved = window.localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!saved) {
+      return null;
+    }
+
+    const parsed = JSON.parse(saved) as Partial<PersistedAuthState>;
+    return {
+      isAuthenticated: Boolean(parsed.isAuthenticated),
+      userId: parsed.userId ?? null,
+      username: parsed.username ?? null,
+      email: parsed.email ?? null,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const persistAuthState = (authState: PersistedAuthState | null) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (!authState) {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
+  } catch {
+    // ignore storage failures
+  }
+};
+
 const hasAmplifyAuthConfig = () => {
   try {
     return Boolean((Amplify.getConfig() as { Auth?: unknown })?.Auth);
@@ -41,7 +97,6 @@ const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
-    const agreeToTerms = input.__agreeToTerms === true;
 
     if (!hasAmplifyAuthConfig()) {
       throw new Error('Authentication is not configured yet. Please try again later.');
@@ -56,10 +111,6 @@ const authServices = {
 
       if (!shouldCreateAccount) {
         throw error;
-      }
-
-      if (!agreeToTerms) {
-        throw new Error('You must accept the user agreement to continue');
       }
 
       try {
@@ -243,51 +294,31 @@ function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
 }
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userAttributes, setUserAttributes] = useState<any>(null);
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    const persisted = getPersistedAuthState();
+    return {
+      isAuthenticated: persisted?.isAuthenticated ?? false,
+      currentUser: null,
+      userAttributes: null,
+      isInitialized: persisted !== null,
+    };
+  });
+  const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized } = authState;
   const [showAuth, setShowAuth] = useState(false);
-  const [showAgreementPrompt, setShowAgreementPrompt] = useState(false);
-  const [agreementPendingUserKey, setAgreementPendingUserKey] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
-
-  const getAgreementStorageKey = useCallback((userIdentifier?: string | null) => {
-    if (!userIdentifier) return null;
-    return `arcaneKitchen.acceptedAgreement.${userIdentifier}`;
-  }, []);
-
-  const hasAcceptedAgreement = useCallback((userIdentifier?: string | null) => {
-    const storageKey = getAgreementStorageKey(userIdentifier);
-    if (!storageKey || typeof window === 'undefined') return false;
-
-    try {
-      return window.localStorage.getItem(storageKey) === 'true';
-    } catch {
-      return false;
-    }
-  }, [getAgreementStorageKey]);
-
-  const markAgreementAccepted = useCallback((userIdentifier?: string | null) => {
-    const storageKey = getAgreementStorageKey(userIdentifier);
-    if (!storageKey || typeof window === 'undefined') return;
-
-    try {
-      window.localStorage.setItem(storageKey, 'true');
-    } catch {
-      // ignore localStorage failures
-    }
-  }, [getAgreementStorageKey]);
 
   const refreshAuthState = useCallback(async () => {
     setAuthNotice(null);
 
     if (!hasAmplifyAuthConfig()) {
       setAuthNotice('Authentication is not configured yet. Please try again later.');
-      setCurrentUser(null);
-      setUserAttributes(null);
-      setIsAuthenticated(false);
-      setShowAgreementPrompt(false);
-      setAgreementPendingUserKey(null);
+      setAuthState({
+        isAuthenticated: false,
+        currentUser: null,
+        userAttributes: null,
+        isInitialized: true,
+      });
+      persistAuthState(null);
       return;
     }
 
@@ -295,32 +326,28 @@ function App() {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
 
-      const userIdentifier =
-        user?.userId ||
-        attributes?.sub ||
-        user?.username ||
-        attributes?.email ||
-        null;
-
-      setCurrentUser(user);
-      setUserAttributes(attributes);
-      setIsAuthenticated(true);
-
-      if (!hasAcceptedAgreement(userIdentifier)) {
-        setAgreementPendingUserKey(userIdentifier);
-        setShowAgreementPrompt(Boolean(userIdentifier));
-      } else {
-        setAgreementPendingUserKey(null);
-        setShowAgreementPrompt(false);
-      }
+      setAuthState({
+        isAuthenticated: true,
+        currentUser: user,
+        userAttributes: attributes,
+        isInitialized: true,
+      });
+      persistAuthState({
+        isAuthenticated: true,
+        userId: user?.userId || attributes?.sub || null,
+        username: user?.username || null,
+        email: attributes?.email || null,
+      });
     } catch {
-      setCurrentUser(null);
-      setUserAttributes(null);
-      setIsAuthenticated(false);
-      setShowAgreementPrompt(false);
-      setAgreementPendingUserKey(null);
+      setAuthState({
+        isAuthenticated: false,
+        currentUser: null,
+        userAttributes: null,
+        isInitialized: true,
+      });
+      persistAuthState(null);
     }
-  }, [hasAcceptedAgreement]);
+  }, []);
 
   useEffect(() => {
     refreshAuthState();
@@ -334,25 +361,19 @@ function App() {
 
   const handleSignOut = async () => {
     await amplifySignOut();
-    setCurrentUser(null);
-    setUserAttributes(null);
-    setIsAuthenticated(false);
+    setAuthState({
+      isAuthenticated: false,
+      currentUser: null,
+      userAttributes: null,
+      isInitialized: true,
+    });
+    persistAuthState(null);
   };
 
   const handleAuthComplete = useCallback(async () => {
     await refreshAuthState();
     setShowAuth(false);
   }, [refreshAuthState]);
-
-  const handleAcceptAgreement = useCallback(() => {
-    markAgreementAccepted(agreementPendingUserKey);
-    setShowAgreementPrompt(false);
-    setAgreementPendingUserKey(null);
-  }, [agreementPendingUserKey, markAgreementAccepted]);
-
-  const handleDismissAgreement = useCallback(() => {
-    setShowAgreementPrompt(false);
-  }, []);
 
   const submitAuthFormOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
     if (
@@ -373,6 +394,16 @@ function App() {
     form.requestSubmit();
   };
 
+  if (!isAuthInitialized) {
+    return (
+      <div className="flex h-screen items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+        <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-6 py-4 text-sm font-medium text-[var(--theme-text-muted)]">
+          Preparing your kitchen…
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
       <RecipeBuilder
@@ -381,44 +412,10 @@ function App() {
         userAttributes={userAttributes}
         onRequestAuth={() => setShowAuth(true)}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
+        onProfileSaved={() => void refreshAuthState()}
       />
 
       <PWAInstallPrompt />
-
-      {showAgreementPrompt && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-[0_30px_90px_rgba(34,18,36,0.35)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-accent)]">
-              User agreement
-            </p>
-            <h3 className="mt-3 text-2xl font-semibold text-[var(--theme-text)]">
-              Please confirm the agreement
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-[var(--theme-text-muted)]">
-              To keep using Arcane Kitchen safely, please confirm that you own or have permission to share the recipes you upload.
-            </p>
-            <div className="mt-5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4 text-sm text-[var(--theme-text-muted)]">
-              You can accept this now and continue using the app. If you prefer, you can close this prompt and return later.
-            </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={handleDismissAgreement}
-                className="rounded-xl border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
-              >
-                Maybe later
-              </button>
-              <button
-                type="button"
-                onClick={handleAcceptAgreement}
-                className="rounded-xl bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Accept and continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAuth && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md sm:py-10">
