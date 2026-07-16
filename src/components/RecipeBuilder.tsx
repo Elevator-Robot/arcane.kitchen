@@ -28,7 +28,6 @@ import { getCloudFrontDomain } from '../amplifyConfig';
 import {
   deleteRecipeDraft,
   EMPTY_RECIPE_DRAFT,
-  getLatestRecipeDraft,
   isRecipeDraftEmpty,
   loadRecipeDraftsForOwner,
   saveRecipeDraft,
@@ -730,11 +729,28 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
     null
   );
-  const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
 
-  const profileAvatar = userAttributes?.['custom:avatar'] || null;
-  const profileBio = userAttributes?.['custom:bio'] || '';
+  const PROFILE_CACHE_KEY = currentUserId
+    ? `arcaneKitchen.profileCache.${currentUserId}`
+    : null;
+
+  const cachedProfile = useMemo(() => {
+    if (!PROFILE_CACHE_KEY || typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch { /* ignore */ }
+    return null;
+  }, [PROFILE_CACHE_KEY]);
+
+  const cachedName = cachedProfile?.nickname || cachedProfile?.emailPrefix || null;
+  const profileAvatar = userAttributes?.['custom:avatar'] || cachedProfile?.avatar || null;
+  const profileBio = userAttributes?.['custom:bio'] ?? cachedProfile?.bio ?? '';
+
+  const creatorName = getCreatorName(userAttributes, currentUser) !== 'Guest cook'
+    ? getCreatorName(userAttributes, currentUser)
+    : (cachedName || 'Guest cook');
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -770,26 +786,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (cancelled) return;
 
       setDraftRecords(records);
-
-      const latestDraft = records[0] || (await getLatestRecipeDraft(currentUserId));
-
-      if (cancelled) return;
-
-      if (latestDraft) {
-        setDraft(latestDraft.draft);
-        setDraftId(latestDraft.id);
-        setDraftImageDataUrl(latestDraft.imageDataUrl);
-        setEditingRecipeId(latestDraft.editingRecipeId);
-        setImagePreviewUrl(latestDraft.imageDataUrl || neutralImagePlaceholder);
-        setSelectedImageFile(
-          latestDraft.imageDataUrl
-            ? dataUrlToFile(latestDraft.imageDataUrl, 'recipe-image.jpg')
-            : null
-        );
-        setCurrentView('Build');
-        setPublishMessage('Draft restored from your last session.');
-        setPublishMessageTone('success');
-      }
     };
 
     void hydrateDrafts();
@@ -819,8 +815,30 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   }, [currentView]);
 
+  useEffect(() => {
+    if (PROFILE_CACHE_KEY && userAttributes?.nickname) {
+      try {
+        const existing = localStorage.getItem(PROFILE_CACHE_KEY);
+        const data = existing ? JSON.parse(existing) : {};
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+          ...data,
+          nickname: userAttributes.nickname,
+          emailPrefix: userAttributes.email?.split('@')[0],
+        }));
+      } catch { /* ignore */ }
+    }
+  }, [userAttributes]);
+
   const saveProfile = async () => {
     const bio = profileBioRef.current?.value || '';
+    if (PROFILE_CACHE_KEY) {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+        avatar: selectedAvatar,
+        bio,
+        nickname: userAttributes?.nickname || null,
+        emailPrefix: userAttributes?.email?.split('@')[0] || null,
+      }));
+    }
     try {
       const attrs: Record<string, string> = {};
       if (selectedAvatar) attrs['custom:avatar'] = selectedAvatar;
@@ -836,7 +854,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setCurrentView('Discover');
   };
 
-  const rating = useMemo(() => averageRating([5, 5, 4, 5]), []);
   const isEditingRecipe = Boolean(editingRecipeId);
 
   const loadRecipes = useCallback(async () => {
@@ -3927,7 +3944,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
+                        if (draftId && currentUserId) {
+                          void deleteRecipeDraft(currentUserId, draftId);
+                        }
+                        setDraft(EMPTY_RECIPE_DRAFT);
+                        setDraftId(null);
+                        setDraftImageDataUrl(null);
                         setEditingRecipeId(null);
+                        setSelectedImageFile(null);
+                        setImagePreviewUrl(neutralImagePlaceholder);
                         setPublishMessage('');
                         setPublishMessageTone('error');
                         setCurrentView('Discover');
@@ -3999,9 +4024,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       </h3>
                       <p className="mt-1 text-sm text-[var(--theme-text-muted)]">by {creatorName}</p>
                     </div>
-                    <span className="shrink-0 rounded-md bg-[var(--theme-surface-alt)] px-2 py-1 text-xs font-semibold text-[var(--theme-text)]">
-                      {rating}
-                    </span>
                   </div>
                   {draft.description && (
                     <p className="mt-3 text-sm leading-relaxed text-[var(--theme-text)]">

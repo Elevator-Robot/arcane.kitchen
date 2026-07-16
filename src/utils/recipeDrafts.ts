@@ -262,6 +262,7 @@ const writeIndexedDbDrafts = async (drafts: RecipeDraftRecord[]): Promise<void> 
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(DRAFTS_STORE_NAME, 'readwrite');
     const store = tx.objectStore(DRAFTS_STORE_NAME);
+    store.clear();
     drafts.forEach((draft) => {
       store.put(draft);
     });
@@ -422,9 +423,8 @@ export const deleteRecipeDraft = async (
         (draft) => draft.ownerId !== ownerId || draft.id !== draftId
       );
       await writeIndexedDbDrafts(nextDrafts);
-      return;
     } catch {
-      /* fall through */
+      /* ignore */
     }
   }
 
