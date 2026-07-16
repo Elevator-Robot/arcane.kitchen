@@ -97,7 +97,6 @@ const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
-    const agreeToTerms = input.__agreeToTerms === true;
 
     if (!hasAmplifyAuthConfig()) {
       throw new Error('Authentication is not configured yet. Please try again later.');
@@ -112,10 +111,6 @@ const authServices = {
 
       if (!shouldCreateAccount) {
         throw error;
-      }
-
-      if (!agreeToTerms) {
-        throw new Error('You must accept the user agreement to continue');
       }
 
       try {
@@ -310,36 +305,7 @@ function App() {
   });
   const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized } = authState;
   const [showAuth, setShowAuth] = useState(false);
-  const [showAgreementPrompt, setShowAgreementPrompt] = useState(false);
-  const [agreementPendingUserKey, setAgreementPendingUserKey] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
-
-  const getAgreementStorageKey = useCallback((userIdentifier?: string | null) => {
-    if (!userIdentifier) return null;
-    return `arcaneKitchen.acceptedAgreement.${userIdentifier}`;
-  }, []);
-
-  const hasAcceptedAgreement = useCallback((userIdentifier?: string | null) => {
-    const storageKey = getAgreementStorageKey(userIdentifier);
-    if (!storageKey || typeof window === 'undefined') return false;
-
-    try {
-      return window.localStorage.getItem(storageKey) === 'true';
-    } catch {
-      return false;
-    }
-  }, [getAgreementStorageKey]);
-
-  const markAgreementAccepted = useCallback((userIdentifier?: string | null) => {
-    const storageKey = getAgreementStorageKey(userIdentifier);
-    if (!storageKey || typeof window === 'undefined') return;
-
-    try {
-      window.localStorage.setItem(storageKey, 'true');
-    } catch {
-      // ignore localStorage failures
-    }
-  }, [getAgreementStorageKey]);
 
   const refreshAuthState = useCallback(async () => {
     setAuthNotice(null);
@@ -353,8 +319,6 @@ function App() {
         isInitialized: true,
       });
       persistAuthState(null);
-      setShowAgreementPrompt(false);
-      setAgreementPendingUserKey(null);
       return;
     }
 
@@ -362,35 +326,18 @@ function App() {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
 
-      const userIdentifier =
-        user?.userId ||
-        attributes?.sub ||
-        user?.username ||
-        attributes?.email ||
-        null;
-
-      const nextAuthState = {
+      setAuthState({
         isAuthenticated: true,
         currentUser: user,
         userAttributes: attributes,
         isInitialized: true,
-      };
-
-      setAuthState(nextAuthState);
+      });
       persistAuthState({
         isAuthenticated: true,
         userId: user?.userId || attributes?.sub || null,
         username: user?.username || null,
         email: attributes?.email || null,
       });
-
-      if (!hasAcceptedAgreement(userIdentifier)) {
-        setAgreementPendingUserKey(userIdentifier);
-        setShowAgreementPrompt(Boolean(userIdentifier));
-      } else {
-        setAgreementPendingUserKey(null);
-        setShowAgreementPrompt(false);
-      }
     } catch {
       setAuthState({
         isAuthenticated: false,
@@ -399,10 +346,8 @@ function App() {
         isInitialized: true,
       });
       persistAuthState(null);
-      setShowAgreementPrompt(false);
-      setAgreementPendingUserKey(null);
     }
-  }, [hasAcceptedAgreement]);
+  }, []);
 
   useEffect(() => {
     refreshAuthState();
@@ -429,16 +374,6 @@ function App() {
     await refreshAuthState();
     setShowAuth(false);
   }, [refreshAuthState]);
-
-  const handleAcceptAgreement = useCallback(() => {
-    markAgreementAccepted(agreementPendingUserKey);
-    setShowAgreementPrompt(false);
-    setAgreementPendingUserKey(null);
-  }, [agreementPendingUserKey, markAgreementAccepted]);
-
-  const handleDismissAgreement = useCallback(() => {
-    setShowAgreementPrompt(false);
-  }, []);
 
   const submitAuthFormOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
     if (
@@ -480,41 +415,6 @@ function App() {
       />
 
       <PWAInstallPrompt />
-
-      {showAgreementPrompt && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md">
-          <div className="w-full max-w-lg rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-[0_30px_90px_rgba(34,18,36,0.35)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--theme-accent)]">
-              User agreement
-            </p>
-            <h3 className="mt-3 text-2xl font-semibold text-[var(--theme-text)]">
-              Please confirm the agreement
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-[var(--theme-text-muted)]">
-              To keep using Arcane Kitchen safely, please confirm that you own or have permission to share the recipes you upload.
-            </p>
-            <div className="mt-5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-4 text-sm text-[var(--theme-text-muted)]">
-              You can accept this now and continue using the app. If you prefer, you can close this prompt and return later.
-            </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={handleDismissAgreement}
-                className="rounded-xl border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
-              >
-                Maybe later
-              </button>
-              <button
-                type="button"
-                onClick={handleAcceptAgreement}
-                className="rounded-xl bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Accept and continue
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAuth && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md sm:py-10">
