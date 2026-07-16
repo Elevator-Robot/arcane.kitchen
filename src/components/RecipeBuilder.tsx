@@ -8,6 +8,7 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
+import { updateUserAttributes } from 'aws-amplify/auth';
 import {
   ArrowLeft,
   Bookmark,
@@ -730,21 +731,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const creatorName = getCreatorName(userAttributes, currentUser);
   const currentUserId = getCurrentUserId(currentUser, userAttributes);
 
-  const PROFILE_DATA_KEY = currentUserId
-    ? `arcaneKitchen.profileData.${currentUserId}`
-    : null;
-
-  const loadProfileData = useCallback(() => {
-    if (!PROFILE_DATA_KEY) return { bio: '', avatar: null };
-    try {
-      const saved = localStorage.getItem(PROFILE_DATA_KEY);
-      if (saved) {
-        const data = JSON.parse(saved);
-        return { bio: data.bio || '', avatar: data.avatar || null };
-      }
-    } catch { /* ignore */ }
-    return { bio: '', avatar: null };
-  }, [PROFILE_DATA_KEY]);
+  const profileAvatar = userAttributes?.['custom:avatar'] || null;
+  const profileBio = userAttributes?.['custom:bio'] || '';
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -754,7 +742,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     [],
   );
 
-  const savedProfileData = loadProfileData();
+  const avatarUrl = profileAvatar
+    ? avatarEntries.find((e) => e.file === profileAvatar)?.url || null
+    : null;
 
   useEffect(() => {
     if (!currentUserId) {
@@ -807,10 +797,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     };
   }, [currentUserId]);
 
-  const avatarUrl = savedProfileData.avatar
-    ? avatarEntries.find((e) => e.file === savedProfileData.avatar)?.url || null
-    : null;
-
   const shuffleAvatars = useCallback((exclude?: string | null) => {
     const pool = exclude
       ? avatarEntries.filter((a) => a.file !== exclude)
@@ -824,18 +810,25 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   useEffect(() => {
     if (currentView === 'Profile') {
-      setSelectedAvatar(savedProfileData.avatar);
-      shuffleAvatars(savedProfileData.avatar);
-      setBioCharCount(savedProfileData.bio?.length || 0);
+      setSelectedAvatar(profileAvatar);
+      shuffleAvatars(profileAvatar);
+      setBioCharCount(profileBio?.length || 0);
       setProfileDirty(false);
     }
   }, [currentView]);
 
-  const saveProfile = () => {
-    if (PROFILE_DATA_KEY) {
-      const bio = profileBioRef.current?.value || '';
-      localStorage.setItem(PROFILE_DATA_KEY, JSON.stringify({ bio, avatar: selectedAvatar }));
+  const saveProfile = async () => {
+    const bio = profileBioRef.current?.value || '';
+    try {
+      await updateUserAttributes({
+        userAttributes: {
+          'custom:avatar': selectedAvatar || undefined,
+          'custom:bio': bio || undefined,
+        },
+      });
       setProfileDirty(false);
+    } catch {
+      // ignore
     }
     setCurrentView('Discover');
   };
@@ -3815,8 +3808,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="flex-col sm:flex-row flex gap-8">
               <div className="shrink-0">
                 <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
-                  {(selectedAvatar || savedProfileData.avatar) ? (
-                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || savedProfileData.avatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {(selectedAvatar || profileAvatar) ? (
+                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || profileAvatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
                     creatorName.charAt(0).toUpperCase()
                   )}
@@ -3849,7 +3842,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         key={file}
                         onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
                         className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                           (selectedAvatar || savedProfileData.avatar) === file
+                           (selectedAvatar || profileAvatar) === file
                               ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
                               : 'border-transparent hover:border-[var(--theme-border)]'
                         }`}
@@ -3865,7 +3858,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
                     <textarea
                       ref={profileBioRef}
-                      defaultValue={savedProfileData.bio}
+                      defaultValue={profileBio}
                       placeholder="A short bio about yourself"
                       rows={3}
                       maxLength={MAX_BIO_CHARS}
@@ -3889,7 +3882,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   <button
                     onClick={() => {
                       if (!profileDirty || window.confirm('Discard unsaved changes?')) {
-                        setSelectedAvatar(savedProfileData.avatar);
+                        setSelectedAvatar(profileAvatar);
                         setCurrentView('Discover');
                       }
                     }}

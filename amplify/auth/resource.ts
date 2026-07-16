@@ -45,5 +45,13 @@ export const auth = defineAuth({
       dataType: 'String', // JSON string of array
       mutable: true,
     },
+    'custom:avatar': {
+      dataType: 'String',
+      mutable: true,
+    },
+    'custom:bio': {
+      dataType: 'String',
+      mutable: true,
+    },
   },
 });
