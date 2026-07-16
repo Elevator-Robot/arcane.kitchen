@@ -412,6 +412,7 @@ function App() {
         userAttributes={userAttributes}
         onRequestAuth={() => setShowAuth(true)}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
+        onProfileSaved={() => void refreshAuthState()}
       />
 
       <PWAInstallPrompt />

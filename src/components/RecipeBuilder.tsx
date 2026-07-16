@@ -103,6 +103,7 @@ interface RecipeBuilderProps {
   userAttributes?: any;
   onRequestAuth?: () => void;
   onSignOut?: () => void;
+  onProfileSaved?: () => void;
 }
 
 interface FeedRecipe {
@@ -640,6 +641,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   userAttributes,
   onRequestAuth,
   onSignOut,
+  onProfileSaved,
 }) => {
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
@@ -820,15 +822,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const saveProfile = async () => {
     const bio = profileBioRef.current?.value || '';
     try {
-      await updateUserAttributes({
-        userAttributes: {
-          'custom:avatar': selectedAvatar || undefined,
-          'custom:bio': bio || undefined,
-        },
-      });
+      const attrs: Record<string, string> = {};
+      if (selectedAvatar) attrs['custom:avatar'] = selectedAvatar;
+      if (bio) attrs['custom:bio'] = bio;
+      if (Object.keys(attrs).length > 0) {
+        await updateUserAttributes({ userAttributes: attrs });
+        onProfileSaved?.();
+      }
       setProfileDirty(false);
-    } catch {
-      // ignore
+    } catch (e: any) {
+      console.error('Failed to save profile:', e);
     }
     setCurrentView('Discover');
   };
