@@ -47,6 +47,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - On bootstrap, `src/main.tsx` reads `outputs.custom.CloudFrontDomain` from `amplify_outputs.json` and stores it via `setCloudFrontDomain()` in `src/amplifyConfig.ts`
 - `getRecipeImageSource` in `RecipeBuilder.tsx` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
+- Sandbox deploy scripts in `scripts/` invoke the Amplify CLI through the installed JavaScript entrypoint, which keeps `npm run deploy:sandbox` working reliably across Windows, macOS, and Linux
 
 ## Agent checklist for every PR
 
