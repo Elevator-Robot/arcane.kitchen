@@ -1,9 +1,10 @@
 const { existsSync, readdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { spawnSync } = require('node:child_process');
+const { resolveAmpxEntryPath } = require('./resolve-ampx-entry.cjs');
 
 const projectRoot = join(__dirname, '..');
-const ampxBin = join(projectRoot, 'node_modules', '.bin', 'ampx');
+const ampxEntryPoint = resolveAmpxEntryPath(projectRoot);
 const shim = join(__dirname, 'node-localstorage-shim.cjs');
 
 const findLtsNode = () => {
@@ -27,7 +28,7 @@ const result = spawnSync(
   [
     '--require',
     shim,
-    ampxBin,
+    ampxEntryPoint,
     'sandbox',
     'delete',
     '--yes',
