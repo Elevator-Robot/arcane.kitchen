@@ -296,10 +296,23 @@ function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
 function App() {
   const [authState, setAuthState] = useState<AuthState>(() => {
     const persisted = getPersistedAuthState();
+    const currentUser = persisted?.isAuthenticated
+      ? {
+          userId: persisted.userId,
+          username: persisted.username,
+        }
+      : null;
+    const userAttributes = persisted?.isAuthenticated
+      ? {
+          sub: persisted.userId ?? undefined,
+          email: persisted.email ?? undefined,
+        }
+      : null;
+
     return {
       isAuthenticated: persisted?.isAuthenticated ?? false,
-      currentUser: null,
-      userAttributes: null,
+      currentUser,
+      userAttributes,
       isInitialized: persisted !== null,
     };
   });
