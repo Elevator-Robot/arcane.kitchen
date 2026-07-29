@@ -31,7 +31,7 @@ const result = spawnSync(
     shim,
     ampxEntryPoint,
     'sandbox',
-    '--once'oooooooooooooooof,
+    '--once',
     '--outputs-out-dir',
     'public',
   ],
