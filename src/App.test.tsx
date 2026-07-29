@@ -3,10 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import App from './App';
 
-const { getCurrentUserMock, fetchUserAttributesMock, signOutMock } = vi.hoisted(() => ({
+const { getCurrentUserMock, fetchUserAttributesMock, signOutMock, recipeBuilderMock } = vi.hoisted(() => ({
   getCurrentUserMock: vi.fn(),
   fetchUserAttributesMock: vi.fn(),
   signOutMock: vi.fn(),
+  recipeBuilderMock: vi.fn(),
 }));
 
 vi.mock('aws-amplify/auth', async () => {
@@ -37,7 +38,10 @@ vi.mock('@aws-amplify/ui-react-core', () => ({
 }));
 
 vi.mock('./components/RecipeBuilder', () => ({
-  default: () => <div>RecipeBuilder</div>,
+  default: (props: any) => {
+    recipeBuilderMock(props);
+    return <div>RecipeBuilder</div>;
+  },
 }));
 
 vi.mock('./components/SignInForm', () => ({
@@ -48,6 +52,7 @@ describe('App auth initialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    localStorage.clear();
   });
 
   it('does not render the unauthenticated experience before auth resolves', async () => {
@@ -64,5 +69,28 @@ describe('App auth initialization', () => {
 
     await waitFor(() => expect(screen.getByText('RecipeBuilder')).toBeInTheDocument());
     expect(screen.queryByText('Preparing your kitchen…')).not.toBeInTheDocument();
+  });
+
+  it('seeds the initial authenticated profile from persisted auth data', () => {
+    localStorage.setItem(
+      'arcaneKitchen.authState',
+      JSON.stringify({
+        isAuthenticated: true,
+        userId: 'user-1',
+        username: 'persisted-user',
+        email: 'persisted@example.com',
+      })
+    );
+
+    render(<App />);
+
+    const initialProps = recipeBuilderMock.mock.calls[0]?.[0];
+    expect(initialProps?.isAuthenticated).toBe(true);
+    expect(initialProps?.currentUser).toEqual(
+      expect.objectContaining({ username: 'persisted-user' })
+    );
+    expect(initialProps?.userAttributes).toEqual(
+      expect.objectContaining({ email: 'persisted@example.com' })
+    );
   });
 });
