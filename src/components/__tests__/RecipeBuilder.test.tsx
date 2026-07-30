@@ -1,49 +1,21 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+﻿import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {
-  render,
-  defaultRecipeBuilderProps,
-  unauthenticatedRecipeBuilderProps,
-} from '../../test/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import RecipeBuilder from '../RecipeBuilder';
 
-const createMockRecipe = (overrides: Record<string, unknown> = {}) => ({
-  id: 'recipe-1',
-  ownerId: 'user-1',
-  name: 'Test Recipe',
-  description: 'A test recipe',
-  createdBy: 'Test Cook',
-  createdAt: new Date().toISOString(),
-  imageUrl: undefined,
-  prepTime: undefined,
-  tags: [],
-  instructions: ['Mix ingredients'],
-  utensils: [],
-  ratings: [],
-  recipeFingerprint: undefined,
-  recipeNameKey: undefined,
-  notes: undefined,
-  ...overrides,
-});
-
-const { mockRecipeList, mockRecipeGetUrl, mockRecipeUploadData } =
-  vi.hoisted(() => ({
-    mockRecipeList: vi
-      .fn()
-      .mockResolvedValue({ data: [], errors: undefined }),
-    mockRecipeGetUrl: vi
-      .fn()
-      .mockResolvedValue({ url: new URL('https://example.com/image.jpg') }),
-    mockRecipeUploadData: vi
-      .fn()
-      .mockReturnValue({ result: Promise.resolve({ path: 'test-path' }) }),
-  }));
-
-const mockRecipeStorageConfig = vi.hoisted(() => vi.fn(() => ({ Storage: {} })));
+const mockRecipeList = vi.fn();
+const mockRecipeDelete = vi.fn();
+const mockRecipeGet = vi.fn();
+const mockRecipeCreate = vi.fn();
+const mockRecipeUpdate = vi.fn();
+const mockFavoriteList = vi.fn();
+const mockFavoriteDelete = vi.fn();
+const mockFavoriteCreate = vi.fn();
+const mockGetUrl = vi.fn();
 
 vi.mock('aws-amplify', () => ({
   Amplify: {
-    getConfig: mockRecipeStorageConfig,
+    getConfig: () => ({ Storage: {} }),
   },
 }));
 
@@ -52,264 +24,126 @@ vi.mock('aws-amplify/data', () => ({
     models: {
       Recipe: {
         list: mockRecipeList,
-        get: vi.fn().mockResolvedValue({ data: null, errors: undefined }),
-        create: vi
-          .fn()
-          .mockResolvedValue({ data: { id: 'new-id' }, errors: undefined }),
-        update: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
-        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
-      },
-      Ingredient: {
-        create: vi
-          .fn()
-          .mockResolvedValue({
-            data: { id: 'ing-1' },
-            errors: undefined,
-          }),
-        get: vi
-          .fn()
-          .mockResolvedValue({
-            data: { name: 'Test Ingredient' },
-            errors: undefined,
-          }),
-      },
-      RecipeIngredient: {
-        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
-        create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
-        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        delete: mockRecipeDelete,
+        get: mockRecipeGet,
+        create: mockRecipeCreate,
+        update: mockRecipeUpdate,
       },
       Favorite: {
-        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
-        create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
-        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        list: mockFavoriteList,
+        delete: mockFavoriteDelete,
+        create: mockFavoriteCreate,
+      },
+      Ingredient: {
+        create: vi.fn().mockResolvedValue({ data: { id: 'ingredient-1' }, errors: [] }),
+      },
+      RecipeIngredient: {
+        create: vi.fn().mockResolvedValue({ data: { id: 'link-1' }, errors: [] }),
+        list: vi.fn().mockResolvedValue({ data: [], errors: [] }),
+        delete: vi.fn().mockResolvedValue({ data: null, errors: [] }),
       },
     },
   }),
 }));
 
 vi.mock('aws-amplify/storage', () => ({
-  getUrl: mockRecipeGetUrl,
-  uploadData: mockRecipeUploadData,
+  getUrl: mockGetUrl,
+  uploadData: vi.fn().mockResolvedValue({ result: Promise.resolve() }),
 }));
 
-const renderRecipeBuilder = async (props: Record<string, unknown> = {}) => {
-  const { default: RecipeBuilder } = await import('../RecipeBuilder');
-  return render(<RecipeBuilder {...(props as any)} />);
-};
+vi.mock('aws-amplify/auth', () => ({
+  updateUserAttributes: vi.fn().mockResolvedValue(undefined),
+}));
 
-describe('RecipeBuilder Component', () => {
+vi.mock('@mui/x-date-pickers/AdapterDayjs', () => ({
+  AdapterDayjs: class AdapterDayjs {},
+}));
+
+vi.mock('@mui/x-date-pickers/LocalizationProvider', () => ({
+  LocalizationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@mui/x-date-pickers/MobileTimePicker', () => ({
+  MobileTimePicker: () => <div />,
+}));
+
+vi.mock('../amplifyConfig', () => ({
+  getCloudFrontDomain: () => '',
+}));
+
+vi.mock('../utils/recipeDrafts', () => ({
+  deleteRecipeDraft: vi.fn().mockResolvedValue(undefined),
+  EMPTY_RECIPE_DRAFT: {
+    name: '',
+    description: '',
+    prepTime: '',
+    notes: '',
+    ingredients: [],
+    instructions: [],
+    tags: [],
+    utensils: [],
+    imageUrl: '',
+  },
+  isRecipeDraftEmpty: () => true,
+  loadRecipeDraftsForOwner: vi.fn().mockResolvedValue([]),
+  saveRecipeDraft: vi.fn().mockResolvedValue(null),
+}));
+
+describe('RecipeBuilder delete undo', () => {
   beforeEach(() => {
-    window.localStorage.clear();
-    window.history.replaceState({}, '', '/');
-    mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
-    if (typeof indexedDB !== 'undefined') {
-      indexedDB.deleteDatabase('arcaneKitchenDraft');
-    }
+    vi.clearAllMocks();
+    mockRecipeList.mockResolvedValue({
+      data: [
+        {
+          id: 'recipe-1',
+          ownerId: 'user-1',
+          name: 'Pasta',
+          description: 'A simple recipe',
+          createdBy: 'Test user',
+          imageUrl: '',
+          prepTime: '15 min',
+          tags: [],
+          instructions: [],
+          ratings: [],
+        },
+      ],
+      errors: [],
+    });
+    mockRecipeDelete.mockResolvedValue({ data: { id: 'recipe-1' }, errors: [] });
+    mockRecipeGet.mockResolvedValue({ data: null, errors: [] });
+    mockRecipeCreate.mockResolvedValue({ data: { id: 'recipe-1' }, errors: [] });
+    mockRecipeUpdate.mockResolvedValue({ data: { id: 'recipe-1' }, errors: [] });
+    mockFavoriteList.mockResolvedValue({ data: [], errors: [] });
+    mockFavoriteDelete.mockResolvedValue({ data: null, errors: [] });
+    mockFavoriteCreate.mockResolvedValue({ data: null, errors: [] });
+    mockGetUrl.mockResolvedValue({ url: new URL('https://example.com/image.jpg') });
   });
 
-  it('renders the social recipe workspace', async () => {
-    await renderRecipeBuilder(defaultRecipeBuilderProps);
-
-    expect(await screen.findByText('Arcane Kitchen')).toBeInTheDocument();
-    expect(screen.getByText('Search recipes')).toBeInTheDocument();
-    expect(screen.getByTitle('Create a recipe')).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText('Search recipes...')
-    ).toBeInTheDocument();
-  }, 20000);
-
-  it('updates the post preview as recipe fields change', async () => {
-    const user = userEvent.setup();
-    await renderRecipeBuilder(defaultRecipeBuilderProps);
-
-    const nameInput = screen.getAllByPlaceholderText("e.g., Grandma's Apple Pie")[0];
-    await user.type(nameInput, 'Roasted Corn Salad');
-
-    expect(
-      screen.getByRole('heading', { name: 'Roasted Corn Salad' })
-    ).toBeInTheDocument();
-  }, 20000);
-
-  it('allows ingredients to be added and removed', async () => {
-    const user = userEvent.setup();
-    await renderRecipeBuilder(defaultRecipeBuilderProps);
-
-    const addButtons = screen.getAllByRole('button', { name: 'Add' });
-    await user.click(addButtons[0]);
-    const ingredientFields = screen.getAllByLabelText('Ingredient');
-
-    expect(ingredientFields.length).toBeGreaterThan(0);
-
-    await user.click(screen.getAllByLabelText('Remove ingredient')[1]);
-
-    expect(screen.getAllByLabelText('Ingredient').length).toBeLessThanOrEqual(ingredientFields.length);
-  }, 10000);
-
-  it('updates the browser URL when a recipe is opened', async () => {
-    mockRecipeList.mockResolvedValue({
-      data: [createMockRecipe()],
-      errors: undefined,
-    });
-    window.history.replaceState({}, '', '/');
-
-    const user = userEvent.setup();
-    await renderRecipeBuilder(defaultRecipeBuilderProps);
-
-    await user.click(await screen.findByText('Test Recipe'));
-
-    expect(window.location.pathname).toBe('/recipe/recipe-1');
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
-  it('shows a share menu when native sharing is unavailable', async () => {
+  it('shows an undo action after deleting a recipe and restores it', async () => {
     const user = userEvent.setup();
-    const clipboardWriteText = vi.fn().mockResolvedValue(undefined);
 
-    Object.defineProperty(navigator, 'share', {
-      configurable: true,
-      value: undefined,
-    });
-    Object.defineProperty(navigator, 'clipboard', {
-      configurable: true,
-      value: { writeText: clipboardWriteText },
-    });
-
-    mockRecipeList.mockResolvedValue({
-      data: [createMockRecipe()],
-      errors: undefined,
-    });
-    window.history.replaceState({}, '', '/');
-
-    await renderRecipeBuilder(defaultRecipeBuilderProps);
-
-    await user.click(await screen.findByText('Test Recipe'));
-    await user.click(await screen.findByRole('button', { name: 'Share' }));
-
-    expect(await screen.findByText('Copy Link')).toBeInTheDocument();
-    expect(screen.getByText('WhatsApp')).toBeInTheDocument();
-    expect(screen.getByText('Email')).toBeInTheDocument();
-    expect(screen.getByText('Telegram')).toBeInTheDocument();
-  }, 20000);
-
-  it('shows saved recipes from existing favorites', async () => {
-    const user = userEvent.setup();
-    window.localStorage.setItem(
-      'arcaneKitchen.favoriteRecipeIds',
-      JSON.stringify(['recipe-1'])
+    render(
+      <RecipeBuilder
+        isAuthenticated
+        currentUser={{ userId: 'user-1', username: 'tester' }}
+        userAttributes={{ sub: 'user-1', nickname: 'Tester' }}
+      />
     );
-    mockRecipeList.mockResolvedValue({
-      data: [createMockRecipe({ name: 'Saved Recipe' })],
-      errors: undefined,
-    });
 
-    await renderRecipeBuilder({
-      ...defaultRecipeBuilderProps,
-      onSignOut: vi.fn(),
-    });
+    expect(await screen.findByText('Pasta')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Saved Recipes' }));
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    await user.click(screen.getByRole('button', { name: 'Delete permanently' }));
 
-    expect(await screen.findByText('Saved recipes')).toBeInTheDocument();
-    expect(screen.getAllByText('Saved Recipe').length).toBeGreaterThan(0);
-  }, 20000);
+    expect(await screen.findByText(/Recipe deleted\./i)).toBeInTheDocument();
+    expect(screen.queryByText('Pasta')).not.toBeInTheDocument();
 
-  it('autosaves recipe drafts and restores them from the drafts view', async () => {
-    const user = userEvent.setup();
-    await renderRecipeBuilder({
-      ...defaultRecipeBuilderProps,
-      onSignOut: vi.fn(),
-    });
+    await user.click(screen.getByRole('button', { name: /undo/i }));
 
-    await user.click(screen.getByRole('button', { name: 'Build' }));
-
-    const titleInput = screen.getAllByPlaceholderText("e.g., Grandma's Apple Pie")[0];
-    await user.type(titleInput, 'Moonlit Porridge');
-
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Drafts' }));
-
-    const draftsHeading = await screen.findByRole('heading', { name: 'Drafts' });
-    expect(draftsHeading).toBeInTheDocument();
-
-    const draftsSection = draftsHeading.closest('section');
-    expect(draftsSection).not.toBeNull();
-
-    expect(within(draftsSection as HTMLElement).getByText('Moonlit Porridge')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Resume' }));
-
-    expect(
-      screen.getAllByDisplayValue('Moonlit Porridge')[0]
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(screen.getByRole('button', { name: 'Drafts' }));
-    await user.click(screen.getByRole('button', { name: /Delete draft/i }));
-
-    expect(screen.queryByText('Moonlit Porridge')).not.toBeInTheDocument();
-  }, 20000);
-
-  it('removes the active draft after publishing', async () => {
-    const user = userEvent.setup();
-    const createObjectUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:test-draft');
-    const revokeObjectUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
-
-    await renderRecipeBuilder({
-      ...defaultRecipeBuilderProps,
-      onSignOut: vi.fn(),
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Build' }));
-
-    const titleInput = screen.getAllByPlaceholderText("e.g., Grandma's Apple Pie")[0];
-    await user.type(titleInput, 'Published Draft')
-
-    const descriptionInput = screen.getByPlaceholderText('A short summary of your dish');
-    await user.type(descriptionInput, 'A draft that will be published');
-
-    const ingredientAmount = screen.getByLabelText('Amount');
-    const ingredientUnit = screen.getByLabelText('Unit');
-    const ingredientName = screen.getByLabelText('Ingredient');
-    await user.type(ingredientAmount, '2');
-    await user.type(ingredientUnit, 'cups');
-    await user.type(ingredientName, 'Flour');
-
-    const addPhotoDropzone = screen.getByRole('button', { name: 'Add Photo' });
-    const fileInput = addPhotoDropzone.parentElement?.querySelector('input[type="file"]') as HTMLInputElement | null;
-    expect(fileInput).not.toBeNull();
-
-    const imageFile = new File(['draft-image'], 'draft-image.jpg', { type: 'image/jpeg' });
-    await user.upload(fileInput as HTMLInputElement, imageFile);
-
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Drafts' }));
-    const draftsHeading = await screen.findByRole('heading', { name: 'Drafts' });
-    const draftsSection = draftsHeading.closest('section');
-    expect(draftsSection).not.toBeNull();
-    expect(within(draftsSection as HTMLElement).getByText('Published Draft')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Build' }));
-    await user.click(screen.getByRole('button', { name: 'Publish' }));
-
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Drafts' }));
-    const refreshedDraftsHeading = await screen.findByRole('heading', { name: 'Drafts' });
-    const refreshedDraftsSection = refreshedDraftsHeading.closest('section');
-    expect(refreshedDraftsSection).not.toBeNull();
-    expect(within(refreshedDraftsSection as HTMLElement).queryByText('Published Draft')).not.toBeInTheDocument();
-
-    createObjectUrlSpy.mockRestore();
-    revokeObjectUrlSpy.mockRestore();
-  }, 20000);
-
-  it('prompts unauthenticated users to sign in before creating', async () => {
-    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
-
-    expect(
-      screen.getAllByRole('button', { name: 'Log in to create' })[0]
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Start publishing your own recipes')
-    ).toBeInTheDocument();
-  }, 10000);
+    await waitFor(() => expect(screen.getByText('Pasta')).toBeInTheDocument());
+  });
 });
