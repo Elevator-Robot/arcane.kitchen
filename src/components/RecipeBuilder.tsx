@@ -1,4 +1,4 @@
-import React, {
+  `import React, {
   useCallback,
   useEffect,
   useMemo,
@@ -35,6 +35,10 @@ import {
   type RecipeDraftRecord,
   type RecipeIngredientDraft,
 } from '../utils/recipeDrafts';
+import {
+  removeRecipeById,
+  restoreRecipeById,
+} from '../utils/recipeDeleteUndo';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
@@ -661,6 +665,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [armedDeleteRecipeIds, setArmedDeleteRecipeIds] = useState<Set<string>>(
     () => new Set()
   );
+  const [pendingDeletedRecipe, setPendingDeletedRecipe] = useState<{
+    recipe: FeedRecipe | null;
+    index: number;
+    timeoutId: ReturnType<typeof setTimeout> | null;
+  }>({ recipe: null, index: -1, timeoutId: null });
   const deleteArmTimeoutsRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({});
@@ -2344,6 +2353,35 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   };
 
+  const handleUndoDeletedRecipe = () => {
+    setPendingDeletedRecipe((previous) => {
+      if (!previous.recipe || previous.timeoutId) {
+        clearTimeout(previous.timeoutId ?? undefined);
+      }
+
+      if (previous.timeoutId) {
+        clearTimeout(previous.timeoutId);
+      }
+
+      if (!previous.recipe) {
+        return { recipe: null, index: -1, timeoutId: null };
+      }
+
+      setFeedRecipes((currentRecipes) =>
+        restoreRecipeById(currentRecipes, previous.recipe, previous.index)
+      );
+      setExpandedRecipeId((currentExpandedRecipeId) =>
+        currentExpandedRecipeId === previous.recipe.id ? null : currentExpandedRecipeId
+      );
+      setArmedDeleteRecipeIds((previousArmed) => {
+        const next = new Set(previousArmed);
+        next.delete(previous.recipe!.id);
+        return next;
+      });
+      return { recipe: null, index: -1, timeoutId: null };
+    });
+  };
+
   const deleteRecipe = async (recipeId: string, recipeOwnerId: string) => {
     if (!isAuthenticated || !currentUserId) {
       onRequestAuth?.();
@@ -2391,6 +2429,41 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return next;
     });
 
+    const currentRecipe = feedRecipes.find((recipe) => recipe.id === recipeId) ?? null;
+    const currentIndex = feedRecipes.findIndex((recipe) => recipe.id === recipeId);
+
+    const removedRecipeState = currentRecipe
+      ? { recipe: currentRecipe, index: currentIndex, timeoutId: null }
+      : { recipe: null, index: -1, timeoutId: null };
+
+    setPendingDeletedRecipe((previous) => {
+      if (previous.timeoutId) {
+        clearTimeout(previous.timeoutId);
+      }
+      return removedRecipeState;
+    });
+
+    setFeedRecipes((previous) => {
+      const { nextRecipes } = removeRecipeById(previous, recipeId);
+      return nextRecipes;
+    });
+    setExpandedRecipeId((previous) =>
+      previous === recipeId ? null : previous
+    );
+    if (typeof window !== 'undefined' && window.location.pathname === getRecipeRoutePath(recipeId)) {
+      window.history.replaceState({}, '', '/');
+    }
+    setFavoriteRecipeIds((previous) => {
+      const next = new Set(previous);
+      next.delete(recipeId);
+      return next;
+    });
+    setArmedDeleteRecipeIds((previous) => {
+      const next = new Set(previous);
+      next.delete(recipeId);
+      return next;
+    });
+
     try {
       const result = await client.models.Recipe.delete(
         { id: recipeId },
@@ -2401,31 +2474,28 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         throw new Error(result.errors.map((error: any) => error.message).join(', '));
       }
 
-      setFeedRecipes((previous) =>
-        previous.filter((recipe) => recipe.id !== recipeId)
-      );
-      setExpandedRecipeId((previous) =>
-        previous === recipeId ? null : previous
-      );
-      if (typeof window !== 'undefined' && window.location.pathname === getRecipeRoutePath(recipeId)) {
-        window.history.replaceState({}, '', '/');
-      }
-      setFavoriteRecipeIds((previous) => {
-        const next = new Set(previous);
-        next.delete(recipeId);
-        return next;
-      });
-      setArmedDeleteRecipeIds((previous) => {
-        const next = new Set(previous);
-        next.delete(recipeId);
-        return next;
-      });
-      if (deleteArmTimeoutsRef.current[recipeId]) {
-        clearTimeout(deleteArmTimeoutsRef.current[recipeId]);
-        delete deleteArmTimeoutsRef.current[recipeId];
-      }
+      const timeoutId = window.setTimeout(() => {
+        setPendingDeletedRecipe((previous) => {
+          if (previous.recipe?.id === recipeId) {
+            return { recipe: null, index: -1, timeoutId: null };
+          }
+          return previous;
+        });
+      }, 8000);
+
+      setPendingDeletedRecipe((previous) => ({
+        ...previous,
+        timeoutId,
+      }));
     } catch (error) {
       console.error('Failed to delete recipe:', error);
+      setFeedRecipes((previous) => {
+        const recipeToRestore = pendingDeletedRecipe.recipe;
+        return recipeToRestore
+          ? restoreRecipeById(previous, recipeToRestore, pendingDeletedRecipe.index)
+          : previous;
+      });
+      setPendingDeletedRecipe({ recipe: null, index: -1, timeoutId: null });
     } finally {
       setDeletingRecipeIds((previous) => {
         const next = new Set(previous);
@@ -4100,6 +4170,25 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </section>
         </aside>
       </div>
+      {pendingDeletedRecipe.recipe && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed left-1/2 bottom-6 z-50 -translate-x-1/2 transform"
+        >
+          <div className="flex items-center gap-4 rounded-md border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2 shadow-sm">
+            <span className="text-sm text-[var(--theme-text)]">Recipe deleted.</span>
+            <button
+              type="button"
+              onClick={handleUndoDeletedRecipe}
+              className="text-sm font-semibold text-[var(--theme-accent)]"
+            >
+              Undo
+            </button>
+          </div>
+        </div>
+      )}
+
       <footer className="sticky inset-x-0 bottom-0 z-40 border-t border-[var(--theme-border)] bg-[var(--theme-surface)]/92 px-4 py-2.5 text-center text-xs text-[var(--theme-text-muted)] backdrop-blur-sm">
         Crafted by{' '}
         <a
