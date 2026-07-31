@@ -26,11 +26,14 @@ const createMockRecipe = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const { mockRecipeList, mockRecipeGetUrl, mockRecipeUploadData } =
+const { mockRecipeList, mockRecipeGet, mockRecipeGetUrl, mockRecipeUploadData } =
   vi.hoisted(() => ({
     mockRecipeList: vi
       .fn()
       .mockResolvedValue({ data: [], errors: undefined }),
+    mockRecipeGet: vi
+      .fn()
+      .mockResolvedValue({ data: null, errors: undefined }),
     mockRecipeGetUrl: vi
       .fn()
       .mockResolvedValue({ url: new URL('https://example.com/image.jpg') }),
@@ -52,7 +55,7 @@ vi.mock('aws-amplify/data', () => ({
     models: {
       Recipe: {
         list: mockRecipeList,
-        get: vi.fn().mockResolvedValue({ data: null, errors: undefined }),
+        get: mockRecipeGet,
         create: vi
           .fn()
           .mockResolvedValue({ data: { id: 'new-id' }, errors: undefined }),
@@ -102,6 +105,7 @@ describe('RecipeBuilder Component', () => {
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
     mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
+    mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
     if (typeof indexedDB !== 'undefined') {
       indexedDB.deleteDatabase('arcaneKitchenDraft');
     }
@@ -158,6 +162,17 @@ describe('RecipeBuilder Component', () => {
     await user.click(await screen.findByText('Test Recipe'));
 
     expect(window.location.pathname).toBe('/recipe/recipe-1');
+  });
+
+  it('keeps an invalid shared recipe on its route instead of redirecting home', async () => {
+    mockRecipeGet.mockResolvedValue({ data: null, errors: [{ message: 'not found' }] });
+
+    window.history.replaceState({}, '', '/recipe/does-not-exist');
+
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+
+    expect(await screen.findByText('Recipe could not be found.')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/recipe/does-not-exist');
   });
 
   it('shows a share menu when native sharing is unavailable', async () => {
