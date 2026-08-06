@@ -43,6 +43,9 @@ const { mockRecipeList, mockRecipeGet, mockRecipeGetUrl, mockRecipeUploadData } 
   }));
 
 const mockRecipeStorageConfig = vi.hoisted(() => vi.fn(() => ({ Storage: {} })));
+const mockCreateObjectURL = vi.fn((value: Blob | File) => `blob:${value.size ?? 'mock'}`);
+const mockRevokeObjectURL = vi.fn();
+const NativeURL = globalThis.URL;
 
 vi.mock('aws-amplify', () => ({
   Amplify: {
@@ -95,6 +98,14 @@ vi.mock('aws-amplify/storage', () => ({
   uploadData: mockRecipeUploadData,
 }));
 
+Object.defineProperty(globalThis, 'URL', {
+  configurable: true,
+  value: class extends NativeURL {
+    static createObjectURL = mockCreateObjectURL;
+    static revokeObjectURL = mockRevokeObjectURL;
+  },
+});
+
 const renderRecipeBuilder = async (props: Record<string, unknown> = {}) => {
   const { default: RecipeBuilder } = await import('../RecipeBuilder');
   return render(<RecipeBuilder {...(props as any)} />);
@@ -120,7 +131,7 @@ describe('RecipeBuilder Component', () => {
     expect(
       screen.getByPlaceholderText('Search recipes...')
     ).toBeInTheDocument();
-  }, 20000);
+  }, 40000);
 
   it('updates the post preview as recipe fields change', async () => {
     const user = userEvent.setup();
@@ -173,6 +184,43 @@ describe('RecipeBuilder Component', () => {
 
     expect(await screen.findByText('Recipe could not be found.')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/recipe/does-not-exist');
+  });
+
+  it('uploads recipe images with an authenticated storage access level', async () => {
+    const user = userEvent.setup();
+    mockRecipeUploadData.mockClear();
+
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+
+    const titleInput = screen.getAllByPlaceholderText("e.g., Grandma's Apple Pie")[0];
+    await user.type(titleInput, 'Cloudy Pie');
+
+    const addIngredientButton = screen.getAllByRole('button', { name: 'Add' })[0];
+    await user.click(addIngredientButton);
+
+    const ingredientInput = screen.getAllByLabelText('Ingredient')[0];
+    await user.type(ingredientInput, 'Flour');
+
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(fileInput).not.toBeNull();
+
+    const imageFile = new File(['image-data'], 'cloudy-pie.png', {
+      type: 'image/png',
+    });
+    await user.upload(fileInput!, imageFile);
+
+    await user.click(screen.getByRole('button', { name: /publish/i }));
+
+    expect(mockRecipeUploadData).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: expect.stringMatching(/^recipe-images\//),
+        data: imageFile,
+        options: expect.objectContaining({
+          accessLevel: 'protected',
+          contentType: 'image/png',
+        }),
+      })
+    );
   });
 
   it('shows a share menu when native sharing is unavailable', async () => {

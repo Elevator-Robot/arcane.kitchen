@@ -203,3 +203,4 @@ project_import_debug.ts
 *.zip
 *.tar.gz
 auth-pr.patch
+aws/

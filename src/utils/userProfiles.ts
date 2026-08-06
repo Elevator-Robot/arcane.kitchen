@@ -7,6 +7,7 @@ export type UserProfile = {
   createdAt: string;
   updatedAt: string;
   needsUsernameSetup: boolean;
+  usernameUpdatedAt?: string;
 };
 
 const USER_PROFILES_STORAGE_KEY = 'arcaneKitchen.userProfiles';
@@ -21,6 +22,80 @@ export const sanitizeUsername = (value: string) =>
 export const validateUsername = (value: string) => {
   const normalized = value.trim().toLowerCase();
   return normalized.length >= 3 && normalized.length <= 20 && /^[a-z0-9_]+$/.test(normalized);
+};
+
+export const validateDisplayName = (value: string) => {
+  const normalized = value.trim();
+  return normalized.length >= 1 && normalized.length <= 40;
+};
+
+export const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
+
+export const isUsernameTaken = (username: string, existingUsernames: string[]) => {
+  const normalized = username.trim().toLowerCase();
+  return existingUsernames.some(
+    (existing) => existing.trim().toLowerCase() === normalized
+  );
+};
+
+export const isUsernameChangeAllowed = (
+  profile: UserProfile,
+  desiredUsername: string,
+) => {
+  const normalized = sanitizeUsername(desiredUsername);
+  if (profile.username === normalized) return true;
+  if (!profile.usernameUpdatedAt) return true;
+
+  const lastUpdateMs = Date.parse(profile.usernameUpdatedAt);
+  if (Number.isNaN(lastUpdateMs)) return true;
+
+  return (
+    Date.now() - lastUpdateMs >=
+    USERNAME_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+  );
+};
+
+export const validateProfileIdentity = ({
+  profiles,
+  userId,
+  displayName,
+  username,
+  profile,
+}: {
+  profiles: Record<string, UserProfile>;
+  userId: string;
+  displayName: string;
+  username: string;
+  profile?: UserProfile | null;
+}) => {
+  const nextName = displayName.trim();
+  const nextUsername = sanitizeUsername(username);
+
+  if (!validateDisplayName(nextName)) {
+    return 'Please add a display name up to 40 characters.';
+  }
+
+  if (!validateUsername(nextUsername)) {
+    return 'Usernames must be 3-20 characters, lowercase letters, numbers, or underscores only.';
+  }
+
+  const existingUsernames = Object.values(profiles)
+    .filter((entry) => entry.userId !== userId)
+    .map((entry) => entry.username);
+
+  if (isUsernameTaken(nextUsername, existingUsernames) && profile?.username !== nextUsername) {
+    return 'That username is already taken. Please choose another.';
+  }
+
+  if (
+    profile &&
+    profile.username !== nextUsername &&
+    !isUsernameChangeAllowed(profile, nextUsername)
+  ) {
+    return 'You can only change your username once every 30 days.';
+  }
+
+  return null;
 };
 
 export const buildSuggestedUsername = (
@@ -159,15 +234,24 @@ export const upsertUserProfile = (
     existing?.needsUsernameSetup ??
     ((!existing?.username && !input.username) || isGoogleUser(input.userAttributes));
 
+  const usernameForProfile =
+    normalizedUsername || existing?.username || 'cook';
+  const usernameChanged = existing?.username && existing.username !== usernameForProfile;
+  const nextUsernameUpdatedAt =
+    usernameChanged || !existing?.username
+      ? new Date().toISOString()
+      : existing.usernameUpdatedAt;
+
   const nextProfile: UserProfile = {
     userId: input.userId,
-    username: normalizedUsername || existing?.username || 'cook',
+    username: usernameForProfile,
     displayName: nextDisplayName,
     bio: input.bio ?? existing?.bio ?? '',
     avatar: input.avatar ?? existing?.avatar ?? null,
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     needsUsernameSetup: shouldPromptForUsername,
+    usernameUpdatedAt: nextUsernameUpdatedAt,
   };
 
   return {

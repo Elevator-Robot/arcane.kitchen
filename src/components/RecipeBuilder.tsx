@@ -48,7 +48,7 @@ import {
   sanitizeUsername,
   syncUserProfilesToBackend,
   upsertUserProfile,
-  validateUsername,
+  validateProfileIdentity,
 } from '../utils/userProfiles';
 
 const client: any = generateClient<Schema>();
@@ -873,13 +873,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       bio: profileBio,
     });
 
-    setProfileData(nextProfile[currentUserId]);
+    const savedProfile = nextProfile[currentUserId];
+    setProfileData(savedProfile);
     saveUserProfiles(nextProfile);
     void syncUserProfilesToBackend(nextProfile, client);
 
-    if (nextProfile[currentUserId]?.needsUsernameSetup) {
-      setDisplayNameDraft(nextProfile[currentUserId].displayName || '');
-      setUsernameDraft(nextProfile[currentUserId].username || '');
+    const shouldPromptForSetup = Boolean(
+      savedProfile &&
+        (savedProfile.needsUsernameSetup || !savedProfile.username || !savedProfile.displayName)
+    );
+
+    if (shouldPromptForSetup) {
+      setDisplayNameDraft(savedProfile.displayName || '');
+      setUsernameDraft(savedProfile.username || '');
       setProfileSetupOpen(true);
     } else {
       setProfileSetupOpen(false);
@@ -901,7 +907,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [userAttributes]);
 
   const saveProfile = async () => {
+    if (!currentUserId) {
+      setCurrentView('Discover');
+      return;
+    }
+
     const bio = profileBioRef.current?.value || '';
+    const profiles = loadUserProfiles();
+    const nextName = displayNameDraft.trim();
+    const existingUsernames = Object.values(profiles)
+      .filter((profile) => profile.userId !== currentUserId)
+      .map((profile) => profile.username);
+    const suggestedUsername = buildSuggestedUsername(nextName, existingUsernames);
+    const nextUsername = sanitizeUsername(usernameDraft) || suggestedUsername;
+    const errorMessage = validateProfileIdentity({
+      profiles,
+      userId: currentUserId,
+      displayName: nextName,
+      username: nextUsername,
+      profile: profiles[currentUserId],
+    });
+
+    if (errorMessage) {
+      setUsernameError(errorMessage);
+      return;
+    }
+
+    setUsernameError('');
+
     if (PROFILE_CACHE_KEY) {
       localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
         avatar: selectedAvatar,
@@ -910,6 +943,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         emailPrefix: userAttributes?.email?.split('@')[0] || null,
       }));
     }
+
     try {
       const attrs: Record<string, string> = {};
       if (selectedAvatar) attrs['custom:avatar'] = selectedAvatar;
@@ -918,7 +952,24 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         await updateUserAttributes({ userAttributes: attrs });
         onProfileSaved?.();
       }
+
+      const nextProfiles = upsertUserProfile(profiles, {
+        userId: currentUserId,
+        displayName: nextName,
+        username: nextUsername,
+        bio,
+        avatar: selectedAvatar ?? profileAvatar ?? null,
+        currentUser,
+        userAttributes,
+        needsUsernameSetup: false,
+      });
+
+      saveUserProfiles(nextProfiles);
+      void syncUserProfilesToBackend(nextProfiles, client);
+      setProfileData(nextProfiles[currentUserId]);
       setProfileDirty(false);
+      setDisplayNameDraft(nextName);
+      setUsernameDraft(nextUsername);
     } catch (e: any) {
       console.error('Failed to save profile:', e);
     }
@@ -936,13 +987,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const suggestedUsername = buildSuggestedUsername(nextName, existingUsernames);
     const nextUsername = sanitizeUsername(usernameDraft) || suggestedUsername;
 
-    if (!nextName) {
-      setUsernameError('Please add a display name.');
-      return;
-    }
+    const errorMessage = validateProfileIdentity({
+      profiles,
+      userId: currentUserId,
+      displayName: nextName,
+      username: nextUsername,
+      profile: profiles[currentUserId],
+    });
 
-    if (!validateUsername(nextUsername)) {
-      setUsernameError('Usernames must be 3-20 characters, lowercase letters, numbers, or underscores only.');
+    if (errorMessage) {
+      setUsernameError(errorMessage);
       return;
     }
 
@@ -1906,14 +1960,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (selectedImageFile) {
         imageUrl = getRecipeImagePath(selectedImageFile);
 
-        await doUploadData({
+        const uploadTask = doUploadData({
           path: imageUrl,
           data: selectedImageFile,
           options: {
+            accessLevel: 'protected',
             contentType: selectedImageFile.type || 'image/jpeg',
-            preventOverwrite: true,
-          },
-        }).result;
+          } as typeof import('aws-amplify/storage').uploadData extends (
+            input: infer T
+          ) => unknown
+            ? T extends { options?: infer U }
+              ? U
+              : never
+            : never,
+        });
+
+        await uploadTask.result;
       }
 
       let recipeId = editingRecipeId;

@@ -4,9 +4,12 @@ import {
   getProfileUsernameFromPath,
   getRecipeIdFromPath,
   getRouteTargetFromPathname,
+  isUsernameChangeAllowed,
+  isUsernameTaken,
   sanitizeUsername,
-  validateUsername,
   upsertUserProfile,
+  validateProfileIdentity,
+  validateUsername,
 } from '../userProfiles';
 
 describe('userProfiles helpers', () => {
@@ -51,5 +54,75 @@ describe('userProfiles helpers', () => {
     expect(profiles['user-1'].username).toBe('riddle');
     expect(profiles['user-1'].displayName).toBe('Riddle');
     expect(profiles['user-1'].needsUsernameSetup).toBe(true);
+  });
+
+  it('detects an already taken username', () => {
+    expect(isUsernameTaken('Riddle', ['riddle', 'chef'])).toBe(true);
+    expect(isUsernameTaken('tavern', ['riddle', 'chef'])).toBe(false);
+  });
+
+  it('validates profile identity updates with uniqueness and cooldown rules', () => {
+    const profiles = {
+      'user-2': {
+        userId: 'user-2',
+        username: 'chef',
+        displayName: 'Chef',
+        bio: '',
+        avatar: null,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+        needsUsernameSetup: false,
+      },
+    };
+
+    const existingProfile = {
+      userId: 'user-1',
+      username: 'riddle',
+      displayName: 'Riddle',
+      bio: '',
+      avatar: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+      needsUsernameSetup: false,
+      usernameUpdatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    expect(validateProfileIdentity({ profiles, userId: 'user-1', displayName: 'Riddle', username: 'riddle', profile: existingProfile })).toBeNull();
+    expect(validateProfileIdentity({ profiles, userId: 'user-1', displayName: '', username: 'riddle', profile: existingProfile })).toBe('Please add a display name up to 40 characters.');
+    expect(validateProfileIdentity({ profiles, userId: 'user-1', displayName: 'Riddle', username: 'chef', profile: existingProfile })).toBe('That username is already taken. Please choose another.');
+    expect(validateProfileIdentity({ profiles, userId: 'user-1', displayName: 'Riddle', username: 'riddle2', profile: existingProfile })).toBe('You can only change your username once every 30 days.');
+  });
+
+  it('enforces username cooldown for profile changes', () => {
+    const profile = {
+      userId: 'user-1',
+      username: 'riddle',
+      displayName: 'Riddle',
+      bio: '',
+      avatar: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+      needsUsernameSetup: false,
+      usernameUpdatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    expect(isUsernameChangeAllowed(profile, 'riddle')).toBe(true);
+    expect(isUsernameChangeAllowed(profile, 'riddle2')).toBe(false);
+  });
+
+  it('allows a username change after the cooldown window', () => {
+    const profile = {
+      userId: 'user-1',
+      username: 'riddle',
+      displayName: 'Riddle',
+      bio: '',
+      avatar: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+      needsUsernameSetup: false,
+      usernameUpdatedAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000).toISOString(),
+    };
+
+    expect(isUsernameChangeAllowed(profile, 'riddle2')).toBe(true);
   });
 });
