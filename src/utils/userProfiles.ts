@@ -8,6 +8,8 @@ export type UserProfile = {
   updatedAt: string;
   needsUsernameSetup: boolean;
   usernameUpdatedAt?: string;
+  lastUsernameChange?: number;
+  usernameAvailableDate?: string;
 };
 
 const USER_PROFILES_STORAGE_KEY = 'arcaneKitchen.userProfiles';
@@ -44,13 +46,17 @@ export const isUsernameChangeAllowed = (
 ) => {
   const normalized = sanitizeUsername(desiredUsername);
   if (profile.username === normalized) return true;
-  if (!profile.usernameUpdatedAt) return true;
+  // Prefer numeric timestamp `lastUsernameChange` when available
+  const lastChangeMs = typeof profile.lastUsernameChange === 'number'
+    ? profile.lastUsernameChange
+    : profile.usernameUpdatedAt
+    ? Date.parse(profile.usernameUpdatedAt)
+    : NaN;
 
-  const lastUpdateMs = Date.parse(profile.usernameUpdatedAt);
-  if (Number.isNaN(lastUpdateMs)) return true;
+  if (!lastChangeMs || Number.isNaN(lastChangeMs)) return true;
 
   return (
-    Date.now() - lastUpdateMs >=
+    Date.now() - lastChangeMs >=
     USERNAME_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
   );
 };
@@ -102,21 +108,46 @@ export const buildSuggestedUsername = (
   displayName: string,
   existingUsernames: string[] = []
 ) => {
-  const base = sanitizeUsername(displayName) || 'cook';
+  const culinaryBases = [
+    'the_cook',
+    'spice_artisan',
+    'kitchen_wizard',
+    'pantry_mage',
+    'stew_savant',
+    'spoon_wielder',
+    'seasoned_cook',
+    'herb_sage',
+    'baker_nomad',
+    'simmer_master',
+    'flavor_wright',
+  ];
+
   const normalizedExisting = new Set(existingUsernames.map((name) => name.toLowerCase()));
 
-  if (!base || base === 'cook' && !sanitizeUsername(displayName)) {
-    return 'cook';
+  // Prefer a sanitized display name if it produces a usable handle
+  const namePart = sanitizeUsername(displayName).replace(/^cook$/, '');
+  if (namePart) {
+    const candidate = `${namePart}`.slice(0, 20);
+    if (!normalizedExisting.has(candidate)) return candidate;
   }
 
-  if (!normalizedExisting.has(base)) return base;
-
-  let suffix = 2;
-  while (normalizedExisting.has(`${base}${suffix}`)) {
-    suffix += 1;
+  // Try base names, then attach a short numeric suffix for uniqueness
+  for (const base of culinaryBases) {
+    if (!normalizedExisting.has(base)) return base;
   }
 
-  return `${base}${suffix}`;
+  // Generate numeric suffix handles
+  let attempt = 0;
+  while (attempt < 10000) {
+    const base = culinaryBases[attempt % culinaryBases.length];
+    const suffix = Math.floor(Math.random() * 9000) + 100; // 100-9099
+    const candidate = `${base}_${suffix}`.slice(0, 20);
+    if (!normalizedExisting.has(candidate)) return candidate;
+    attempt += 1;
+  }
+
+  // Fallback deterministic handle
+  return `the_cook_${Math.floor(Math.random() * 9000) + 100}`;
 };
 
 export const loadUserProfiles = (): Record<string, UserProfile> => {
@@ -229,18 +260,31 @@ export const upsertUserProfile = (
     input.username || existing?.username || getUsernameFromAuth(input.currentUser, input.userAttributes) || sanitizeUsername(nextDisplayName);
 
   const normalizedUsername = sanitizeUsername(nextUsername);
+  // Decide whether we should prompt the user to set a username.
+  // Avoid prompting repeatedly: only prompt for genuinely new profiles that
+  // lack any reasonable username suggestion and when the caller hasn't
+  // explicitly requested a prompt. Preserve any existing preference.
+  const usernameFromAuth = getUsernameFromAuth(input.currentUser, input.userAttributes);
+  const isNewProfile = !existing;
   const shouldPromptForUsername =
-    input.needsUsernameSetup ??
-    existing?.needsUsernameSetup ??
-    ((!existing?.username && !input.username) || isGoogleUser(input.userAttributes));
+    typeof input.needsUsernameSetup === 'boolean'
+      ? input.needsUsernameSetup
+      : typeof existing?.needsUsernameSetup === 'boolean'
+      ? existing.needsUsernameSetup
+      : (
+        // prompt only for new profiles with no provided username and no
+        // meaningful suggested username from auth; do not auto-prompt for
+        // Google-authenticated users or when auth suggests a usable name.
+        isNewProfile &&
+        !input.username &&
+        (!usernameFromAuth || usernameFromAuth === 'cook') &&
+        !isGoogleUser(input.userAttributes)
+      );
 
-  const usernameForProfile =
-    normalizedUsername || existing?.username || 'cook';
-  const usernameChanged = existing?.username && existing.username !== usernameForProfile;
-  const nextUsernameUpdatedAt =
-    usernameChanged || !existing?.username
-      ? new Date().toISOString()
-      : existing.usernameUpdatedAt;
+  const usernameForProfile = normalizedUsername || existing?.username || 'cook';
+  const usernameChanged = Boolean(existing?.username && existing.username !== usernameForProfile);
+  const nextUsernameUpdatedAt = usernameChanged || !existing?.username ? new Date().toISOString() : existing?.usernameUpdatedAt;
+  const nextLastUsernameChange = usernameChanged || !existing?.username ? Date.now() : existing?.lastUsernameChange;
 
   const nextProfile: UserProfile = {
     userId: input.userId,
@@ -252,6 +296,7 @@ export const upsertUserProfile = (
     updatedAt: new Date().toISOString(),
     needsUsernameSetup: shouldPromptForUsername,
     usernameUpdatedAt: nextUsernameUpdatedAt,
+    lastUsernameChange: nextLastUsernameChange,
   };
 
   return {

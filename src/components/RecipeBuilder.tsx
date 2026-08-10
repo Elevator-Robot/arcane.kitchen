@@ -50,6 +50,7 @@ import {
   upsertUserProfile,
   validateProfileIdentity,
 } from '../utils/userProfiles';
+import UserProfileView from './UserProfileView';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
@@ -878,10 +879,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     saveUserProfiles(nextProfile);
     void syncUserProfilesToBackend(nextProfile, client);
 
-    const shouldPromptForSetup = Boolean(
-      savedProfile &&
-        (savedProfile.needsUsernameSetup || !savedProfile.username || !savedProfile.displayName)
-    );
+    // Only prompt for the onboarding modal when the profile explicitly
+    // requires username setup. Do not auto-open for missing fields.
+    const shouldPromptForSetup = Boolean(savedProfile && savedProfile.needsUsernameSetup);
 
     if (shouldPromptForSetup) {
       setDisplayNameDraft(savedProfile.displayName || '');
@@ -1480,6 +1480,35 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     () => feedRecipes.filter((recipe) => favoriteRecipeIds.has(recipe.id)),
     [favoriteRecipeIds, feedRecipes]
   );
+
+  const profileViewUser = useMemo(() => {
+    return {
+      userId: currentUserId,
+      name: activeProfile?.displayName || creatorName,
+      handle: activeProfile?.username || activeUsername,
+      bio: profileBio || activeProfile?.bio || '',
+      avatarUrl: avatarUrl || null,
+      joinDate: activeProfile?.createdAt || undefined,
+      location: activeProfile?.location || undefined,
+      stats: {
+        recipes: feedRecipes.filter((r) => r.ownerId === currentUserId).length,
+        drafts: draftRecords.filter((d) => d.ownerId === currentUserId).length,
+        likes: favoriteRecipeIds.size,
+        saved: savedRecipes.length,
+      },
+    };
+  }, [
+    currentUserId,
+    activeProfile,
+    creatorName,
+    activeUsername,
+    profileBio,
+    avatarUrl,
+    feedRecipes,
+    draftRecords,
+    favoriteRecipeIds,
+    savedRecipes,
+  ]);
 
   const resumeDraft = (draftRecord: RecipeDraftRecord) => {
     setDraft(draftRecord.draft);
@@ -2833,7 +2862,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [showShareMenu]);
 
   return (
-    <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
+    <main className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--theme-bg)]">
       {profileSetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-cozy-lg">
@@ -4178,7 +4207,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         <section
           id="profile"
           key={currentView === 'Profile' ? 'profile-visible' : 'profile-hidden'}
-          className={`min-h-0 overflow-y-auto ${
+          className={`min-h-0 ${
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
@@ -4289,122 +4318,42 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </p>
             </div>
           ) : (
-            <div className="mx-auto w-full max-w-2xl">
-              <div className="flex-col sm:flex-row flex gap-8">
-                <div className="shrink-0">
-                  <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
-                    {(selectedAvatar || profileAvatar) ? (
-                      <img src={avatarEntries.find((e) => e.file === (selectedAvatar || profileAvatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                    ) : (
-                      creatorName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <div>
-                    <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
-                    <p className="text-sm text-[var(--theme-text-muted)]">
-                      {userAttributes?.email || currentUser?.username}
-                    </p>
-                  </div>
+            <UserProfileView
+              user={profileViewUser}
+              publishedRecipes={feedRecipes.filter((r) => r.ownerId === currentUserId)}
+              draftRecipes={draftRecords
+                .filter((d) => d.ownerId === currentUserId)
+                .map((d) => ({
+                  id: d.id,
+                  name: d.title || d.draft?.name || 'Untitled',
+                  description: d.draft?.description || '',
+                  image: d.imageDataUrl || neutralImagePlaceholder,
+                  updatedAt: d.updatedAt,
+                }))}
+              savedRecipes={savedRecipes}
+              onAvatarUpload={(file?: File) => updateImageFile(file)}
+              onNewRecipe={startCreateRecipe}
+              onToggleFavoriteRecipe={toggleFavoriteRecipe}
+              onRecipeOptions={(recipeId: string) => {
+                void startEditRecipe(recipeId, currentUserId || '');
+              }}
+              onProfileUpdated={({ name, handle }) => {
+                // optimistic update of profile in-memory and persist
+                const uid = currentUserId || 'current';
+                const profiles = loadUserProfiles();
+                const updated = upsertUserProfile(profiles, {
+                  userId: uid,
+                  displayName: name,
+                  username: handle,
+                });
+                saveUserProfiles(updated);
+                void syncUserProfilesToBackend(updated, client);
 
-                  <div className="mt-6">
-                    <div className="mb-3 flex items-center gap-2">
-                      <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
-                      <button
-                        onClick={() => shuffleAvatars(selectedAvatar)}
-                        className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
-                        title="Shuffle avatars"
-                      >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-6 gap-2">
-                      {shuffledAvatars.map(({ file, url }) => (
-                        <button
-                          key={file}
-                          onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
-                          className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                            (selectedAvatar || profileAvatar) === file
-                              ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
-                              : 'border-transparent hover:border-[var(--theme-border)]'
-                          }`}
-                        >
-                          <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mt-8 grid gap-5">
-                    <label className="grid gap-1.5">
-                      <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
-                      <input
-                        value={displayNameDraft}
-                        onChange={(event) => {
-                          setDisplayNameDraft(event.target.value);
-                          setProfileDirty(true);
-                        }}
-                        placeholder="How you want to be known"
-                        className="ak-input rounded px-3 py-2 text-sm outline-none transition"
-                      />
-                    </label>
-                    <label className="grid gap-1.5">
-                      <span className="text-sm font-medium text-[var(--theme-text)]">Username</span>
-                      <input
-                        value={usernameDraft}
-                        onChange={(event) => {
-                          setUsernameDraft(event.target.value);
-                          setProfileDirty(true);
-                          setUsernameError('');
-                        }}
-                        placeholder="your-handle"
-                        className="ak-input rounded px-3 py-2 text-sm outline-none transition"
-                      />
-                      {usernameError && <p className="text-xs text-red-600">{usernameError}</p>}
-                    </label>
-                    <label className="grid gap-1.5">
-                      <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
-                      <textarea
-                        ref={profileBioRef}
-                        defaultValue={profileBio}
-                        placeholder="A short bio about yourself"
-                        rows={3}
-                        maxLength={MAX_BIO_CHARS}
-                        onChange={(e) => {
-                          setBioCharCount(e.target.value.length);
-                          setProfileDirty(true);
-                        }}
-                        className="ak-input h-20 resize-none rounded px-3 py-2 text-sm outline-none transition"
-                      />
-                      <p className="text-xs text-[var(--theme-text-muted)] text-right">{bioCharCount}/{MAX_BIO_CHARS}</p>
-                    </label>
-                  </div>
-
-                  <div className="mt-6 flex gap-3">
-                    <button
-                      onClick={saveProfile}
-                      className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (!profileDirty || window.confirm('Discard unsaved changes?')) {
-                          setSelectedAvatar(profileAvatar);
-                          setCurrentView('Discover');
-                        }
-                      }}
-                      className="rounded border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                // update local UI pieces
+                setProfileData(updated[uid]);
+                // update profileViewUser via state dependencies by touching profileData
+              }}
+            />
           )}
         </section>
 
