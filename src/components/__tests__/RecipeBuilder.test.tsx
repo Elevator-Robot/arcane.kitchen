@@ -456,7 +456,7 @@ describe('RecipeBuilder Component', () => {
     expect(saved['testuser'].displayName).toBe('Mystic Chef');
 
     expect(mockUpdateUserAttributes).toHaveBeenCalledWith({
-      userAttributes: { name: 'Mystic Chef' },
+      userAttributes: { nickname: 'Mystic Chef' },
     });
   }, 20000);
 

@@ -2,7 +2,6 @@ import { updateUserAttributes } from 'aws-amplify/auth';
 
 export type CognitoProfileFields = {
   displayName?: string;
-  username?: string;
   bio?: string;
   avatar?: string | null;
 };
@@ -11,19 +10,20 @@ export type CognitoProfileFields = {
  * Best-effort mirror of profile edits into Cognito user attributes.
  * Cognito is the source of truth for user profiles; localStorage is only a
  * session/first-paint cache for the existing UI. Attribute mappings:
- *   displayName -> name
- *   username     -> preferred_username
+ *   displayName -> nickname
  *   bio          -> custom:bio
  *   avatar       -> custom:avatar
+ *
+ * NOTE: the deployed Cognito pool schema is immutable; these mappings only use
+ * attributes that already exist in the pool. The username (handle) cannot be
+ * persisted to Cognito without recreating the pool (which deletes all users),
+ * so it remains in localStorage + the DynamoDB-backed UserProfile model.
  */
 export const syncProfileToCognito = async (fields: CognitoProfileFields) => {
   const userAttributes: Record<string, string> = {};
 
   if (fields.displayName !== undefined) {
-    userAttributes.name = fields.displayName;
-  }
-  if (fields.username !== undefined) {
-    userAttributes.preferred_username = fields.username;
+    userAttributes.nickname = fields.displayName;
   }
   if (fields.bio !== undefined) {
     userAttributes['custom:bio'] = fields.bio;

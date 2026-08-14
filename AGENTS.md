@@ -26,11 +26,12 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 ## Profile & Avatars
 
 - **Cognito is the DB for user profiles.** Every profile edit is mirrored into Cognito user attributes via `syncProfileToCognito` (`src/utils/cognitoProfileSync.ts` → `updateUserAttributes`):
-  - displayName → `name`
-  - username → `preferred_username`
+  - displayName → `nickname`
   - bio → `custom:bio`
   - avatar → `custom:avatar`
-- `amplify/auth/resource.ts` declares the mutable attributes: `name`, `preferred_username`, `nickname`, `custom:bio`, `custom:avatar`, plus character-preference customs (`custom:cookingStyle`, `custom:magicalSpecialty`, `custom:favoriteIngredients`)
+- **The deployed Cognito pool schema is immutable.** Only attributes created when the pool was first deployed can be written (`nickname`, `custom:bio`, `custom:avatar`, character-preference customs). Adding new attributes to `amplify/auth/resource.ts` breaks the stack update — do not add any without recreating the pool (which deletes all users)
+- `amplify/auth/resource.ts` declares the mutable attributes: `nickname`, `custom:bio`, `custom:avatar`, plus character-preference customs (`custom:cookingStyle`, `custom:magicalSpecialty`, `custom:favoriteIngredients`)
+- The username/handle cannot be persisted to Cognito (no free attribute in the frozen schema), so it stays in localStorage + the DynamoDB `UserProfile` model
 - For offline/first-paint, profile data is cached in localStorage under `arcaneKitchen.userProfiles` (a record keyed by user id). The cache is seeded from Cognito attributes on sign-in (reads prefer `userAttributes` values) and is NOT the source of truth
 - Profile edits also sync to the DynamoDB-backed `UserProfile` model via `syncUserProfilesToBackend` (best-effort)
 - Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024); users select from a grid — no custom photo upload

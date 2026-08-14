@@ -942,7 +942,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       void syncUserProfilesToBackend(nextProfiles, client);
       void syncProfileToCognito({
         displayName: nextName,
-        username: finalUsername,
       });
       setProfileData(nextProfiles[currentUserId]);
       setProfileSetupOpen(false);
@@ -4317,7 +4316,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 void syncUserProfilesToBackend(updated, client);
                 void syncProfileToCognito({
                   displayName: name,
-                  username: handle,
                   bio,
                 });
 

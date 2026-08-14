@@ -32,14 +32,11 @@ export const auth = defineAuth({
       required: false,
       mutable: true,
     },
-    // Amplify uses camelCase keys for standard Cognito attributes:
-    // fullname -> name, preferredUsername -> preferred_username
-    fullname: {
-      mutable: true,
-    },
-    preferredUsername: {
-      mutable: true,
-    },
+    // NOTE: the Cognito pool schema is immutable after creation, and this pool
+    // already exists in the deployed environment. Do NOT add new standard or
+    // custom attributes here — it breaks the stack update. Persisted profile
+    // fields must map to attributes that already exist: nickname, custom:bio,
+    // custom:avatar, and the character-preference customs below.
     // Store character preferences in user profile
     'custom:cookingStyle': {
       dataType: 'String',
