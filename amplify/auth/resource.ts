@@ -32,10 +32,12 @@ export const auth = defineAuth({
       required: false,
       mutable: true,
     },
-    name: {
+    // Amplify uses camelCase keys for standard Cognito attributes:
+    // fullname -> name, preferredUsername -> preferred_username
+    fullname: {
       mutable: true,
     },
-    preferred_username: {
+    preferredUsername: {
       mutable: true,
     },
     // Store character preferences in user profile
