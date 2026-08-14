@@ -1,5 +1,3 @@
-import React from 'react';
-
 type Props = {
   selected?: string | null;
   onSelect: (file: string) => void;

@@ -1,4 +1,3 @@
-import React from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import type { Draft } from '../../types/profile';
 
