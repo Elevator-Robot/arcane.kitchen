@@ -375,4 +375,37 @@ describe('RecipeBuilder Component', () => {
       screen.getByText('Start publishing your own recipes')
     ).toBeInTheDocument();
   }, 10000);
+
+  it('saves and displays the selected profile picture preset', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+
+    await user.click(await screen.findByRole('button', { name: /update avatar/i }));
+
+    const modal = (await screen.findByText('Update Profile Picture')).closest('div.fixed');
+    expect(modal).not.toBeNull();
+
+    const presetImg = within(modal as HTMLElement).getAllByRole('img', {
+      name: /\.webp$/i,
+    })[0];
+    const chosenFile = presetImg.getAttribute('alt');
+    expect(chosenFile).toBeTruthy();
+
+    await user.click(presetImg);
+    await user.click(within(modal as HTMLElement).getByRole('button', { name: 'Save Picture' }));
+
+    const saved = JSON.parse(
+      window.localStorage.getItem('arcaneKitchen.userProfiles') || '{}'
+    );
+    expect(saved['testuser'].avatar).toBe(chosenFile);
+
+    const headerAvatar = screen.getAllByAltText('testuser')[0];
+    expect(headerAvatar.getAttribute('src')).toContain(chosenFile as string);
+  }, 20000);
 });
