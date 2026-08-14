@@ -32,6 +32,12 @@ export const auth = defineAuth({
       required: false,
       mutable: true,
     },
+    name: {
+      mutable: true,
+    },
+    preferred_username: {
+      mutable: true,
+    },
     // Store character preferences in user profile
     'custom:cookingStyle': {
       dataType: 'String',

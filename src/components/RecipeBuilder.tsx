@@ -51,6 +51,7 @@ import {
   type UserProfile,
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
+import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
@@ -768,6 +769,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const localProfiles = useMemo(() => loadUserProfiles(), [currentUserId, profileData]);
   const activeProfile = currentUserId ? localProfiles[currentUserId] : null;
   const activeUsername = activeProfile?.username || getUsernameFromAuth(currentUser, userAttributes) || sanitizeUsername(getDisplayNameFromAuth(currentUser, userAttributes));
+  // Prefer the freshly saved local profile value for display. userAttributes
+  // only refresh at sign-in, so a Cognito avatar would otherwise shadow any
+  // change made during the session.
+  const effectiveAvatar = activeProfile?.avatar || profileAvatar || null;
   const profileRouteProfile = useMemo(() => {
     if (!viewingProfileUsername) return null;
     return Object.values(localProfiles).find((profile: any) => sanitizeUsername(profile.username) === sanitizeUsername(viewingProfileUsername)) || null;
@@ -785,8 +790,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     [],
   );
 
-  const avatarUrl = (profileAvatar || activeProfile?.avatar || null)
-    ? avatarEntries.find((e) => e.file === (profileAvatar || activeProfile?.avatar))?.url || null
+  const avatarUrl = effectiveAvatar
+    ? avatarEntries.find((e) => e.file === effectiveAvatar)?.url || null
     : null;
 
   const openProfileRoute = useCallback((username: string) => {
@@ -835,9 +840,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   useEffect(() => {
     if (currentView === 'Profile') {
-      setSelectedAvatar(profileAvatar);
+      setSelectedAvatar(effectiveAvatar);
     }
-  }, [currentView]);
+  }, [currentView, effectiveAvatar]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -935,6 +940,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       saveUserProfiles(nextProfiles);
       void syncUserProfilesToBackend(nextProfiles, client);
+      void syncProfileToCognito({
+        displayName: nextName,
+        username: finalUsername,
+      });
       setProfileData(nextProfiles[currentUserId]);
       setProfileSetupOpen(false);
       setUsernameDraft(finalUsername);
@@ -960,6 +969,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     });
     saveUserProfiles(updated);
     void syncUserProfilesToBackend(updated, client);
+    void syncProfileToCognito({ avatar: file });
     setProfileData(updated[uid]);
     setSelectedAvatar(file);
   };
@@ -1420,6 +1430,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const profileViewUser = useMemo(() => {
     return {
       userId: currentUserId,
+      id: currentUserId,
       name: activeProfile?.displayName || creatorName,
       handle: activeProfile?.username || activeUsername,
       bio: activeProfile?.bio || profileBio || '',
@@ -4150,8 +4161,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
-                  {(selectedAvatar || profileAvatar || profileRouteProfile.avatar) ? (
-                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || profileAvatar || profileRouteProfile.avatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {(selectedAvatar || effectiveAvatar || profileRouteProfile.avatar) ? (
+                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || effectiveAvatar || profileRouteProfile.avatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
                     (profileRouteProfile.displayName || profileRouteProfile.username || 'C').charAt(0).toUpperCase()
                   )}
@@ -4292,7 +4303,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               onRecipeOptions={(recipeId: string | number) => {
                 void startEditRecipe(String(recipeId), currentUserId || '');
               }}
-              onProfileUpdated={({ name, handle }) => {
+              onProfileUpdated={({ name, handle, bio }) => {
                 // optimistic update of profile in-memory and persist
                 const uid = currentUserId || 'current';
                 const profiles = loadUserProfiles();
@@ -4300,9 +4311,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   userId: uid,
                   displayName: name,
                   username: handle,
+                  bio,
                 });
                 saveUserProfiles(updated);
                 void syncUserProfilesToBackend(updated, client);
+                void syncProfileToCognito({
+                  displayName: name,
+                  username: handle,
+                  bio,
+                });
 
                 // update local UI pieces
                 setProfileData(updated[uid]);

@@ -5,6 +5,7 @@ import {
   render,
   defaultRecipeBuilderProps,
   unauthenticatedRecipeBuilderProps,
+  mockUserAttributes,
 } from '../../test/test-utils';
 
 const createMockRecipe = (overrides: Record<string, unknown> = {}) => ({
@@ -98,6 +99,19 @@ vi.mock('aws-amplify/storage', () => ({
   uploadData: mockRecipeUploadData,
 }));
 
+const { mockUpdateUserAttributes } = vi.hoisted(() => ({
+  mockUpdateUserAttributes: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock('aws-amplify/auth', async () => {
+  const actual =
+    await vi.importActual<typeof import('aws-amplify/auth')>('aws-amplify/auth');
+  return {
+    ...actual,
+    updateUserAttributes: mockUpdateUserAttributes,
+  };
+});
+
 Object.defineProperty(globalThis, 'URL', {
   configurable: true,
   value: class extends NativeURL {
@@ -117,6 +131,7 @@ describe('RecipeBuilder Component', () => {
     window.history.replaceState({}, '', '/');
     mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
     mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
+    mockUpdateUserAttributes.mockClear();
     if (typeof indexedDB !== 'undefined') {
       indexedDB.deleteDatabase('arcaneKitchenDraft');
     }
@@ -407,5 +422,96 @@ describe('RecipeBuilder Component', () => {
 
     const headerAvatar = screen.getAllByAltText('testuser')[0];
     expect(headerAvatar.getAttribute('src')).toContain(chosenFile as string);
+
+    expect(mockUpdateUserAttributes).toHaveBeenCalledWith({
+      userAttributes: { 'custom:avatar': chosenFile },
+    });
+  }, 20000);
+
+  it('updates and persists the display name from the profile header', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+
+    await user.click(
+      await screen.findByRole('button', { name: /edit display name/i })
+    );
+    const nameInput = screen.getByDisplayValue('testuser');
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Mystic Chef');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Mystic Chef' })
+    ).toBeInTheDocument();
+
+    const saved = JSON.parse(
+      window.localStorage.getItem('arcaneKitchen.userProfiles') || '{}'
+    );
+    expect(saved['testuser'].displayName).toBe('Mystic Chef');
+
+    expect(mockUpdateUserAttributes).toHaveBeenCalledWith({
+      userAttributes: { name: 'Mystic Chef' },
+    });
+  }, 20000);
+
+  it('shows a newly selected picture even when a stale avatar was synced to Cognito', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      userAttributes: { ...mockUserAttributes, 'custom:avatar': 'old.webp' },
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+
+    await user.click(await screen.findByRole('button', { name: /update avatar/i }));
+
+    const modal = (await screen.findByText('Update Profile Picture')).closest('div.fixed');
+    const presetImg = within(modal as HTMLElement).getAllByRole('img', {
+      name: /\.webp$/i,
+    }).find((img) => img.getAttribute('alt') !== 'old.webp')!;
+    const chosenFile = presetImg.getAttribute('alt');
+    expect(chosenFile).toBeTruthy();
+
+    await user.click(presetImg);
+    await user.click(within(modal as HTMLElement).getByRole('button', { name: 'Save Picture' }));
+
+    const headerAvatar = screen.getAllByAltText('testuser')[0];
+    expect(headerAvatar.getAttribute('src')).toContain(chosenFile as string);
+  }, 20000);
+
+  it('adds and persists the profile bio', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+
+    await user.click(await screen.findByRole('button', { name: /edit bio/i }));
+    await user.type(screen.getByLabelText('bio'), 'Brewer of arcane stews');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(
+      await screen.findByText('Brewer of arcane stews')
+    ).toBeInTheDocument();
+
+    const saved = JSON.parse(
+      window.localStorage.getItem('arcaneKitchen.userProfiles') || '{}'
+    );
+    expect(saved['testuser'].bio).toBe('Brewer of arcane stews');
+
+    expect(mockUpdateUserAttributes).toHaveBeenCalledWith({
+      userAttributes: { 'custom:bio': 'Brewer of arcane stews' },
+    });
   }, 20000);
 });

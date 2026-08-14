@@ -16,7 +16,7 @@ type Props = {
   onToggleFavoriteRecipe?: (id: Recipe['id']) => void;
   onRecipeOptions?: (id: Recipe['id']) => void;
   isOwnProfile?: boolean;
-  onProfileUpdated?: (next: { name?: string; handle?: string }) => void;
+  onProfileUpdated?: (next: { name?: string; handle?: string; bio?: string }) => void;
 };
 
 export default function UserProfileView({

@@ -25,13 +25,17 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 
 ## Profile & Avatars
 
-- Profile data (display name, bio, avatar) is stored in localStorage under `arcaneKitchen.profileData.{userId}`
-- The profile menu includes a Saved Recipes view that surfaces recipes already saved through the existing favorites flow; it uses the same saved recipe IDs and does not introduce a second save system.
-- Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024)
-- Optimized at build time via `vite-plugin-image-optimizer` (sharp, ~74% size reduction)
-- All avatar `<img>` tags use `loading="lazy"`
-- Users select an avatar from a grid in the Profile page — no custom photo upload
-- Selected avatar filename is saved in `profileData.avatar`; displayed via `<img src={url} />`
+- **Cognito is the DB for user profiles.** Every profile edit is mirrored into Cognito user attributes via `syncProfileToCognito` (`src/utils/cognitoProfileSync.ts` → `updateUserAttributes`):
+  - displayName → `name`
+  - username → `preferred_username`
+  - bio → `custom:bio`
+  - avatar → `custom:avatar`
+- `amplify/auth/resource.ts` declares the mutable attributes: `name`, `preferred_username`, `nickname`, `custom:bio`, `custom:avatar`, plus character-preference customs (`custom:cookingStyle`, `custom:magicalSpecialty`, `custom:favoriteIngredients`)
+- For offline/first-paint, profile data is cached in localStorage under `arcaneKitchen.userProfiles` (a record keyed by user id). The cache is seeded from Cognito attributes on sign-in (reads prefer `userAttributes` values) and is NOT the source of truth
+- Profile edits also sync to the DynamoDB-backed `UserProfile` model via `syncUserProfilesToBackend` (best-effort)
+- Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024); users select from a grid — no custom photo upload
+- Optimized at build time via `vite-plugin-image-optimizer` (sharp, ~74% size reduction); all avatar `<img>` tags use `loading="lazy"`
+- Selected avatar filename is saved to `custom:avatar` + `profileData.avatar`; displayed via `<img src={url} />`
 - Fallback: if no avatar selected, shows the initial letter of the display name
 
 ## CloudFront CDN

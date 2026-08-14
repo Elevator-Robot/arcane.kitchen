@@ -255,7 +255,10 @@ export const upsertUserProfile = (
   }
 ): Record<string, UserProfile> => {
   const existing = profiles[input.userId];
-  const nextDisplayName = input.displayName || getDisplayNameFromAuth(input.currentUser, input.userAttributes) || existing?.displayName || 'Cook';
+  // Prefer an explicit value, then a previously saved name, then an
+  // auth-derived one. Auth fallbacks can report 'Cook' (getDisplayNameFromAuth)
+  // and must never clobber a name the user has already set.
+  const nextDisplayName = input.displayName || existing?.displayName || getDisplayNameFromAuth(input.currentUser, input.userAttributes) || 'Cook';
   const nextUsername =
     input.username || existing?.username || getUsernameFromAuth(input.currentUser, input.userAttributes) || sanitizeUsername(nextDisplayName);
 

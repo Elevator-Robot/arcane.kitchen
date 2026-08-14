@@ -10,7 +10,7 @@ type Props = {
   onShareProfile?: () => void;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
-  onProfileUpdated?: (next: { name?: string; handle?: string }) => void;
+  onProfileUpdated?: (next: { name?: string; handle?: string; bio?: string }) => void;
 };
 
 export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, isOwnProfile = true, onSelectPreset, onProfileUpdated }: Props) {
@@ -100,7 +100,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
               {!isEditingName ? (
                 <>
                   <h1 className="text-3xl font-bold text-[#1c1917] truncate">{user.name}</h1>
-                  {isOwnProfile && <button onClick={() => setIsEditingName(true)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-4 h-4" /></button>}
+                  {isOwnProfile && <button onClick={() => setIsEditingName(true)} aria-label="edit display name" className="p-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-4 h-4" /></button>}
                 </>
               ) : (
                 <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                       return;
                     }
                     setIsEditingHandle(true);
-                  }} className="p-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-3.5 h-3.5" /></button>}
+                  }} aria-label="edit username" className="p-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-3.5 h-3.5" /></button>}
                 </>
               ) : (
                 <div className="flex items-center gap-2">
@@ -166,19 +166,22 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
 
             <div className="mt-4">
               {!isEditingBio ? (
-                <div className="text-sm text-gray-700">
+                <div>
                   {user.bio ? (
-                    <p>{user.bio}</p>
+                    <div className="flex items-start gap-2 text-sm text-gray-700">
+                      <p className="whitespace-pre-wrap">{user.bio}</p>
+                      {isOwnProfile && <button onClick={() => setIsEditingBio(true)} aria-label="edit bio" className="p-1 -ml-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-4 h-4" /></button>}
+                    </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-gray-400">
                       <span>No bio added yet. Click to add one.</span>
-                      {isOwnProfile && <button onClick={() => setIsEditingBio(true)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-4 h-4" /></button>}
+                      {isOwnProfile && <button onClick={() => setIsEditingBio(true)} aria-label="edit bio" className="p-1 rounded-full hover:bg-gray-100 text-gray-500"><Edit2 className="w-4 h-4" /></button>}
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <textarea value={draftBio} onChange={(e) => setDraftBio(e.target.value)} className="w-full rounded border px-3 py-2 text-sm" />
+                  <textarea value={draftBio} onChange={(e) => setDraftBio(e.target.value)} aria-label="bio" className="w-full rounded border px-3 py-2 text-sm" />
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => { setIsEditingBio(false); setDraftBio(user.bio || ''); }} className="px-3 py-1 border rounded">Cancel</button>
                     <button onClick={() => {
@@ -187,7 +190,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                       const updated = upsertUserProfile(profiles, { userId, bio: draftBio });
                       saveUserProfiles(updated);
                       setIsEditingBio(false);
-                      if (onProfileUpdated) onProfileUpdated({});
+                      if (onProfileUpdated) onProfileUpdated({ bio: draftBio });
                     }} className="px-3 py-1 bg-[#945d3f] text-white rounded">Save</button>
                   </div>
                 </div>
