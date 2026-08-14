@@ -48,6 +48,7 @@ import {
   syncUserProfilesToBackend,
   upsertUserProfile,
   validateProfileIdentity,
+  type UserProfile,
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
 
@@ -784,8 +785,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     [],
   );
 
-  const avatarUrl = profileAvatar
-    ? avatarEntries.find((e) => e.file === profileAvatar)?.url || null
+  const avatarUrl = (profileAvatar || activeProfile?.avatar || null)
+    ? avatarEntries.find((e) => e.file === (profileAvatar || activeProfile?.avatar))?.url || null
     : null;
 
   const openProfileRoute = useCallback((username: string) => {
@@ -845,14 +846,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
 
     const profiles = loadUserProfiles();
-    const nextProfile = upsertUserProfile(profiles, {
-      userId: currentUserId,
-      displayName: getDisplayNameFromAuth(currentUser, userAttributes),
-      currentUser,
-      userAttributes,
-      avatar: profileAvatar,
-      bio: profileBio,
-    });
+    const existing = profiles[currentUserId];
+
+    // Only seed auth-derived defaults when a profile does not exist yet.
+    // Auth attributes arrive in two passes on refresh (a persisted subset
+    // first, then the full set), so overwriting here makes name/bio/avatar
+    // flicker to intermediate values. Never clobber a saved profile.
+    const nextProfile: Record<string, UserProfile> = existing
+      ? { ...profiles, [currentUserId]: existing }
+      : upsertUserProfile(profiles, {
+          userId: currentUserId,
+          displayName: getDisplayNameFromAuth(currentUser, userAttributes),
+          currentUser,
+          userAttributes,
+          avatar: profileAvatar,
+          bio: profileBio,
+        });
 
     const savedProfile = nextProfile[currentUserId];
     setProfileData(savedProfile);
@@ -1396,7 +1405,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       userId: currentUserId,
       name: activeProfile?.displayName || creatorName,
       handle: activeProfile?.username || activeUsername,
-      bio: profileBio || activeProfile?.bio || '',
+      bio: activeProfile?.bio || profileBio || '',
       avatarUrl: avatarUrl || undefined,
       joinDate: activeProfile?.createdAt || undefined,
       stats: {
