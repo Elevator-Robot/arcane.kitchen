@@ -35,6 +35,22 @@ import {
   type RecipeDraftRecord,
   type RecipeIngredientDraft,
 } from '../utils/recipeDrafts';
+import {
+  buildSuggestedUsername,
+  getDisplayNameFromAuth,
+  getProfileRoutePath,
+  getProfileShareUrl,
+  getRecipeRoutePath,
+  getRouteTargetFromPathname,
+  getUsernameFromAuth,
+  loadUserProfiles,
+  saveUserProfiles,
+  sanitizeUsername,
+  syncUserProfilesToBackend,
+  upsertUserProfile,
+  validateProfileIdentity,
+} from '../utils/userProfiles';
+import UserProfileView from './UserProfileView';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
@@ -82,20 +98,6 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
 const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
   currentUser?.userId || currentUser?.username || userAttributes?.sub || null;
 
-const getRecipeIdFromPath = (pathname?: string | null) => {
-  if (!pathname) return null;
-
-  const match = pathname.match(/^\/recipe\/([^/?#]+)$/i);
-  if (!match?.[1]) return null;
-
-  return decodeURIComponent(match[1]);
-};
-
-const getRecipeRoutePath = (recipeId?: string | null) => {
-  if (!recipeId) return '/';
-  return `/recipe/${encodeURIComponent(recipeId)}`;
-};
-
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
   currentUser: any;
@@ -120,6 +122,7 @@ interface FeedRecipe {
   instructions: string[];
   utensils?: string[];
   createdAt?: string;
+  authorHandle?: string;
 }
 
 interface RecipeQuantity {
@@ -288,6 +291,7 @@ interface FeedRecipeCardProps {
   armedDeleteRecipeIds?: Set<string>;
   currentUserId?: string | null;
   isAuthenticated?: boolean;
+  onOpenProfile?: (username: string) => void;
 }
 
 const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
@@ -303,6 +307,7 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
   armedDeleteRecipeIds,
   currentUserId,
   isAuthenticated,
+  onOpenProfile,
 }) => (
   <article
     key={recipe.id}
@@ -353,7 +358,18 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
         {recipe.name}
       </h3>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
-        <span>by {recipe.author}</span>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (recipe.authorHandle) {
+              onOpenProfile?.(recipe.authorHandle);
+            }
+          }}
+          className="text-left font-medium text-[var(--theme-accent)] transition hover:underline"
+        >
+          by {recipe.author}
+        </button>
         {isRecipeNew(recipe) && (
           <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
             New
@@ -706,6 +722,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
   const [bioCharCount, setBioCharCount] = useState(0);
   const [profileDirty, setProfileDirty] = useState(false);
+  const [displayNameDraft, setDisplayNameDraft] = useState('');
+  const [usernameDraft, setUsernameDraft] = useState('');
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameSavePending, setUsernameSavePending] = useState(false);
+  const [profileSetupOpen, setProfileSetupOpen] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [viewingProfileUsername, setViewingProfileUsername] = useState<string | null>(null);
   const MAX_BIO_CHARS = 200;
   const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -747,10 +770,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const cachedName = cachedProfile?.nickname || cachedProfile?.emailPrefix || null;
   const profileAvatar = userAttributes?.['custom:avatar'] || cachedProfile?.avatar || null;
   const profileBio = userAttributes?.['custom:bio'] ?? cachedProfile?.bio ?? '';
-
+  const localProfiles = useMemo(() => loadUserProfiles(), [currentUserId, profileData]);
+  const activeProfile = currentUserId ? localProfiles[currentUserId] : null;
+  const activeUsername = activeProfile?.username || getUsernameFromAuth(currentUser, userAttributes) || sanitizeUsername(getDisplayNameFromAuth(currentUser, userAttributes));
+  const profileRouteProfile = useMemo(() => {
+    if (!viewingProfileUsername) return null;
+    return Object.values(localProfiles).find((profile: any) => sanitizeUsername(profile.username) === sanitizeUsername(viewingProfileUsername)) || null;
+  }, [localProfiles, viewingProfileUsername]);
+  const isViewingExternalProfile = currentView === 'Profile' && viewingProfileUsername !== null;
   const creatorName = getCreatorName(userAttributes, currentUser) !== 'Guest cook'
     ? getCreatorName(userAttributes, currentUser)
-    : (cachedName || 'Guest cook');
+    : (cachedName || activeProfile?.displayName || 'Guest cook');
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -763,6 +793,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const avatarUrl = profileAvatar
     ? avatarEntries.find((e) => e.file === profileAvatar)?.url || null
     : null;
+
+  const openProfileRoute = useCallback((username: string) => {
+    const normalized = sanitizeUsername(username);
+    if (!normalized) return;
+
+    if (typeof window !== 'undefined') {
+      const nextPath = getProfileRoutePath(normalized);
+      window.history.pushState({}, '', nextPath);
+    }
+
+    setViewingProfileUsername(normalized);
+    setCurrentView('Profile');
+  }, []);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -816,6 +859,40 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [currentView]);
 
   useEffect(() => {
+    if (!currentUserId) {
+      setProfileSetupOpen(false);
+      return;
+    }
+
+    const profiles = loadUserProfiles();
+    const nextProfile = upsertUserProfile(profiles, {
+      userId: currentUserId,
+      displayName: getDisplayNameFromAuth(currentUser, userAttributes),
+      currentUser,
+      userAttributes,
+      avatar: profileAvatar,
+      bio: profileBio,
+    });
+
+    const savedProfile = nextProfile[currentUserId];
+    setProfileData(savedProfile);
+    saveUserProfiles(nextProfile);
+    void syncUserProfilesToBackend(nextProfile, client);
+
+    // Only prompt for the onboarding modal when the profile explicitly
+    // requires username setup. Do not auto-open for missing fields.
+    const shouldPromptForSetup = Boolean(savedProfile && savedProfile.needsUsernameSetup);
+
+    if (shouldPromptForSetup) {
+      setDisplayNameDraft(savedProfile.displayName || '');
+      setUsernameDraft(savedProfile.username || '');
+      setProfileSetupOpen(true);
+    } else {
+      setProfileSetupOpen(false);
+    }
+  }, [currentUserId, currentUser, userAttributes, profileAvatar, profileBio]);
+
+  useEffect(() => {
     if (PROFILE_CACHE_KEY && userAttributes?.nickname) {
       try {
         const existing = localStorage.getItem(PROFILE_CACHE_KEY);
@@ -830,7 +907,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [userAttributes]);
 
   const saveProfile = async () => {
+    if (!currentUserId) {
+      setCurrentView('Discover');
+      return;
+    }
+
     const bio = profileBioRef.current?.value || '';
+    const profiles = loadUserProfiles();
+    const nextName = displayNameDraft.trim();
+    const existingUsernames = Object.values(profiles)
+      .filter((profile) => profile.userId !== currentUserId)
+      .map((profile) => profile.username);
+    const suggestedUsername = buildSuggestedUsername(nextName, existingUsernames);
+    const nextUsername = sanitizeUsername(usernameDraft) || suggestedUsername;
+    const errorMessage = validateProfileIdentity({
+      profiles,
+      userId: currentUserId,
+      displayName: nextName,
+      username: nextUsername,
+      profile: profiles[currentUserId],
+    });
+
+    if (errorMessage) {
+      setUsernameError(errorMessage);
+      return;
+    }
+
+    setUsernameError('');
+
     if (PROFILE_CACHE_KEY) {
       localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
         avatar: selectedAvatar,
@@ -839,6 +943,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         emailPrefix: userAttributes?.email?.split('@')[0] || null,
       }));
     }
+
     try {
       const attrs: Record<string, string> = {};
       if (selectedAvatar) attrs['custom:avatar'] = selectedAvatar;
@@ -847,11 +952,80 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         await updateUserAttributes({ userAttributes: attrs });
         onProfileSaved?.();
       }
+
+      const nextProfiles = upsertUserProfile(profiles, {
+        userId: currentUserId,
+        displayName: nextName,
+        username: nextUsername,
+        bio,
+        avatar: selectedAvatar ?? profileAvatar ?? null,
+        currentUser,
+        userAttributes,
+        needsUsernameSetup: false,
+      });
+
+      saveUserProfiles(nextProfiles);
+      void syncUserProfilesToBackend(nextProfiles, client);
+      setProfileData(nextProfiles[currentUserId]);
       setProfileDirty(false);
+      setDisplayNameDraft(nextName);
+      setUsernameDraft(nextUsername);
     } catch (e: any) {
       console.error('Failed to save profile:', e);
     }
     setCurrentView('Discover');
+  };
+
+  const saveUsernameSetup = async () => {
+    if (!currentUserId) return;
+
+    const nextName = displayNameDraft.trim();
+    const profiles = loadUserProfiles();
+    const existingUsernames = Object.values(profiles)
+      .filter((profile) => profile.userId !== currentUserId)
+      .map((profile) => profile.username);
+    const suggestedUsername = buildSuggestedUsername(nextName, existingUsernames);
+    const nextUsername = sanitizeUsername(usernameDraft) || suggestedUsername;
+
+    const errorMessage = validateProfileIdentity({
+      profiles,
+      userId: currentUserId,
+      displayName: nextName,
+      username: nextUsername,
+      profile: profiles[currentUserId],
+    });
+
+    if (errorMessage) {
+      setUsernameError(errorMessage);
+      return;
+    }
+
+    setUsernameError('');
+    setUsernameSavePending(true);
+
+    try {
+      const finalUsername = nextUsername;
+      const nextProfiles = upsertUserProfile(profiles, {
+        userId: currentUserId,
+        displayName: nextName,
+        username: finalUsername,
+        currentUser,
+        userAttributes,
+        needsUsernameSetup: false,
+      });
+
+      saveUserProfiles(nextProfiles);
+      void syncUserProfilesToBackend(nextProfiles, client);
+      setProfileData(nextProfiles[currentUserId]);
+      setProfileSetupOpen(false);
+      setUsernameDraft(finalUsername);
+      setDisplayNameDraft(nextName);
+    } catch (error) {
+      console.error('Failed to save username profile:', error);
+      setUsernameError('We could not save your username right now.');
+    } finally {
+      setUsernameSavePending(false);
+    }
   };
 
   const isEditingRecipe = Boolean(editingRecipeId);
@@ -900,25 +1074,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         return;
       }
 
+      const profilesByOwnerId = loadUserProfiles();
+
       const recipes = await Promise.all(
         data
           .filter((recipe: any) => recipe.id && recipe.name)
-          .map(async (recipe: any) => ({
-            id: recipe.id as string,
-            ownerId: recipe.ownerId || '',
-            name: recipe.name,
-            author: recipe.createdBy || 'Arcane cook',
-            createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
-            description: recipe.description || 'No description yet.',
-            image: await getRecipeImageSource(recipe.imageUrl),
-            time: recipe.prepTime || 'Prep time open',
-            rating: getBackendRating(recipe.ratings),
-            saves: 'New',
-            tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
-            instructions:
-              (recipe.instructions?.filter(Boolean) as string[]) ?? [],
-            utensils: (recipe.utensils?.filter(Boolean) as string[]) ?? [],
-          }))
+          .map(async (recipe: any) => {
+            const profileForOwner = profilesByOwnerId[recipe.ownerId || ''];
+            const authorHandle = profileForOwner?.username || undefined;
+            const authorName = profileForOwner?.displayName || recipe.createdBy || 'Arcane cook';
+
+            return {
+              id: recipe.id as string,
+              ownerId: recipe.ownerId || '',
+              name: recipe.name,
+              author: authorName,
+              authorHandle,
+              createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
+              description: recipe.description || 'No description yet.',
+              image: await getRecipeImageSource(recipe.imageUrl),
+              time: recipe.prepTime || 'Prep time open',
+              rating: getBackendRating(recipe.ratings),
+              saves: 'New',
+              tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
+              instructions:
+                (recipe.instructions?.filter(Boolean) as string[]) ?? [],
+              utensils: (recipe.utensils?.filter(Boolean) as string[]) ?? [],
+            };
+          })
       );
 
       setFeedRecipes(recipes);
@@ -948,16 +1131,28 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (typeof window === 'undefined') return;
 
     const syncRecipeRoute = async () => {
-      const recipeIdFromPath = getRecipeIdFromPath(window.location.pathname);
+      const routeTarget = getRouteTargetFromPathname(
+        `${window.location.pathname}${window.location.search}`
+      );
 
-      if (!recipeIdFromPath) {
+      if (!routeTarget) {
         if (expandedRecipeId) {
           setExpandedRecipeId(null);
         }
         setExpandedRecipeMessage('');
+        setViewingProfileUsername(null);
         return;
       }
 
+      if (routeTarget.type === 'profile') {
+        setViewingProfileUsername(routeTarget.username);
+        setCurrentView('Profile');
+        return;
+      }
+
+      setViewingProfileUsername(null);
+
+      const recipeIdFromPath = routeTarget.recipeId;
       const matchingRecipe = feedRecipes.find((recipe) => recipe.id === recipeIdFromPath);
 
       if (matchingRecipe) {
@@ -969,8 +1164,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (isLoadingFeed || expandedRecipeId === recipeIdFromPath) return;
 
-      // Not in the currently loaded feed page — fetch it directly by id
-      // instead of assuming it doesn't exist.
       try {
         const authMode = isAuthenticated ? 'userPool' : 'identityPool';
         const result = await client.models.Recipe.get(
@@ -983,11 +1176,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         }
 
         const recipe = result.data;
+        const profilesByOwnerId = loadUserProfiles();
+        const profileForOwner = profilesByOwnerId[recipe.ownerId || ''];
+        const authorHandle = profileForOwner?.username || undefined;
+        const authorName = profileForOwner?.displayName || recipe.createdBy || 'Arcane cook';
+
         const directRecipe: FeedRecipe = {
           id: recipe.id as string,
           ownerId: recipe.ownerId || '',
           name: recipe.name,
-          author: recipe.createdBy || 'Arcane cook',
+          author: authorName,
+          authorHandle,
           createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
           description: recipe.description || 'No description yet.',
           image: await getRecipeImageSource(recipe.imageUrl),
@@ -1009,9 +1208,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       } catch {
         setExpandedRecipeId(null);
         setExpandedRecipeMessage('Recipe could not be found.');
-        if (window.location.pathname !== '/') {
-          window.history.replaceState({}, '', '/');
-        }
       }
     };
 
@@ -1285,6 +1481,35 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     [favoriteRecipeIds, feedRecipes]
   );
 
+  const profileViewUser = useMemo(() => {
+    return {
+      userId: currentUserId,
+      name: activeProfile?.displayName || creatorName,
+      handle: activeProfile?.username || activeUsername,
+      bio: profileBio || activeProfile?.bio || '',
+      avatarUrl: avatarUrl || null,
+      joinDate: activeProfile?.createdAt || undefined,
+      location: activeProfile?.location || undefined,
+      stats: {
+        recipes: feedRecipes.filter((r) => r.ownerId === currentUserId).length,
+        drafts: draftRecords.filter((d) => d.ownerId === currentUserId).length,
+        likes: favoriteRecipeIds.size,
+        saved: savedRecipes.length,
+      },
+    };
+  }, [
+    currentUserId,
+    activeProfile,
+    creatorName,
+    activeUsername,
+    profileBio,
+    avatarUrl,
+    feedRecipes,
+    draftRecords,
+    favoriteRecipeIds,
+    savedRecipes,
+  ]);
+
   const resumeDraft = (draftRecord: RecipeDraftRecord) => {
     setDraft(draftRecord.draft);
     setDraftId(draftRecord.id);
@@ -1322,33 +1547,74 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const visibleFeedRecipes = useMemo(() => {
-    const query = discoverQuery.trim().toLowerCase();
+    const query = discoverQuery.trim();
+
+    const matchesTagFilter = (recipe: FeedRecipe) => {
+      if (activeTag === 'All') return true;
+      if (activeTag === 'Favorites') return favoriteRecipeIds.has(recipe.id);
+      if (activeTag === 'My recipes') {
+        return Boolean(currentUserId) && recipe.ownerId === currentUserId;
+      }
+
+      return recipe.tags.some((tag) => tag.toLowerCase() === activeTag.toLowerCase());
+    };
+
+    const getRecipeSearchScore = (recipe: FeedRecipe, normalizedQuery: string) => {
+      if (!normalizedQuery) return 0;
+
+      const parts = [
+        recipe.name,
+        recipe.author,
+        recipe.description,
+        recipe.tags.join(' '),
+        recipe.ownerId,
+        recipe.authorHandle || '',
+      ]
+        .filter(Boolean)
+        .map((value) => value.toLowerCase());
+
+      let score = 0;
+      for (const part of parts) {
+        if (!part) continue;
+        if (part === normalizedQuery) score += 250;
+        if (part.includes(normalizedQuery)) score += 100;
+        if (part.startsWith(normalizedQuery)) score += 60;
+        const tokens = part.split(/[^a-z0-9_]+/).filter(Boolean);
+        if (tokens.some((token) => token.includes(normalizedQuery) || normalizedQuery.includes(token))) score += 30;
+      }
+
+      return score;
+    };
 
     const filtered = feedRecipes.filter((recipe) => {
-      const matchesTag =
-        activeTag === 'All'
-          ? true
-          : activeTag === 'Favorites'
-            ? favoriteRecipeIds.has(recipe.id)
-            : activeTag === 'My recipes'
-              ? Boolean(currentUserId) && recipe.ownerId === currentUserId
-              : recipe.tags.some((tag) => tag.toLowerCase() === activeTag.toLowerCase());
-
+      const matchesTag = matchesTagFilter(recipe);
       if (!query) return matchesTag;
 
+      const normalizedQuery = query.toLowerCase().replace(/^@/, '');
       const haystack = [
         recipe.name,
         recipe.author,
         recipe.description,
         recipe.tags.join(' '),
+        recipe.ownerId,
+        recipe.authorHandle || '',
       ]
         .join(' ')
         .toLowerCase();
 
-      return matchesTag && haystack.includes(query);
+      const matchesHandle = normalizedQuery && activeUsername && activeUsername.toLowerCase().includes(normalizedQuery);
+      const matchesProfileQuery = normalizedQuery && activeProfile?.username?.toLowerCase().includes(normalizedQuery);
+
+      return matchesTag && (
+        haystack.includes(query.toLowerCase()) ||
+        haystack.includes(normalizedQuery) ||
+        matchesHandle ||
+        matchesProfileQuery ||
+        getRecipeSearchScore(recipe, normalizedQuery) > 0
+      );
     });
 
-    return [...filtered].sort((left, right) => {
+    const sorted = [...filtered].sort((left, right) => {
       const leftTime = left.createdAt ? dayjs(left.createdAt).valueOf() : 0;
       const rightTime = right.createdAt ? dayjs(right.createdAt).valueOf() : 0;
       if (sortOrder === 'desc') {
@@ -1356,7 +1622,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
       return leftTime - rightTime;
     });
-  }, [activeTag, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes, sortOrder]);
+
+    if (!query) return sorted;
+
+    const fallback = [...feedRecipes]
+      .filter((recipe) => matchesTagFilter(recipe))
+      .map((recipe) => ({ recipe, score: getRecipeSearchScore(recipe, query.toLowerCase().replace(/^@/, '')) }))
+      .filter(({ score }) => score > 0)
+      .sort((left, right) => right.score - left.score)
+      .map(({ recipe }) => recipe);
+
+    return filtered.length ? sorted : fallback;
+  }, [activeTag, activeProfile, activeUsername, currentUserId, discoverQuery, favoriteRecipeIds, feedRecipes, sortOrder]);
 
   const availableFilterTags = useMemo(() => {
     const tagMap = new Map<string, { label: string; count: number }>();
@@ -1712,14 +1989,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (selectedImageFile) {
         imageUrl = getRecipeImagePath(selectedImageFile);
 
-        await doUploadData({
+        const uploadTask = doUploadData({
           path: imageUrl,
           data: selectedImageFile,
           options: {
+            accessLevel: 'protected',
             contentType: selectedImageFile.type || 'image/jpeg',
-            preventOverwrite: true,
-          },
-        }).result;
+          } as typeof import('aws-amplify/storage').uploadData extends (
+            input: infer T
+          ) => unknown
+            ? T extends { options?: infer U }
+              ? U
+              : never
+            : never,
+        });
+
+        await uploadTask.result;
       }
 
       let recipeId = editingRecipeId;
@@ -2448,6 +2733,33 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return `${window.location.origin}${getRecipeRoutePath(recipe.id)}`;
   };
 
+  const shareProfile = async (username: string) => {
+    if (typeof window === 'undefined') return;
+
+    const shareUrl = getProfileShareUrl(username, window.location.origin);
+    if (!shareUrl) return;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: `@${username} on Arcane Kitchen`,
+          url: shareUrl,
+        });
+        setShareNotice('Profile link shared');
+      } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareNotice('Profile link copied to clipboard');
+      } else {
+        setShareNotice('Profile link ready to share');
+      }
+    } catch (error: any) {
+      if (error?.name === 'AbortError') return;
+      setShareNotice('Profile sharing is not available right now');
+    }
+
+    setShowShareMenu(false);
+  };
+
   const copyRecipeLink = async (shareUrl: string) => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
@@ -2550,7 +2862,56 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [showShareMenu]);
 
   return (
-    <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
+    <main className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--theme-bg)]">
+      {profileSetupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-cozy-lg">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--theme-accent)]">Welcome aboard</p>
+            <h3 className="mt-2 font-heading text-xl font-semibold text-[var(--theme-text)]">Pick your public identity</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">Choose a display name and handle so other cooks can find your recipes and profile.</p>
+
+            <div className="mt-5 grid gap-4">
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Display name</span>
+                <input
+                  value={displayNameDraft}
+                  onChange={(event) => setDisplayNameDraft(event.target.value)}
+                  placeholder="How you want to be known"
+                  className="ak-input rounded px-3 py-2 text-sm outline-none transition"
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-sm font-medium text-[var(--theme-text)]">Username</span>
+                <input
+                  value={usernameDraft}
+                  onChange={(event) => setUsernameDraft(event.target.value)}
+                  placeholder="your-handle"
+                  className="ak-input rounded px-3 py-2 text-sm outline-none transition"
+                />
+                {usernameError && <p className="text-xs text-red-600">{usernameError}</p>}
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setProfileSetupOpen(false)}
+                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+              >
+                Later
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveUsernameSetup()}
+                disabled={usernameSavePending}
+                className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-60"
+              >
+                {usernameSavePending ? 'Saving...' : 'Save profile'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
         <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
@@ -2910,6 +3271,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
                 ))}
               </div>
+            ) : expandedRecipeMessage && !expandedRecipe ? (
+              <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  {expandedRecipeMessage}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                  The shared recipe may have been removed or the link may be invalid.
+                </p>
+              </div>
             ) : expandedRecipe ? (
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
@@ -2944,9 +3314,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <h3 className="text-2xl font-semibold tracking-normal">
                         {expandedRecipe.name}
                       </h3>
-                      <p className="text-[var(--theme-text-muted)] mt-1 text-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (expandedRecipe.authorHandle) {
+                            openProfileRoute(expandedRecipe.authorHandle);
+                          }
+                        }}
+                        className="mt-1 text-left text-sm text-[var(--theme-text-muted)] transition hover:text-[var(--theme-accent)] hover:underline"
+                      >
                         by {expandedRecipe.author}
-                      </p>
+                      </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {shareNotice && (
@@ -3289,33 +3667,41 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
               </article>
             ) : visibleFeedRecipes.length ? (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {visibleFeedRecipes.map((recipe) => (
-                  <FeedRecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    isFavorited={favoriteRecipeIds.has(recipe.id)}
-                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
-                    onOpenRecipe={expandRecipe}
-                    onToggleFavorite={toggleFavoriteRecipe}
-                    onEditRecipe={startEditRecipe}
-                    onDeleteRecipe={deleteRecipe}
-                    loadingEditRecipeId={loadingEditRecipeId}
-                    deletingRecipeIds={deletingRecipeIds}
-                    armedDeleteRecipeIds={armedDeleteRecipeIds}
-                    currentUserId={currentUserId}
-                    isAuthenticated={isAuthenticated}
-                  />
-                ))}
-              </div>
+              <>
+                {discoverQuery.trim() && (
+                  <div className="mb-4 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-4 py-3 text-sm text-[var(--theme-text-muted)]">
+                    We couldn't find exactly what you're looking for.
+                  </div>
+                )}
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                  {visibleFeedRecipes.map((recipe) => (
+                    <FeedRecipeCard
+                      key={recipe.id}
+                      recipe={recipe}
+                      isFavorited={favoriteRecipeIds.has(recipe.id)}
+                      isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                      onOpenRecipe={expandRecipe}
+                      onToggleFavorite={toggleFavoriteRecipe}
+                      onEditRecipe={startEditRecipe}
+                      onDeleteRecipe={deleteRecipe}
+                      loadingEditRecipeId={loadingEditRecipeId}
+                      deletingRecipeIds={deletingRecipeIds}
+                      armedDeleteRecipeIds={armedDeleteRecipeIds}
+                      currentUserId={currentUserId}
+                      isAuthenticated={isAuthenticated}
+                      onOpenProfile={openProfileRoute}
+                    />
+                  ))}
+                </div>
+              </>
             ) : (
               <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  No recipes found
+                  We couldn't find exactly what you're looking for.
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                   {isAuthenticated
-                    ? 'Be the first to share a recipe with the community.'
+                    ? 'Try another ingredient, tag, recipe title, or author.'
                     : 'Log in and create the first recipe.'}
                 </p>
               </div>
@@ -3716,6 +4102,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     armedDeleteRecipeIds={armedDeleteRecipeIds}
                     currentUserId={currentUserId}
                     isAuthenticated={isAuthenticated}
+                    onOpenProfile={openProfileRoute}
                   />
                 ))}
               </div>
@@ -3820,100 +4207,154 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         <section
           id="profile"
           key={currentView === 'Profile' ? 'profile-visible' : 'profile-hidden'}
-          className={`min-h-0 overflow-y-auto ${
+          className={`min-h-0 ${
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          <div className="mx-auto w-full max-w-2xl">
-            <div className="flex-col sm:flex-row flex gap-8">
-              <div className="shrink-0">
-                <div className="relative flex h-32 w-32 sm:h-48 sm:w-48 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-4xl font-bold text-white transition-transform duration-300 origin-top hover:scale-105">
+          {profileRouteProfile ? (
+            <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
                   {(selectedAvatar || profileAvatar) ? (
                     <img src={avatarEntries.find((e) => e.file === (selectedAvatar || profileAvatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
-                    creatorName.charAt(0).toUpperCase()
+                    (profileRouteProfile.displayName || profileRouteProfile.username || 'C').charAt(0).toUpperCase()
                   )}
                 </div>
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div>
-                  <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Profile</h2>
-                  <p className="text-sm text-[var(--theme-text-muted)]">
-                    {userAttributes?.email || currentUser?.username}
-                  </p>
-                </div>
 
-                <div className="mt-6">
-                  <div className="mb-3 flex items-center gap-2">
-                    <p className="text-sm font-medium text-[var(--theme-text)]">Choose an avatar</p>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
+                    {profileRouteProfile.displayName || 'Cook'}
+                  </h2>
+                  <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
+                    @{profileRouteProfile.username}
+                  </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <span className="rounded-full bg-[var(--theme-surface-alt)] px-3 py-1 text-xs font-medium text-[var(--theme-text-muted)]">
+                      {feedRecipes.filter((recipe) => recipe.ownerId === profileRouteProfile.userId).length} published recipes
+                    </span>
+                    {currentUserId === profileRouteProfile.userId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setViewingProfileUsername(null);
+                          setCurrentView('Profile');
+                        }}
+                        className="rounded-md border border-[var(--theme-border)] px-3 py-1.5 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      >
+                        Edit Profile
+                      </button>
+                    )}
                     <button
-                      onClick={() => shuffleAvatars(selectedAvatar)}
-                      className="rounded-lg p-1.5 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)]"
-                      title="Shuffle avatars"
+                      type="button"
+                      onClick={() => void shareProfile(profileRouteProfile.username)}
+                      className="rounded-md border border-[var(--theme-border)] px-3 py-1.5 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
                     >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
+                      Share Profile
                     </button>
                   </div>
-                  <div className="grid grid-cols-6 gap-2">
-                    {shuffledAvatars.map(({ file, url }) => (
-                      <button
-                        key={file}
-                        onClick={() => { setSelectedAvatar(file); setProfileDirty(true); shuffleAvatars(file); }}
-                        className={`relative aspect-square overflow-hidden rounded-lg border-2 transition hover:opacity-90 ${
-                           (selectedAvatar || profileAvatar) === file
-                              ? 'border-[var(--theme-text)] ring-2 ring-[var(--theme-text)]'
-                              : 'border-transparent hover:border-[var(--theme-border)]'
-                        }`}
-                      >
-                        <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-8 grid gap-5">
-                  <label className="grid gap-1.5">
-                    <span className="text-sm font-medium text-[var(--theme-text)]">Bio</span>
-                    <textarea
-                      ref={profileBioRef}
-                      defaultValue={profileBio}
-                      placeholder="A short bio about yourself"
-                      rows={3}
-                      maxLength={MAX_BIO_CHARS}
-                      onChange={(e) => {
-                        setBioCharCount(e.target.value.length);
-                        setProfileDirty(true);
-                      }}
-                      className="ak-input h-20 resize-none rounded px-3 py-2 text-sm outline-none transition"
-                    />
-                    <p className="text-xs text-[var(--theme-text-muted)] text-right">{bioCharCount}/{MAX_BIO_CHARS}</p>
-                  </label>
-                </div>
-
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={saveProfile}
-                    className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (!profileDirty || window.confirm('Discard unsaved changes?')) {
-                        setSelectedAvatar(profileAvatar);
-                        setCurrentView('Discover');
-                      }
-                    }}
-                    className="rounded border border-[var(--theme-border)] px-5 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                  >
-                    Cancel
-                  </button>
                 </div>
               </div>
+
+              <div className="mt-8">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-heading text-lg font-semibold text-[var(--theme-text)]">
+                    Published recipes
+                  </h3>
+                  <span className="text-sm text-[var(--theme-text-muted)]">
+                    {feedRecipes.filter((recipe) => recipe.ownerId === profileRouteProfile.userId).length}
+                  </span>
+                </div>
+
+                {(() => {
+                  const authorRecipes = [...feedRecipes]
+                    .filter((recipe) => recipe.ownerId === profileRouteProfile.userId)
+                    .sort((left, right) => {
+                      const leftTime = left.createdAt ? dayjs(left.createdAt).valueOf() : 0;
+                      const rightTime = right.createdAt ? dayjs(right.createdAt).valueOf() : 0;
+                      return rightTime - leftTime;
+                    });
+
+                  if (!authorRecipes.length) {
+                    return (
+                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-8 text-center text-sm text-[var(--theme-text-muted)]">
+                        No published recipes yet.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                      {authorRecipes.map((recipe) => (
+                        <FeedRecipeCard
+                          key={recipe.id}
+                          recipe={recipe}
+                          isFavorited={favoriteRecipeIds.has(recipe.id)}
+                          isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                          onOpenRecipe={expandRecipe}
+                          onToggleFavorite={toggleFavoriteRecipe}
+                          onEditRecipe={startEditRecipe}
+                          onDeleteRecipe={deleteRecipe}
+                          loadingEditRecipeId={loadingEditRecipeId}
+                          deletingRecipeIds={deletingRecipeIds}
+                          armedDeleteRecipeIds={armedDeleteRecipeIds}
+                          currentUserId={currentUserId}
+                          isAuthenticated={isAuthenticated}
+                          onOpenProfile={openProfileRoute}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
-          </div>
+          ) : isViewingExternalProfile ? (
+            <div className="mx-auto w-full max-w-4xl p-8 text-center">
+              <p className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
+                Profile not found
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--theme-text-muted)]">
+                We couldn’t locate that creator profile. Try checking a different profile link.
+              </p>
+            </div>
+          ) : (
+            <UserProfileView
+              user={profileViewUser}
+              publishedRecipes={feedRecipes.filter((r) => r.ownerId === currentUserId)}
+              draftRecipes={draftRecords
+                .filter((d) => d.ownerId === currentUserId)
+                .map((d) => ({
+                  id: d.id,
+                  name: d.title || d.draft?.name || 'Untitled',
+                  description: d.draft?.description || '',
+                  image: d.imageDataUrl || neutralImagePlaceholder,
+                  updatedAt: d.updatedAt,
+                }))}
+              savedRecipes={savedRecipes}
+              onAvatarUpload={(file?: File) => updateImageFile(file)}
+              onNewRecipe={startCreateRecipe}
+              onToggleFavoriteRecipe={toggleFavoriteRecipe}
+              onRecipeOptions={(recipeId: string) => {
+                void startEditRecipe(recipeId, currentUserId || '');
+              }}
+              onProfileUpdated={({ name, handle }) => {
+                // optimistic update of profile in-memory and persist
+                const uid = currentUserId || 'current';
+                const profiles = loadUserProfiles();
+                const updated = upsertUserProfile(profiles, {
+                  userId: uid,
+                  displayName: name,
+                  username: handle,
+                });
+                saveUserProfiles(updated);
+                void syncUserProfilesToBackend(updated, client);
+
+                // update local UI pieces
+                setProfileData(updated[uid]);
+                // update profileViewUser via state dependencies by touching profileData
+              }}
+            />
+          )}
         </section>
 
         <aside
