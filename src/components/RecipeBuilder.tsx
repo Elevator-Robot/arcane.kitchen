@@ -2807,7 +2807,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [showShareMenu]);
 
   return (
-    <main className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--theme-bg)]">
+    <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
       {profileSetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-cozy-lg">
