@@ -947,6 +947,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   };
 
+  const handleSelectAvatarPreset = (file: string) => {
+    const uid = currentUserId || 'current';
+    const profiles = loadUserProfiles();
+    const existingProfile = profiles[uid];
+    const updated = upsertUserProfile(profiles, {
+      userId: uid,
+      avatar: file,
+      // preserve the saved identity so upsert does not re-derive it from auth
+      displayName: existingProfile?.displayName,
+      username: existingProfile?.username,
+    });
+    saveUserProfiles(updated);
+    void syncUserProfilesToBackend(updated, client);
+    setProfileData(updated[uid]);
+    setSelectedAvatar(file);
+  };
+
   const isEditingRecipe = Boolean(editingRecipeId);
 
   const loadRecipes = useCallback(async () => {
@@ -4133,8 +4150,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
-                  {(selectedAvatar || profileAvatar) ? (
-                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || profileAvatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {(selectedAvatar || profileAvatar || profileRouteProfile.avatar) ? (
+                    <img src={avatarEntries.find((e) => e.file === (selectedAvatar || profileAvatar || profileRouteProfile.avatar))?.url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
                     (profileRouteProfile.displayName || profileRouteProfile.username || 'C').charAt(0).toUpperCase()
                   )}
@@ -4267,6 +4284,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 saves: Number(r.saves) || 0,
               }))}
               onAvatarUpload={(file?: File) => updateImageFile(file)}
+              onSelectPreset={handleSelectAvatarPreset}
               onNewRecipe={startCreateRecipe}
               onToggleFavoriteRecipe={(id: string | number) =>
                 void toggleFavoriteRecipe(String(id))

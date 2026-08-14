@@ -11,6 +11,7 @@ type Props = {
   draftRecipes?: Draft[];
   savedRecipes?: Recipe[];
   onAvatarUpload?: (file?: File) => void;
+  onSelectPreset?: (file: string) => void;
   onNewRecipe?: () => void;
   onToggleFavoriteRecipe?: (id: Recipe['id']) => void;
   onRecipeOptions?: (id: Recipe['id']) => void;
@@ -28,13 +29,14 @@ export default function UserProfileView({
   onRecipeOptions,
   isOwnProfile = true,
   onProfileUpdated,
+  onSelectPreset,
 }: Props) {
   const [activeTab, setActiveTab] = React.useState<'recipes' | 'drafts' | 'liked'>('recipes');
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4">
       <div className="w-full">
-        <ProfileHeader user={user} isOwnProfile={isOwnProfile} onAvatarUpload={onAvatarUpload} onProfileUpdated={onProfileUpdated} />
+        <ProfileHeader user={user} isOwnProfile={isOwnProfile} onAvatarUpload={onAvatarUpload} onSelectPreset={onSelectPreset} onProfileUpdated={onProfileUpdated} />
         <NavigationTabs active={activeTab} onChange={setActiveTab} />
         <div className="mt-6">
           {activeTab === 'recipes' && (
