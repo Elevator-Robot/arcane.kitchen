@@ -2,20 +2,18 @@ import React, { useState, useRef } from 'react';
 import { Edit2, Share, MapPin, Calendar, Camera, X, Check } from 'lucide-react';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
-import { loadUserProfiles, saveUserProfiles, upsertUserProfile, sanitizeUsername, validateUsername, isUsernameChangeAllowed } from '../../utils/userProfiles';
+import { loadUserProfiles, saveUserProfiles, upsertUserProfile, sanitizeUsername, validateUsername, isUsernameChangeAllowed, USERNAME_CHANGE_COOLDOWN_DAYS } from '../../utils/userProfiles';
 
 type Props = {
   user: User;
   onAvatarUpload?: (file?: File) => void;
-  onEditName?: () => void;
-  onEditHandle?: () => void;
   onShareProfile?: () => void;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
   onProfileUpdated?: (next: { name?: string; handle?: string }) => void;
 };
 
-export default function ProfileHeader({ user, onAvatarUpload, onEditName, onEditHandle, onShareProfile, isOwnProfile = true, onSelectPreset, onProfileUpdated }: Props) {
+export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, isOwnProfile = true, onSelectPreset, onProfileUpdated }: Props) {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'presets' | 'upload'>('presets');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);

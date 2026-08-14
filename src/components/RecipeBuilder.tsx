@@ -8,7 +8,6 @@ import React, {
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
-import { updateUserAttributes } from 'aws-amplify/auth';
 import {
   ArrowLeft,
   Bookmark,
@@ -719,9 +718,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
-  const [shuffledAvatars, setShuffledAvatars] = useState<Array<{ file: string; url: string }>>([]);
-  const [bioCharCount, setBioCharCount] = useState(0);
-  const [profileDirty, setProfileDirty] = useState(false);
   const [displayNameDraft, setDisplayNameDraft] = useState('');
   const [usernameDraft, setUsernameDraft] = useState('');
   const [usernameError, setUsernameError] = useState('');
@@ -729,8 +725,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [profileSetupOpen, setProfileSetupOpen] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [viewingProfileUsername, setViewingProfileUsername] = useState<string | null>(null);
-  const MAX_BIO_CHARS = 200;
-  const profileBioRef = useRef<HTMLTextAreaElement>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -838,23 +832,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     };
   }, [currentUserId]);
 
-  const shuffleAvatars = useCallback((exclude?: string | null) => {
-    const pool = exclude
-      ? avatarEntries.filter((a) => a.file !== exclude)
-      : [...avatarEntries];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    setShuffledAvatars(pool.slice(0, 6));
-  }, [avatarEntries]);
-
   useEffect(() => {
     if (currentView === 'Profile') {
       setSelectedAvatar(profileAvatar);
-      shuffleAvatars(profileAvatar);
-      setBioCharCount(profileBio?.length || 0);
-      setProfileDirty(false);
     }
   }, [currentView]);
 
@@ -905,76 +885,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       } catch { /* ignore */ }
     }
   }, [userAttributes]);
-
-  const saveProfile = async () => {
-    if (!currentUserId) {
-      setCurrentView('Discover');
-      return;
-    }
-
-    const bio = profileBioRef.current?.value || '';
-    const profiles = loadUserProfiles();
-    const nextName = displayNameDraft.trim();
-    const existingUsernames = Object.values(profiles)
-      .filter((profile) => profile.userId !== currentUserId)
-      .map((profile) => profile.username);
-    const suggestedUsername = buildSuggestedUsername(nextName, existingUsernames);
-    const nextUsername = sanitizeUsername(usernameDraft) || suggestedUsername;
-    const errorMessage = validateProfileIdentity({
-      profiles,
-      userId: currentUserId,
-      displayName: nextName,
-      username: nextUsername,
-      profile: profiles[currentUserId],
-    });
-
-    if (errorMessage) {
-      setUsernameError(errorMessage);
-      return;
-    }
-
-    setUsernameError('');
-
-    if (PROFILE_CACHE_KEY) {
-      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
-        avatar: selectedAvatar,
-        bio,
-        nickname: userAttributes?.nickname || null,
-        emailPrefix: userAttributes?.email?.split('@')[0] || null,
-      }));
-    }
-
-    try {
-      const attrs: Record<string, string> = {};
-      if (selectedAvatar) attrs['custom:avatar'] = selectedAvatar;
-      if (bio) attrs['custom:bio'] = bio;
-      if (Object.keys(attrs).length > 0) {
-        await updateUserAttributes({ userAttributes: attrs });
-        onProfileSaved?.();
-      }
-
-      const nextProfiles = upsertUserProfile(profiles, {
-        userId: currentUserId,
-        displayName: nextName,
-        username: nextUsername,
-        bio,
-        avatar: selectedAvatar ?? profileAvatar ?? null,
-        currentUser,
-        userAttributes,
-        needsUsernameSetup: false,
-      });
-
-      saveUserProfiles(nextProfiles);
-      void syncUserProfilesToBackend(nextProfiles, client);
-      setProfileData(nextProfiles[currentUserId]);
-      setProfileDirty(false);
-      setDisplayNameDraft(nextName);
-      setUsernameDraft(nextUsername);
-    } catch (e: any) {
-      console.error('Failed to save profile:', e);
-    }
-    setCurrentView('Discover');
-  };
 
   const saveUsernameSetup = async () => {
     if (!currentUserId) return;
@@ -1487,9 +1397,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       name: activeProfile?.displayName || creatorName,
       handle: activeProfile?.username || activeUsername,
       bio: profileBio || activeProfile?.bio || '',
-      avatarUrl: avatarUrl || null,
+      avatarUrl: avatarUrl || undefined,
       joinDate: activeProfile?.createdAt || undefined,
-      location: activeProfile?.location || undefined,
       stats: {
         recipes: feedRecipes.filter((r) => r.ownerId === currentUserId).length,
         drafts: draftRecords.filter((d) => d.ownerId === currentUserId).length,
@@ -4320,22 +4229,41 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           ) : (
             <UserProfileView
               user={profileViewUser}
-              publishedRecipes={feedRecipes.filter((r) => r.ownerId === currentUserId)}
+              publishedRecipes={feedRecipes
+                .filter((r) => r.ownerId === currentUserId)
+                .map((r) => ({
+                  id: r.id,
+                  title: r.name,
+                  time: r.time,
+                  image: r.image,
+                  likes: 0,
+                  saves: Number(r.saves) || 0,
+                }))}
               draftRecipes={draftRecords
                 .filter((d) => d.ownerId === currentUserId)
                 .map((d) => ({
                   id: d.id,
-                  name: d.title || d.draft?.name || 'Untitled',
-                  description: d.draft?.description || '',
+                  title: d.title || d.draft?.name || 'Untitled',
+                  lastEdited: d.updatedAt
+                    ? new Date(d.updatedAt).toLocaleDateString()
+                    : undefined,
                   image: d.imageDataUrl || neutralImagePlaceholder,
-                  updatedAt: d.updatedAt,
                 }))}
-              savedRecipes={savedRecipes}
+              savedRecipes={savedRecipes.map((r) => ({
+                id: r.id,
+                title: r.name,
+                time: r.time,
+                image: r.image,
+                likes: 0,
+                saves: Number(r.saves) || 0,
+              }))}
               onAvatarUpload={(file?: File) => updateImageFile(file)}
               onNewRecipe={startCreateRecipe}
-              onToggleFavoriteRecipe={toggleFavoriteRecipe}
-              onRecipeOptions={(recipeId: string) => {
-                void startEditRecipe(recipeId, currentUserId || '');
+              onToggleFavoriteRecipe={(id: string | number) =>
+                void toggleFavoriteRecipe(String(id))
+              }
+              onRecipeOptions={(recipeId: string | number) => {
+                void startEditRecipe(String(recipeId), currentUserId || '');
               }}
               onProfileUpdated={({ name, handle }) => {
                 // optimistic update of profile in-memory and persist
@@ -4352,6 +4280,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 // update local UI pieces
                 setProfileData(updated[uid]);
                 // update profileViewUser via state dependencies by touching profileData
+                onProfileSaved?.();
               }}
             />
           )}

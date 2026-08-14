@@ -24,7 +24,6 @@ export default function UserProfileView({
   draftRecipes = [],
   savedRecipes = [],
   onAvatarUpload,
-  onNewRecipe,
   onToggleFavoriteRecipe,
   onRecipeOptions,
   isOwnProfile = true,
@@ -36,7 +35,7 @@ export default function UserProfileView({
     <div className="w-full max-w-5xl mx-auto px-4">
       <div className="w-full">
         <ProfileHeader user={user} isOwnProfile={isOwnProfile} onAvatarUpload={onAvatarUpload} onProfileUpdated={onProfileUpdated} />
-        <NavigationTabs active={activeTab} onChange={setActiveTab} isOwnProfile={isOwnProfile} />
+        <NavigationTabs active={activeTab} onChange={setActiveTab} />
         <div className="mt-6">
           {activeTab === 'recipes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

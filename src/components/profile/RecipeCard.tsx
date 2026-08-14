@@ -1,4 +1,3 @@
-import React from 'react';
 import { Heart, MessageCircle, Bookmark, MoreVertical } from 'lucide-react';
 import type { Recipe } from '../../types/profile';
 
