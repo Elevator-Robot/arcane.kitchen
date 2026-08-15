@@ -31,13 +31,13 @@ export default function UserProfileView({
   onProfileUpdated,
   onSelectPreset,
 }: Props) {
-  const [activeTab, setActiveTab] = React.useState<'recipes' | 'drafts' | 'liked'>('recipes');
+  const [activeTab, setActiveTab] = React.useState<'recipes' | 'drafts' | 'saved'>('recipes');
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4">
       <div className="w-full">
         <ProfileHeader user={user} isOwnProfile={isOwnProfile} onAvatarUpload={onAvatarUpload} onSelectPreset={onSelectPreset} onProfileUpdated={onProfileUpdated} />
-        <NavigationTabs active={activeTab} onChange={setActiveTab} />
+        <NavigationTabs active={activeTab} draftsCount={draftRecipes.length} savedCount={savedRecipes.length} onChange={setActiveTab} />
         <div className="mt-6">
           {activeTab === 'recipes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -55,7 +55,7 @@ export default function UserProfileView({
             </div>
           )}
 
-          {activeTab === 'liked' && isOwnProfile && (
+          {activeTab === 'saved' && isOwnProfile && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {savedRecipes.map((r) => (
                 <RecipeCard key={r.id} recipe={r} onClick={(id) => window.location.assign(`/recipe/${id}`)} onToggleFavorite={onToggleFavoriteRecipe} onOptions={onRecipeOptions} />
