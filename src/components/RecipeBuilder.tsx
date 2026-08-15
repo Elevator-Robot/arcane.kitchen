@@ -379,10 +379,16 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
             }}
             disabled={isPendingFavorite}
             aria-label={isFavorited ? `Unsave ${recipe.name}` : `Save ${recipe.name}`}
-            className="flex items-center gap-1 transition hover:text-[var(--theme-accent)] disabled:opacity-60"
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium shadow-sm transition hover:scale-105 active:scale-95 disabled:opacity-60 ${
+              isFavorited
+                ? 'bg-fuchsia-600 text-white'
+                : 'bg-[var(--theme-bg-soft)] hover:bg-fuchsia-100 hover:text-fuchsia-600'
+            }`}
           >
             <svg
-              className={`h-3.5 w-3.5 ${isFavorited ? 'text-[var(--theme-accent)]' : ''} transition`}
+              className={`h-3.5 w-3.5 transition ${
+                isFavorited ? 'text-white' : ''
+              }`}
               viewBox="0 0 24 24"
               fill={isFavorited ? 'currentColor' : 'none'}
               stroke="currentColor"
