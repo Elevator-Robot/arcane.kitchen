@@ -4152,7 +4152,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         <section
           id="profile"
           key={currentView === 'Profile' ? 'profile-visible' : 'profile-hidden'}
-          className={`min-h-0 ${
+          className={`min-h-0 overflow-y-auto ${
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
