@@ -23,6 +23,13 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Included in recipe fingerprint for deduplication
 - Optional (empty if not provided)
 
+## Recipe Save Counts
+
+- Save counts ("hearts") are DERIVED from the `Favorite` records, not a stored counter: the count on a recipe is the number of `Favorite` rows whose `recipeId` matches it — i.e. how many people currently have it saved.
+- To make this queryable, `Favorite` authorization includes `read` for authenticated users and guests (in addition to the owner write via `ownerDefinedIn('userId')`).
+- `RecipeBuilder.tsx` loads all favorites once (`Favorite.list`) and builds a `recipeId → count` map (`recipeSaves` state); `toggleFavoriteRecipe` updates the map optimistically (±1) alongside the `Favorite` create/delete.
+- Card previews and the expanded view show this count next to a heart; clicking the heart toggles the save (the heart was removed from the image overlay).
+
 ## Profile & Avatars
 
 - **Cognito is the DB for user profiles.** Every profile edit is mirrored into Cognito user attributes via `syncProfileToCognito` (`src/utils/cognitoProfileSync.ts` → `updateUserAttributes`):

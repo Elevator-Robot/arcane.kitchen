@@ -53,7 +53,11 @@ const schema = a.schema({
       userId: a.string().required(),
       recipeId: a.id().required(),
     })
-    .authorization((allow) => [allow.ownerDefinedIn('userId')]),
+    .authorization((allow) => [
+      allow.ownerDefinedIn('userId'),
+      allow.authenticated().to(['read']),
+      allow.guest().to(['read']),
+    ]),
 
   Comment: a
     .model({

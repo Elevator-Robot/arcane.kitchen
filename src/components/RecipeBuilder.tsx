@@ -283,6 +283,7 @@ interface FeedRecipeCardProps {
   recipe: FeedRecipe;
   isFavorited: boolean;
   isPendingFavorite: boolean;
+  saveCount: number;
   onOpenRecipe: (recipe: FeedRecipe) => void;
   onToggleFavorite: (recipeId: string) => void;
   onEditRecipe?: (recipeId: string, recipeOwnerId: string) => void;
@@ -299,6 +300,7 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
   recipe,
   isFavorited,
   isPendingFavorite,
+  saveCount,
   onOpenRecipe,
   onToggleFavorite,
   onEditRecipe,
@@ -336,22 +338,6 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
         <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
           {recipe.rating}
         </div>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            void onToggleFavorite(recipe.id);
-          }}
-          disabled={isPendingFavorite}
-          aria-label={`Favorite ${recipe.name}`}
-          className={`grid h-8 w-8 place-items-center rounded-full text-sm shadow-sm transition disabled:opacity-60 ${
-            isFavorited
-              ? 'bg-[var(--theme-accent)] text-white'
-              : 'bg-white/90 text-[var(--theme-text-muted)] backdrop-blur-sm hover:text-[var(--theme-accent)]'
-          }`}
-        >
-          {isFavorited ? '♥' : '♡'}
-        </button>
       </div>
     </div>
     <div className="p-4">
@@ -385,10 +371,27 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
           {recipe.time}
         </span>
         <span className="flex items-center gap-1">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-          </svg>
-          {recipe.saves} saves
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              void onToggleFavorite(recipe.id);
+            }}
+            disabled={isPendingFavorite}
+            aria-label={isFavorited ? `Unsave ${recipe.name}` : `Save ${recipe.name}`}
+            className="flex items-center gap-1 transition hover:text-[var(--theme-accent)] disabled:opacity-60"
+          >
+            <svg
+              className={`h-3.5 w-3.5 ${isFavorited ? 'text-[var(--theme-accent)]' : ''} transition`}
+              viewBox="0 0 24 24"
+              fill={isFavorited ? 'currentColor' : 'none'}
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+            </svg>
+            <span>{saveCount}</span>
+          </button>
         </span>
       </div>
       {isAuthenticated && currentUserId && recipe.ownerId === currentUserId && (
@@ -692,6 +695,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [pendingFavoriteRecipeIds, setPendingFavoriteRecipeIds] = useState<
     Set<string>
   >(() => new Set());
+  const [recipeSaves, setRecipeSaves] = useState<Record<string, number>>({});
   const [expandedRecipeId, setExpandedRecipeId] = useState<string | null>(null);
   const [expandedRecipeIngredients, setExpandedRecipeIngredients] = useState<
     Record<string, string[]>
@@ -1226,6 +1230,38 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     loadFavorites();
   }, [currentUserId, isAuthenticated]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadSaveCounts = async () => {
+      try {
+        const { data, errors } = await client.models.Favorite.list({});
+
+        if (errors?.length) {
+          throw new Error(errors.map((error: any) => error.message).join(', '));
+        }
+
+        const counts: Record<string, number> = {};
+        for (const favorite of data) {
+          if (favorite.recipeId) {
+            counts[favorite.recipeId] = (counts[favorite.recipeId] ?? 0) + 1;
+          }
+        }
+
+        if (!isCancelled) {
+          setRecipeSaves(counts);
+        }
+      } catch (error) {
+        console.error('Failed to load save counts:', error);
+      }
+    };
+
+    loadSaveCounts();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (
@@ -2238,6 +2274,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             result.errors.map((error: any) => error.message).join(', ')
           );
         }
+
+        setRecipeSaves((previous) => {
+          const next = { ...previous };
+          next[recipeId] = Math.max(0, (next[recipeId] ?? 0) - 1);
+          return next;
+        });
       } else {
         const result = await client.models.Favorite.create(
           {
@@ -2253,6 +2295,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             result.errors.map((error: any) => error.message).join(', ')
           );
         }
+
+        setRecipeSaves((previous) => {
+          const next = { ...previous };
+          next[recipeId] = (next[recipeId] ?? 0) + 1;
+          return next;
+        });
       }
     } catch (error) {
       console.error('Failed to update favorite:', error);
@@ -2930,7 +2978,9 @@ const expandedRecipeArticle = expandedRecipe ? (
 
                   <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                     <span>{expandedRecipe.time}</span>
-                    <span>{expandedRecipe.saves} saves</span>
+                    <span>
+                      {recipeSaves[expandedRecipe.id] ?? 0} saves
+                    </span>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -3625,6 +3675,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                       recipe={recipe}
                       isFavorited={favoriteRecipeIds.has(recipe.id)}
                       isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                      saveCount={recipeSaves[recipe.id] ?? 0}
                       onOpenRecipe={expandRecipe}
                       onToggleFavorite={toggleFavoriteRecipe}
                       onEditRecipe={startEditRecipe}
@@ -4036,6 +4087,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                     recipe={recipe}
                     isFavorited={favoriteRecipeIds.has(recipe.id)}
                     isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                    saveCount={recipeSaves[recipe.id] ?? 0}
                     onOpenRecipe={(selectedRecipe) => {
                       void expandRecipe(selectedRecipe);
                     }}
@@ -4236,6 +4288,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                           recipe={recipe}
                           isFavorited={favoriteRecipeIds.has(recipe.id)}
                           isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
+                          saveCount={recipeSaves[recipe.id] ?? 0}
                           onOpenRecipe={expandRecipe}
                           onToggleFavorite={toggleFavoriteRecipe}
                           onEditRecipe={startEditRecipe}
