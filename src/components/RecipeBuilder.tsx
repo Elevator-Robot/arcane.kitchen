@@ -9,7 +9,6 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
-  ArrowLeft,
   Bookmark,
   Copy,
   Mail,
@@ -2816,14 +2815,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 const expandedRecipeArticle = expandedRecipe ? (
               <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
                 <div className="relative">
-                  <button
-                    type="button"
-                    onClick={collapseExpandedRecipe}
-                    className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-sm font-medium text-white transition hover:bg-black"
-                  >
-                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    Back
-                  </button>
                   {isPlaceholder(expandedRecipe.image) ? (
                     <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
                       <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -4535,7 +4526,10 @@ const expandedRecipeArticle = expandedRecipe ? (
       </footer>
 
       {expandedRecipe && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] backdrop-blur-sm"
+          onClick={collapseExpandedRecipe}
+        >
           <button
             type="button"
             onClick={collapseExpandedRecipe}
@@ -4544,7 +4538,10 @@ const expandedRecipeArticle = expandedRecipe ? (
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
-          <div className="mx-auto my-8 w-full max-w-4xl px-4 sm:px-6">
+          <div
+            className="mx-auto my-8 w-full max-w-4xl px-4 sm:px-6"
+            onClick={(event) => event.stopPropagation()}
+          >
             {expandedRecipeArticle}
           </div>
         </div>
