@@ -4296,9 +4296,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               onAvatarUpload={(file?: File) => updateImageFile(file)}
               onSelectPreset={handleSelectAvatarPreset}
               onNewRecipe={startCreateRecipe}
-              onToggleFavoriteRecipe={(id: string | number) =>
-                void toggleFavoriteRecipe(String(id))
-              }
               onRecipeOptions={(recipeId: string | number) => {
                 void startEditRecipe(String(recipeId), currentUserId || '');
               }}
