@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Send,
   Share2,
+  X,
 } from 'lucide-react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -2274,17 +2275,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   };
 
-  const expandRecipe = async (recipe: FeedRecipe) => {
+  const expandRecipe = async (
+    recipe: FeedRecipe,
+    options?: { stayInView?: boolean }
+  ) => {
     setExpandedRecipeId(recipe.id);
     setExpandedRecipeMessage('');
-    setCurrentView('Discover');
+
+    if (!options?.stayInView) {
+      setCurrentView('Discover');
+
+      if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
+        window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
+      }
+    }
 
     if (isAuthenticated) {
       void fetchComments(recipe.id);
-    }
-
-    if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
-      window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
     }
 
     if (expandedRecipeIngredients[recipe.id]) return;
@@ -2806,6 +2813,394 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     };
   }, [showShareMenu]);
 
+const expandedRecipeArticle = expandedRecipe ? (
+              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={collapseExpandedRecipe}
+                    className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-sm font-medium text-white transition hover:bg-black"
+                  >
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                    Back
+                  </button>
+                  {isPlaceholder(expandedRecipe.image) ? (
+                    <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
+                      <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                      </svg>
+                      <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
+                    </div>
+                  ) : (
+                    <img
+                      src={expandedRecipe.image}
+                      alt={expandedRecipe.name}
+                      className="h-64 w-full object-cover sm:h-80"
+                    />
+                  )}
+
+                </div>
+                <div className="grid gap-5 p-4 sm:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-2xl font-semibold tracking-normal">
+                        {expandedRecipe.name}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (expandedRecipe.authorHandle) {
+                            openProfileRoute(expandedRecipe.authorHandle);
+                          }
+                        }}
+                        className="mt-1 text-left text-sm text-[var(--theme-text-muted)] transition hover:text-[var(--theme-accent)] hover:underline"
+                      >
+                        by {expandedRecipe.author}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {shareNotice && (
+                        <div className="w-full rounded border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
+                          {shareNotice}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
+                        disabled={pendingFavoriteRecipeIds.has(
+                          expandedRecipe.id
+                        )}
+                        aria-label={`Save ${expandedRecipe.name}`}
+                        className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+                          favoriteRecipeIds.has(expandedRecipe.id)
+                            ? 'text-[var(--theme-accent)]'
+                            : 'text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)]'
+                        }`}
+                      >
+                        <Bookmark className="h-4 w-4" aria-hidden="true" />
+                        {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
+                      </button>
+                      <div className="relative" ref={shareMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => void shareRecipe(expandedRecipe)}
+                          className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
+                        >
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                          Share
+                        </button>
+                        {showShareMenu && (
+                          <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow-cozy-lg">
+                            <button
+                              type="button"
+                              onClick={() => void copyRecipeLink(getRecipeShareUrl(expandedRecipe))}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Copy className="h-4 w-4" aria-hidden="true" />
+                              Copy Link
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'whatsapp')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                              WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'email')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Mail className="h-4 w-4" aria-hidden="true" />
+                              Email
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'telegram')}
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
+                            >
+                              <Send className="h-4 w-4" aria-hidden="true" />
+                              Telegram
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
+                        {expandedRecipe.rating}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm leading-7 text-[var(--theme-text)]">
+                    {expandedRecipe.description}
+                  </p>
+
+                  <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                    <span>{expandedRecipe.time}</span>
+                    <span>{expandedRecipe.saves} saves</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {expandedRecipe.tags.map((tag) => {
+                      const category = tagCategoryMap.get(tag.toLowerCase());
+                      return (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--theme-accent)] px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                        >
+                          {tag}
+                          {category && (
+                            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-medium uppercase leading-none tracking-wide">
+                              {category}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    <section>
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                        Ingredients
+                      </h4>
+                      {loadingExpandedRecipeId === expandedRecipe.id ? (
+                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
+                          Loading ingredients...
+                        </p>
+                      ) : expandedRecipeMessage ? (
+                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
+                          {expandedRecipeMessage}
+                        </p>
+                      ) : (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
+                          {(
+                            expandedRecipeIngredients[expandedRecipe.id] || []
+                          ).map((ingredient) => (
+                            <li key={ingredient}>{ingredient}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+
+                    <section>
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                        Instructions
+                      </h4>
+                      <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-[var(--theme-text)]">
+                        {expandedRecipe.instructions.length ? (
+                          expandedRecipe.instructions.map(
+                            (instruction, index) => (
+                              <li key={`${expandedRecipe.id}-step-${index}`}>
+                                {instruction}
+                              </li>
+                            )
+                          )
+                        ) : (
+                          <li>Instructions have not been added yet.</li>
+                        )}
+                      </ol>
+                    </section>
+
+                    <section>
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                        Utensils Needed
+                      </h4>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
+                        {expandedRecipe.utensils?.length ? (
+                          expandedRecipe.utensils.map((utensil, index) => (
+                            <li key={`${expandedRecipe.id}-utensil-${index}`}>
+                              {utensil}
+                            </li>
+                          ))
+                        ) : (
+                          <li>Utensils have not been added yet.</li>
+                        )}
+                      </ul>
+                    </section>
+
+                    {expandedRecipe.notes && expandedRecipe.notes.trim() && (
+                      <section>
+                        <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
+                          Notes
+                        </h4>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--theme-text)]">
+                          {expandedRecipe.notes}
+                        </p>
+                      </section>
+                    )}
+                  </div>
+
+                  <section className="border-t border-[var(--theme-border)] pt-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)] mb-3">
+                      Comments ({(comments[expandedRecipe.id] || []).length})
+                    </h4>
+
+                    {isAuthenticated ? (
+                      <>
+                        {loadingComments ? (
+                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">Loading comments...</p>
+                        ) : (comments[expandedRecipe.id] || []).length === 0 ? (
+                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">No comments yet. Be the first!</p>
+                        ) : (() => {
+                          const allComments = comments[expandedRecipe.id] || [];
+                          const rootComments = allComments.filter((c) => !c.parentId);
+                          const count = visibleCommentCount[expandedRecipe.id] || COMMENTS_PER_PAGE;
+                          const visibleRoots = rootComments.slice(0, count);
+                          const hasMore = count < rootComments.length;
+
+                          return (
+                            <>
+                              <div className="space-y-3 mb-4">
+                                {visibleRoots.map((comment) => (
+                                  <CommentItem
+                                    key={comment.id}
+                                    comment={comment}
+                                    replies={allComments.filter((r) => r.parentId === comment.id)}
+                                    isReply={false}
+                                    currentUserId={currentUserId}
+                                    onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
+                                    onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
+                                    onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
+                                    replyingTo={replyingTo}
+                                    editingCommentId={editingCommentId}
+                                    setEditingCommentId={setEditingCommentId}
+                                  />
+                                ))}
+                              </div>
+                              {hasMore && (
+                                <button
+                                  onClick={() => {
+                                    setVisibleCommentCount((prev) => ({
+                                      ...prev,
+                                      [expandedRecipe.id]: (prev[expandedRecipe.id] || COMMENTS_PER_PAGE) + COMMENTS_PER_PAGE,
+                                    }));
+                                  }}
+                                  className="mb-4 w-full rounded border border-[var(--theme-border)] py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                                >
+                                  Show more ({rootComments.length - count} remaining)
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
+
+                        <div className="relative">
+                          <div className="flex gap-2">
+                            <input
+                              ref={commentInputRef}
+                              value={commentInput}
+                              onChange={(e) => handleCommentInput(e.target.value)}
+                              onKeyDown={handleCommentKeyDown}
+                              placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
+                              className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
+                                replyingTo
+                                  ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
+                                  : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
+                              }`}
+                            />
+                            <button
+                              onClick={() => void addComment(expandedRecipe.id, replyingTo)}
+                              disabled={!commentInput.trim()}
+                              className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {replyingTo ? 'Reply' : 'Post'}
+                            </button>
+                            {replyingTo && (
+                              <button
+                                onClick={() => { setReplyingTo(null); setReplyingToAuthor(''); setCommentInput(''); }}
+                                className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                              >
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+
+                          {showMentions && (() => {
+                            const authors = getCommentAuthors().filter((a) =>
+                              a.toLowerCase().includes(mentionQuery.toLowerCase())
+                            );
+                            if (!authors.length) return null;
+                            return (
+                              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg max-h-40 overflow-y-auto">
+                                {authors.map((author, i) => (
+                                  <button
+                                    key={author}
+                                    onClick={() => insertMention(author)}
+                                    className={`w-full px-3 py-1.5 text-left text-sm transition ${
+                                      i === mentionCursor
+                                        ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                                        : 'text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)]'
+                                    }`}
+                                  >
+                                    <span className="font-medium text-[var(--theme-accent)]">@{author}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[var(--theme-text-muted)]">
+                        <button
+                          onClick={onRequestAuth}
+                          className="text-[var(--theme-accent)] hover:underline"
+                        >
+                          Log in
+                        </button>{' '}
+                        to join the conversation.
+                      </p>
+                    )}
+                  </section>
+
+                  {isAuthenticated &&
+                    expandedRecipe.ownerId === currentUserId && (
+                      <div className="flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void startEditRecipe(
+                              expandedRecipe.id,
+                              expandedRecipe.ownerId
+                            )
+                          }
+                          disabled={loadingEditRecipeId === expandedRecipe.id}
+                          className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
+                        >
+                          {loadingEditRecipeId === expandedRecipe.id
+                            ? 'Opening...'
+                            : 'Edit'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            deleteRecipe(
+                              expandedRecipe.id,
+                              expandedRecipe.ownerId
+                            )
+                          }
+                          disabled={deletingRecipeIds.has(expandedRecipe.id)}
+                          className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
+                            armedDeleteRecipeIds.has(expandedRecipe.id)
+                              ? 'bg-red-600 hover:bg-red-700'
+                              : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
+                          }`}
+                        >
+                          {deletingRecipeIds.has(expandedRecipe.id)
+                            ? 'Deleting...'
+                            : armedDeleteRecipeIds.has(expandedRecipe.id)
+                              ? 'Delete permanently'
+                              : 'Delete'}
+                        </button>
+                      </div>
+                    )}
+                </div>
+              </article>
+) : null;
+
   return (
     <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
       {profileSetupOpen && (
@@ -3225,392 +3620,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   The shared recipe may have been removed or the link may be invalid.
                 </p>
               </div>
-            ) : expandedRecipe ? (
-              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={collapseExpandedRecipe}
-                    className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-sm font-medium text-white transition hover:bg-black"
-                  >
-                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                    Back
-                  </button>
-                  {isPlaceholder(expandedRecipe.image) ? (
-                    <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
-                      <svg className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.16a15.53 15.53 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
-                      </svg>
-                      <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
-                    </div>
-                  ) : (
-                    <img
-                      src={expandedRecipe.image}
-                      alt={expandedRecipe.name}
-                      className="h-64 w-full object-cover sm:h-80"
-                    />
-                  )}
-
-                </div>
-                <div className="grid gap-5 p-4 sm:p-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-2xl font-semibold tracking-normal">
-                        {expandedRecipe.name}
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (expandedRecipe.authorHandle) {
-                            openProfileRoute(expandedRecipe.authorHandle);
-                          }
-                        }}
-                        className="mt-1 text-left text-sm text-[var(--theme-text-muted)] transition hover:text-[var(--theme-accent)] hover:underline"
-                      >
-                        by {expandedRecipe.author}
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {shareNotice && (
-                        <div className="w-full rounded border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
-                          {shareNotice}
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
-                        disabled={pendingFavoriteRecipeIds.has(
-                          expandedRecipe.id
-                        )}
-                        aria-label={`Save ${expandedRecipe.name}`}
-                        className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
-                          favoriteRecipeIds.has(expandedRecipe.id)
-                            ? 'text-[var(--theme-accent)]'
-                            : 'text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)]'
-                        }`}
-                      >
-                        <Bookmark className="h-4 w-4" aria-hidden="true" />
-                        {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
-                      </button>
-                      <div className="relative" ref={shareMenuRef}>
-                        <button
-                          type="button"
-                          onClick={() => void shareRecipe(expandedRecipe)}
-                          className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
-                        >
-                          <Share2 className="h-4 w-4" aria-hidden="true" />
-                          Share
-                        </button>
-                        {showShareMenu && (
-                          <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow-cozy-lg">
-                            <button
-                              type="button"
-                              onClick={() => void copyRecipeLink(getRecipeShareUrl(expandedRecipe))}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                            >
-                              <Copy className="h-4 w-4" aria-hidden="true" />
-                              Copy Link
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'whatsapp')}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                            >
-                              <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                              WhatsApp
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'email')}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                            >
-                              <Mail className="h-4 w-4" aria-hidden="true" />
-                              Email
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openShareLink(getRecipeShareUrl(expandedRecipe), 'telegram')}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                            >
-                              <Send className="h-4 w-4" aria-hidden="true" />
-                              Telegram
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
-                        {expandedRecipe.rating}
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-sm leading-7 text-[var(--theme-text)]">
-                    {expandedRecipe.description}
-                  </p>
-
-                  <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                    <span>{expandedRecipe.time}</span>
-                    <span>{expandedRecipe.saves} saves</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {expandedRecipe.tags.map((tag) => {
-                      const category = tagCategoryMap.get(tag.toLowerCase());
-                      return (
-                        <span
-                          key={tag}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--theme-accent)] px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
-                        >
-                          {tag}
-                          {category && (
-                            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-medium uppercase leading-none tracking-wide">
-                              {category}
-                            </span>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  <div className="grid gap-5 lg:grid-cols-2">
-                    <section>
-                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
-                        Ingredients
-                      </h4>
-                      {loadingExpandedRecipeId === expandedRecipe.id ? (
-                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
-                          Loading ingredients...
-                        </p>
-                      ) : expandedRecipeMessage ? (
-                        <p className="text-[var(--theme-text-muted)] mt-2 text-sm">
-                          {expandedRecipeMessage}
-                        </p>
-                      ) : (
-                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
-                          {(
-                            expandedRecipeIngredients[expandedRecipe.id] || []
-                          ).map((ingredient) => (
-                            <li key={ingredient}>{ingredient}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </section>
-
-                    <section>
-                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
-                        Instructions
-                      </h4>
-                      <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm leading-6 text-[var(--theme-text)]">
-                        {expandedRecipe.instructions.length ? (
-                          expandedRecipe.instructions.map(
-                            (instruction, index) => (
-                              <li key={`${expandedRecipe.id}-step-${index}`}>
-                                {instruction}
-                              </li>
-                            )
-                          )
-                        ) : (
-                          <li>Instructions have not been added yet.</li>
-                        )}
-                      </ol>
-                    </section>
-
-                    <section>
-                      <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
-                        Utensils Needed
-                      </h4>
-                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
-                        {expandedRecipe.utensils?.length ? (
-                          expandedRecipe.utensils.map((utensil, index) => (
-                            <li key={`${expandedRecipe.id}-utensil-${index}`}>
-                              {utensil}
-                            </li>
-                          ))
-                        ) : (
-                          <li>Utensils have not been added yet.</li>
-                        )}
-                      </ul>
-                    </section>
-
-                    {expandedRecipe.notes && expandedRecipe.notes.trim() && (
-                      <section>
-                        <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
-                          Notes
-                        </h4>
-                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--theme-text)]">
-                          {expandedRecipe.notes}
-                        </p>
-                      </section>
-                    )}
-                  </div>
-
-                  <section className="border-t border-[var(--theme-border)] pt-4">
-                    <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)] mb-3">
-                      Comments ({(comments[expandedRecipe.id] || []).length})
-                    </h4>
-
-                    {isAuthenticated ? (
-                      <>
-                        {loadingComments ? (
-                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">Loading comments...</p>
-                        ) : (comments[expandedRecipe.id] || []).length === 0 ? (
-                          <p className="text-sm text-[var(--theme-text-muted)] mb-4">No comments yet. Be the first!</p>
-                        ) : (() => {
-                          const allComments = comments[expandedRecipe.id] || [];
-                          const rootComments = allComments.filter((c) => !c.parentId);
-                          const count = visibleCommentCount[expandedRecipe.id] || COMMENTS_PER_PAGE;
-                          const visibleRoots = rootComments.slice(0, count);
-                          const hasMore = count < rootComments.length;
-
-                          return (
-                            <>
-                              <div className="space-y-3 mb-4">
-                                {visibleRoots.map((comment) => (
-                                  <CommentItem
-                                    key={comment.id}
-                                    comment={comment}
-                                    replies={allComments.filter((r) => r.parentId === comment.id)}
-                                    isReply={false}
-                                    currentUserId={currentUserId}
-                                    onReply={(id, author) => { setReplyingTo(id); setReplyingToAuthor(author || ''); setEditingCommentId(null); setTimeout(() => commentInputRef.current?.focus(), 50); }}
-                                    onEdit={(id, content) => void editComment(id, expandedRecipe.id, content)}
-                                    onDelete={(id) => void deleteComment(id, expandedRecipe.id)}
-                                    replyingTo={replyingTo}
-                                    editingCommentId={editingCommentId}
-                                    setEditingCommentId={setEditingCommentId}
-                                  />
-                                ))}
-                              </div>
-                              {hasMore && (
-                                <button
-                                  onClick={() => {
-                                    setVisibleCommentCount((prev) => ({
-                                      ...prev,
-                                      [expandedRecipe.id]: (prev[expandedRecipe.id] || COMMENTS_PER_PAGE) + COMMENTS_PER_PAGE,
-                                    }));
-                                  }}
-                                  className="mb-4 w-full rounded border border-[var(--theme-border)] py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                                >
-                                  Show more ({rootComments.length - count} remaining)
-                                </button>
-                              )}
-                            </>
-                          );
-                        })()}
-
-                        <div className="relative">
-                          <div className="flex gap-2">
-                            <input
-                              ref={commentInputRef}
-                              value={commentInput}
-                              onChange={(e) => handleCommentInput(e.target.value)}
-                              onKeyDown={handleCommentKeyDown}
-                              placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
-                              className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
-                                replyingTo
-                                  ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
-                                  : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
-                              }`}
-                            />
-                            <button
-                              onClick={() => void addComment(expandedRecipe.id, replyingTo)}
-                              disabled={!commentInput.trim()}
-                              className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              {replyingTo ? 'Reply' : 'Post'}
-                            </button>
-                            {replyingTo && (
-                              <button
-                                onClick={() => { setReplyingTo(null); setReplyingToAuthor(''); setCommentInput(''); }}
-                                className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </div>
-
-                          {showMentions && (() => {
-                            const authors = getCommentAuthors().filter((a) =>
-                              a.toLowerCase().includes(mentionQuery.toLowerCase())
-                            );
-                            if (!authors.length) return null;
-                            return (
-                              <div className="absolute bottom-full left-0 right-0 mb-1 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg max-h-40 overflow-y-auto">
-                                {authors.map((author, i) => (
-                                  <button
-                                    key={author}
-                                    onClick={() => insertMention(author)}
-                                    className={`w-full px-3 py-1.5 text-left text-sm transition ${
-                                      i === mentionCursor
-                                        ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
-                                        : 'text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)]'
-                                    }`}
-                                  >
-                                    <span className="font-medium text-[var(--theme-accent)]">@{author}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-[var(--theme-text-muted)]">
-                        <button
-                          onClick={onRequestAuth}
-                          className="text-[var(--theme-accent)] hover:underline"
-                        >
-                          Log in
-                        </button>{' '}
-                        to join the conversation.
-                      </p>
-                    )}
-                  </section>
-
-                  {isAuthenticated &&
-                    expandedRecipe.ownerId === currentUserId && (
-                      <div className="flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void startEditRecipe(
-                              expandedRecipe.id,
-                              expandedRecipe.ownerId
-                            )
-                          }
-                          disabled={loadingEditRecipeId === expandedRecipe.id}
-                          className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
-                        >
-                          {loadingEditRecipeId === expandedRecipe.id
-                            ? 'Opening...'
-                            : 'Edit'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            deleteRecipe(
-                              expandedRecipe.id,
-                              expandedRecipe.ownerId
-                            )
-                          }
-                          disabled={deletingRecipeIds.has(expandedRecipe.id)}
-                          className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
-                            armedDeleteRecipeIds.has(expandedRecipe.id)
-                              ? 'bg-red-600 hover:bg-red-700'
-                              : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
-                          }`}
-                        >
-                          {deletingRecipeIds.has(expandedRecipe.id)
-                            ? 'Deleting...'
-                            : armedDeleteRecipeIds.has(expandedRecipe.id)
-                              ? 'Delete permanently'
-                              : 'Delete'}
-                        </button>
-                      </div>
-                    )}
-                </div>
-              </article>
             ) : visibleFeedRecipes.length ? (
               <>
                 {discoverQuery.trim() && (
@@ -4298,7 +4307,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               onNewRecipe={startCreateRecipe}
               onOpenRecipe={(recipeId: string | number) => {
                 const recipe = feedRecipes.find((r) => r.id === String(recipeId));
-                if (recipe) void expandRecipe(recipe);
+                if (recipe) void expandRecipe(recipe, { stayInView: true });
               }}
               onRecipeOptions={(recipeId: string | number) => {
                 void startEditRecipe(String(recipeId), currentUserId || '');
@@ -4524,6 +4533,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           Elevator Robot
         </a>
       </footer>
+
+      {expandedRecipe && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={collapseExpandedRecipe}
+            aria-label="Close recipe"
+            className="fixed right-4 top-4 z-10 rounded-full bg-black/70 p-2 text-white transition hover:bg-black"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <div className="mx-auto my-8 w-full max-w-4xl px-4 sm:px-6">
+            {expandedRecipeArticle}
+          </div>
+        </div>
+      )}
     </main>
   );
 };
