@@ -313,7 +313,7 @@ function App() {
       isAuthenticated: persisted?.isAuthenticated ?? false,
       currentUser,
       userAttributes,
-      isInitialized: persisted !== null,
+      isInitialized: persisted === null,
     };
   });
   const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized } = authState;
