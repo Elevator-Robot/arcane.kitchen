@@ -2284,10 +2284,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     if (!options?.stayInView) {
       setCurrentView('Discover');
+    }
 
-      if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
-        window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
-      }
+    if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
+      window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
     }
 
     if (isAuthenticated) {
