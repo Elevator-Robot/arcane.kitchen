@@ -67,6 +67,13 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - `getRecipeImageSource` in `RecipeBuilder.tsx` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
 
+## Merlin Color Palette
+
+- `src/theme/merlinPalette.ts` is the centralized Merlin/wizard accent palette (`MERLIN_PALETTE`) plus `randomMerlinColor()`.
+- Add/remove hex entries there; every consumer updates automatically.
+- The Discover tag filters pick a random palette color on every filter click, applied as the selected button's background via inline `style` (Tailwind can't do dynamic arbitrary colors). All palette colors read well with white text.
+- The sign-in button (`Button` primary variant in `src/components/ui/Button.tsx`) uses amethyst/indigo tones from the palette.
+
 ## Service Worker (PWA)
 
 - The SW (`public/sw.js`) is registered **only in production** (`import.meta.env.PROD` in `src/main.tsx`). In dev mode any previously registered SW is unregistered and any leftover caches are purged instead.
