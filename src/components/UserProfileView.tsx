@@ -36,8 +36,10 @@ export default function UserProfileView({
   return (
     <div className="w-full max-w-5xl mx-auto px-4">
       <div className="w-full">
-        <ProfileHeader user={user} isOwnProfile={isOwnProfile} onAvatarUpload={onAvatarUpload} onSelectPreset={onSelectPreset} onProfileUpdated={onProfileUpdated} />
-        <NavigationTabs active={activeTab} draftsCount={draftRecipes.length} savedCount={savedRecipes.length} onChange={setActiveTab} />
+        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+          <ProfileHeader user={user} isOwnProfile={isOwnProfile} onAvatarUpload={onAvatarUpload} onSelectPreset={onSelectPreset} onProfileUpdated={onProfileUpdated} />
+          <NavigationTabs active={activeTab} draftsCount={draftRecipes.length} savedCount={savedRecipes.length} onChange={setActiveTab} />
+        </div>
         <div className="mt-6">
           {activeTab === 'recipes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

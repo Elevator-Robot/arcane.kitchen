@@ -83,7 +83,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
   };
 
   return (
-    <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100">
+    <div className="p-6 md:p-8">
       <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
         <div className="flex items-start gap-6 w-full md:w-auto">
           <div className="relative">

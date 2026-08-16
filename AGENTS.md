@@ -73,6 +73,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Add/remove hex entries there; every consumer updates automatically.
 - The Discover tag filters pick a random palette color on every filter click, applied as the selected button's background via inline `style` (Tailwind can't do dynamic arbitrary colors). All palette colors read well with white text.
 - Recipe tags in the Build editor/preview and expanded recipe modal receive stable random colors from the same palette when they load; dynamic colors use inline `style` values.
+- Profile navigation tabs use a cool-to-warm left-to-right progression from the same palette: Recipes, Drafts, then Saved.
 - The sign-in button (`Button` primary variant in `src/components/ui/Button.tsx`) uses amethyst/indigo tones from the palette.
 
 ## Service Worker (PWA)
