@@ -10,12 +10,12 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
-  Bookmark,
   Copy,
+  Heart,
   Mail,
   MessageCircle,
   Send,
-  Share2,
+  Share,
   X,
 } from 'lucide-react';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -348,9 +348,11 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-        <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
-          {recipe.rating}
-        </div>
+        {recipe.rating !== 'New' && (
+          <div className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[var(--theme-text)] shadow-sm backdrop-blur-sm">
+            {recipe.rating}
+          </div>
+        )}
       </div>
     </div>
     <div className="p-4">
@@ -370,11 +372,6 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
         >
           by {recipe.author}
         </button>
-        {isRecipeNew(recipe) && (
-          <span className="rounded-full bg-[var(--theme-accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
-            New
-          </span>
-        )}
       </div>
       <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
         <span className="flex items-center gap-1">
@@ -392,26 +389,25 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
             }}
             disabled={isPendingFavorite}
             aria-label={isFavorited ? `Unsave ${recipe.name}` : `Save ${recipe.name}`}
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium shadow-sm transition hover:scale-105 active:scale-95 disabled:opacity-60 ${
+            className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
               isFavorited
-                ? 'bg-fuchsia-600 text-white'
-                : 'bg-[var(--theme-bg-soft)] hover:bg-fuchsia-100 hover:text-fuchsia-600'
+                ? 'text-fuchsia-600'
+                : 'text-[var(--theme-text-muted)] hover:text-fuchsia-600'
             }`}
           >
-            <svg
-              className={`h-3.5 w-3.5 transition ${
-                isFavorited ? 'text-white' : ''
-              }`}
-              viewBox="0 0 24 24"
+            <Heart
+              className="h-4 w-4"
               fill={isFavorited ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-            </svg>
+              aria-hidden="true"
+            />
             <span>{saveCount}</span>
           </button>
         </span>
+        {recipe.rating === 'New' && (
+          <span className="rounded-full bg-[var(--theme-surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--theme-text-muted)]">
+            New
+          </span>
+        )}
       </div>
       {isAuthenticated && currentUserId && recipe.ownerId === currentUserId && (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
@@ -689,6 +685,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
   const [activeTagColor, setActiveTagColor] = useState(randomMerlinColor);
+  const [activeNavColor, setActiveNavColor] = useState(randomMerlinColor);
   const handleFilterClick = useCallback((tag: string) => {
     setActiveTag((prev) => {
       const next = prev === tag ? 'All' : tag;
@@ -1600,6 +1597,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const matchesTagFilter = (recipe: FeedRecipe) => {
       if (activeTag === 'All') return true;
       if (activeTag === 'Favorites') return favoriteRecipeIds.has(recipe.id);
+      if (activeTag === 'New') return isRecipeNew(recipe);
       if (activeTag === 'My recipes') {
         return Boolean(currentUserId) && recipe.ownerId === currentUserId;
       }
@@ -2971,23 +2969,37 @@ const expandedRecipeArticle = expandedRecipe ? (
                         disabled={pendingFavoriteRecipeIds.has(
                           expandedRecipe.id
                         )}
-                        aria-label={`Save ${expandedRecipe.name}`}
+                        aria-label={
+                          favoriteRecipeIds.has(expandedRecipe.id)
+                            ? `Unsave ${expandedRecipe.name}`
+                            : `Save ${expandedRecipe.name}`
+                        }
                         className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
                           favoriteRecipeIds.has(expandedRecipe.id)
-                            ? 'text-[var(--theme-accent)]'
-                            : 'text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)]'
+                            ? 'text-fuchsia-600'
+                            : 'text-[var(--theme-text-muted)] hover:text-fuchsia-600'
                         }`}
                       >
-                        <Bookmark className="h-4 w-4" aria-hidden="true" />
+                        <Heart
+                          className="h-4 w-4"
+                          fill={
+                            favoriteRecipeIds.has(expandedRecipe.id)
+                              ? 'currentColor'
+                              : 'none'
+                          }
+                          aria-hidden="true"
+                        />
                         {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
                       </button>
                       <div className="relative" ref={shareMenuRef}>
                         <button
                           type="button"
                           onClick={() => void shareRecipe(expandedRecipe)}
+                          aria-label="Share"
+                          title="Share recipe"
                           className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
                         >
-                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                          <Share className="h-4 w-4" aria-hidden="true" />
                           Share
                         </button>
                         {showShareMenu && (
@@ -3027,9 +3039,11 @@ const expandedRecipeArticle = expandedRecipe ? (
                           </div>
                         )}
                       </div>
-                      <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
-                        {expandedRecipe.rating}
-                      </div>
+                      {expandedRecipe.rating !== 'New' && (
+                        <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
+                          {expandedRecipe.rating}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -3381,22 +3395,28 @@ const expandedRecipeArticle = expandedRecipe ? (
             <nav className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => {
+                  setActiveNavColor(randomMerlinColor());
                   setCurrentView('Discover');
                   navigate('/');
                 }}
+                style={currentView === 'Discover' ? { color: activeNavColor } : undefined}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                   currentView === 'Discover'
-                    ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                    ? ''
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
                 }`}
               >
                 Discover
               </button>
               <button
-                onClick={startCreateRecipe}
+                onClick={() => {
+                  setActiveNavColor(randomMerlinColor());
+                  startCreateRecipe();
+                }}
+                style={currentView === 'Build' ? { color: activeNavColor } : undefined}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                   currentView === 'Build'
-                    ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                    ? ''
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
                 }`}
               >
@@ -3492,7 +3512,7 @@ const expandedRecipeArticle = expandedRecipe ? (
             ) : (
               <button
                 onClick={onRequestAuth}
-                className="rounded-lg bg-[var(--theme-accent)] px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
+                className="rounded-lg bg-gradient-to-r from-[#6d28d9] via-[#5b21b6] to-[#4338ca] px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/50 transition hover:from-[#7c3aed] hover:via-[#6d28d9] hover:to-[#4f46e5]"
               >
                 Sign in
               </button>
@@ -3544,21 +3564,12 @@ const expandedRecipeArticle = expandedRecipe ? (
                       <option value="asc">Oldest first</option>
                     </select>
                   </div>
-                  <button
-                    onClick={startCreateRecipe}
-                    title="Create a recipe"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--theme-accent)] text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)] active:scale-95"
-                  >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                </button>
               </div>
             </div>
 
             <div className="mt-4 space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  {['All', 'Favorites', 'My recipes'].map((tag) => (
+                  {['All', 'Favorites', 'New', 'My recipes'].map((tag) => (
                     <button
                       key={tag}
                       onClick={() => handleFilterClick(tag)}
@@ -4115,7 +4126,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               </p>
               <button
                 onClick={onRequestAuth}
-                className="mt-4 rounded-lg bg-[var(--theme-sage)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-sage-strong)]"
+                className="mt-4 rounded-lg bg-gradient-to-r from-[#6d28d9] via-[#5b21b6] to-[#4338ca] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/50 transition hover:from-[#7c3aed] hover:via-[#6d28d9] hover:to-[#4f46e5]"
               >
                 Sign in to create
               </button>
