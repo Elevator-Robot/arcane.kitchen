@@ -21,7 +21,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary:
-      'bg-gradient-to-r from-stone-700 via-stone-600 to-stone-700 hover:from-amber-700 hover:via-amber-600 hover:to-amber-700 text-stone-100 hover:text-amber-100 border border-stone-500/60 hover:border-amber-400/60 shadow-lg shadow-stone-900/50 hover:shadow-amber-500/30 backdrop-blur-lg',
+      'bg-gradient-to-r from-[#6d28d9] via-[#5b21b6] to-[#4338ca] hover:from-[#7c3aed] hover:via-[#6d28d9] hover:to-[#4f46e5] text-white border border-violet-400/60 hover:border-violet-300/70 shadow-lg shadow-violet-900/50 hover:shadow-violet-500/30 backdrop-blur-lg',
     secondary:
       'bg-gradient-to-r from-stone-800/60 via-green-900/30 to-amber-900/40 hover:from-stone-700/80 hover:via-green-800/50 hover:to-amber-800/60 backdrop-blur-lg border border-green-400/40 hover:border-green-400/70 text-stone-100 hover:text-green-200 shadow-lg shadow-green-500/20 hover:shadow-green-500/40',
     danger:

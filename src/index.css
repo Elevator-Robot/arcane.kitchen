@@ -189,9 +189,9 @@
     --amplify-components-tabs-item-active-color: var(--theme-text);
     --amplify-components-tabs-border-color: var(--theme-border);
     --amplify-colors-brand-primary-10: var(--theme-surface-alt);
-    --amplify-colors-brand-primary-60: var(--theme-accent);
-    --amplify-colors-brand-primary-80: var(--theme-accent-strong);
-    --amplify-colors-brand-primary-90: #92400e;
+    --amplify-colors-brand-primary-60: #6d28d9;
+    --amplify-colors-brand-primary-80: #5b21b6;
+    --amplify-colors-brand-primary-90: #4338ca;
     width: 100%;
   }
 
@@ -215,11 +215,7 @@
   }
 
   .auth-panel .amplify-button--primary {
-    background: linear-gradient(
-      135deg,
-      var(--theme-accent),
-      color-mix(in srgb, var(--theme-accent) 75%, var(--theme-sage) 25%)
-    );
+    background: linear-gradient(135deg, #6d28d9, #4338ca);
     color: #fff;
     border: 0;
     border-radius: 0.5rem;
@@ -233,7 +229,7 @@
   }
 
   .auth-panel .amplify-button--primary:hover {
-    background: linear-gradient(135deg, var(--theme-accent-strong), var(--theme-sage));
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
   }
 
   .auth-panel .amplify-button:not(.amplify-button--link) {

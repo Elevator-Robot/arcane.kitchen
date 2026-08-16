@@ -25,6 +25,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
 import { getCloudFrontDomain } from '../amplifyConfig';
+import { randomMerlinColor } from '../theme/merlinPalette';
 import {
   deleteRecipeDraft,
   EMPTY_RECIPE_DRAFT,
@@ -687,6 +688,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_RECIPE_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [activeTag, setActiveTag] = useState('All');
+  const [activeTagColor, setActiveTagColor] = useState(randomMerlinColor);
+  const handleFilterClick = useCallback((tag: string) => {
+    setActiveTag((prev) => {
+      const next = prev === tag ? 'All' : tag;
+      if (next !== 'All') setActiveTagColor(randomMerlinColor());
+      return next;
+    });
+  }, []);
   const [showAllTags, setShowAllTags] = useState('');
   const [discoverQuery, setDiscoverQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -1927,7 +1936,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   const publishRecipe = async () => {
     if (!isAuthenticated || !currentUserId || isPublishing) {
-      setPublishMessage('Log in to publish recipes.');
+      setPublishMessage('Sign in to publish recipes.');
       setPublishMessageTone('error');
       onRequestAuth?.();
       return;
@@ -3242,7 +3251,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                           onClick={onRequestAuth}
                           className="text-[var(--theme-accent)] hover:underline"
                         >
-                          Log in
+                          Sign in
                         </button>{' '}
                         to join the conversation.
                       </p>
@@ -3485,7 +3494,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                 onClick={onRequestAuth}
                 className="rounded-lg bg-[var(--theme-accent)] px-4 py-1.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-accent-strong)]"
               >
-                Log in
+                Sign in
               </button>
             )}
           </div>
@@ -3552,12 +3561,13 @@ const expandedRecipeArticle = expandedRecipe ? (
                   {['All', 'Favorites', 'My recipes'].map((tag) => (
                     <button
                       key={tag}
-                      onClick={() => setActiveTag(activeTag === tag ? 'All' : tag)}
+                      onClick={() => handleFilterClick(tag)}
                       className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
                         activeTag === tag
-                          ? 'bg-[var(--theme-accent)] text-white'
+                          ? 'text-white'
                           : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
                       }`}
+                      style={activeTag === tag ? { backgroundColor: activeTagColor } : undefined}
                     >
                       {tag}
                     </button>
@@ -3578,12 +3588,13 @@ const expandedRecipeArticle = expandedRecipe ? (
                         {visible.map(({ label, count }) => (
                           <button
                             key={label}
-                            onClick={() => setActiveTag(activeTag === label ? 'All' : label)}
+                            onClick={() => handleFilterClick(label)}
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                               activeTag === label
-                                ? 'bg-[var(--theme-accent)] text-white shadow-sm'
+                                ? 'text-white shadow-sm'
                                 : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
                             }`}
+                            style={activeTag === label ? { backgroundColor: activeTagColor } : undefined}
                           >
                             {label}
                             <span
@@ -3617,14 +3628,15 @@ const expandedRecipeArticle = expandedRecipe ? (
                                   <button
                                     key={label}
                                     onClick={() => {
-                                      setActiveTag(activeTag === label ? 'All' : label);
+                                      handleFilterClick(label);
                                       setShowAllTags('');
                                     }}
                                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                                       activeTag === label
-                                        ? 'bg-[var(--theme-accent)] text-white'
+                                        ? 'text-white'
                                         : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface)] hover:text-[var(--theme-text)]'
                                     }`}
+                                    style={activeTag === label ? { backgroundColor: activeTagColor } : undefined}
                                   >
                                     {label}
                                     <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
@@ -3662,12 +3674,13 @@ const expandedRecipeArticle = expandedRecipe ? (
                         {communityFilterTags.map(({ label, count }) => (
                           <button
                             key={label}
-                            onClick={() => setActiveTag(activeTag === label ? 'All' : label)}
+                            onClick={() => handleFilterClick(label)}
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
                               activeTag === label
-                                ? 'bg-[var(--theme-accent)] text-white shadow-sm'
+                                ? 'text-white shadow-sm'
                                 : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
                             }`}
+                            style={activeTag === label ? { backgroundColor: activeTagColor } : undefined}
                           >
                             {label}
                             <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
@@ -3752,7 +3765,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                   {isAuthenticated
                     ? 'Try another ingredient, tag, recipe title, or author.'
-                    : 'Log in and create the first recipe.'}
+                    : 'Sign in and create the first recipe.'}
                 </p>
               </div>
             )}
@@ -3783,7 +3796,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               )}
               {!isAuthenticated && (
                 <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                  Log in to publish recipes.
+                  Sign in to publish recipes.
                 </p>
               )}
             </div>
@@ -4097,14 +4110,14 @@ const expandedRecipeArticle = expandedRecipe ? (
                 Start publishing your own recipes
               </h3>
               <p className="text-[var(--theme-text-muted)] mx-auto mt-2 max-w-sm text-sm leading-6">
-                Log in to add ingredients, write steps, and post recipes to the
+                Sign in to add ingredients, write steps, and post recipes to the
                 shared feed.
               </p>
               <button
                 onClick={onRequestAuth}
                 className="mt-4 rounded-lg bg-[var(--theme-sage)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--theme-sage-strong)]"
               >
-                Log in to create
+                Sign in to create
               </button>
             </div>
           )}

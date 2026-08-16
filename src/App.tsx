@@ -450,13 +450,13 @@ function App() {
                       Share recipes people want to save
                     </h2>
                     <p className="mt-4 max-w-sm text-sm leading-7 text-white/72">
-                      Log in to publish recipes, save favorites, and build a
+                      Sign in to publish recipes, save favorites, and build a
                       collection that other cooks can discover.
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur">
-                    <p className="text-sm font-semibold">After logging in</p>
+                    <p className="text-sm font-semibold">After signing in</p>
                     <div className="mt-4 grid gap-3 text-sm text-white/72">
                       <span>Publish recipes into the shared feed</span>
                       <span>Save drafts and build your collection</span>
@@ -476,7 +476,7 @@ function App() {
                     Share recipes people want to save
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                    Log in to publish recipes, save favorites, and build your
+                    Sign in to publish recipes, save favorites, and build your
                     collection.
                   </p>
                 </div>
