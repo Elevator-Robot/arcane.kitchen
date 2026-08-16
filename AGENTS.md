@@ -30,6 +30,18 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - `RecipeBuilder.tsx` loads all favorites once (`Favorite.list`) and builds a `recipeId → count` map (`recipeSaves` state); `toggleFavoriteRecipe` updates the map optimistically (±1) alongside the `Favorite` create/delete.
 - Card previews and the expanded view show this count next to a heart; clicking the heart toggles the save (the heart was removed from the image overlay).
 
+## Routing (React Router)
+
+- The SPA is wrapped in `BrowserRouter` (in `src/main.tsx`). `react-router-dom` is a dependency.
+- The recipe "modal" opens in-place on top of the current page: opening a recipe calls `navigate('<current-pathname>?recipe=<id>')` so the base page stays in the URL (open-from-Discover, -Saved, -Profile all work; no more `stayInView` hack).
+- `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
+  - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
+  - `/u/:username` (`getProfileUsernameFromPath`) → Profile view.
+  - `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` keeps `currentView` (localStorage-restored internal views like self-profile).
+- Closing the modal navigates back to the bare base path (legacy `/recipe/:id` deep links fall back to Home on close).
+- The route-sync `useEffect` (`syncRecipeRoute`) must NOT re-open a recipe that was just dismissed: the effect depends on `expandedRecipeId`, so `collapseExpandedRecipe` sets `justClosedRecipeIdRef` to the id being closed and the effect skips re-expanding that id while the URL's `?recipe=` param is still pending a `navigate` flush. Without this guard, closing would reset `expandedRecipeId` → the effect re-runs → finds the recipe still in the URL → reopens the modal.
+- Keep all URL writes on `navigate()`/`useNavigate()` — do NOT mix raw `history.pushState`/`replaceState` with the router.
+
 ## Profile & Avatars
 
 - **Cognito is the DB for user profiles.** Every profile edit is mirrored into Cognito user attributes via `syncProfileToCognito` (`src/utils/cognitoProfileSync.ts` → `updateUserAttributes`):
@@ -52,6 +64,13 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - On bootstrap, `src/main.tsx` reads `outputs.custom.CloudFrontDomain` from `amplify_outputs.json` and stores it via `setCloudFrontDomain()` in `src/amplifyConfig.ts`
 - `getRecipeImageSource` in `RecipeBuilder.tsx` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
+
+## Service Worker (PWA)
+
+- The SW (`public/sw.js`) is registered **only in production** (`import.meta.env.PROD` in `src/main.tsx`). In dev mode any previously registered SW is unregistered and any leftover caches are purged instead.
+- Why: `sw.js` serves every same-origin GET cache-first, including Vite dev modules (`/node_modules/.vite/deps/*`). Caching those across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
+- Caches left behind by an unregistered dev SW can hold stale/mangled copies of unhashed source modules (e.g. the old pre-router `RecipeBuilder.tsx`), so dev boot also runs `caches.delete()` on every recognized cache name.
+- If the dev console still shows the duplicate-React error after a code fix, unregister the SW + clear site data once (DevTools → Application → Service Workers).
 
 ## Agent checklist for every PR
 

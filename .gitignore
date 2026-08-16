@@ -204,3 +204,4 @@ project_import_debug.ts
 *.tar.gz
 auth-pr.patch
 aws/
+.playwright-mcp/

@@ -187,7 +187,9 @@ describe('RecipeBuilder Component', () => {
 
     await user.click(await screen.findByText('Test Recipe'));
 
-    expect(window.location.pathname).toBe('/recipe/recipe-1');
+    expect(window.location.pathname + window.location.search).toBe(
+      '/?recipe=recipe-1'
+    );
   });
 
   it('keeps an invalid shared recipe on its route instead of redirecting home', async () => {

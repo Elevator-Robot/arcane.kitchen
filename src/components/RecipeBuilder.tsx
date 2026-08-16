@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
@@ -39,8 +40,9 @@ import {
   getDisplayNameFromAuth,
   getProfileRoutePath,
   getProfileShareUrl,
+  getProfileUsernameFromPath,
+  getRecipeIdFromPath,
   getRecipeRoutePath,
-  getRouteTargetFromPathname,
   getUsernameFromAuth,
   loadUserProfiles,
   saveUserProfiles,
@@ -75,6 +77,16 @@ const getInitialRecipeBuilderView = (): RecipeBuilderView => {
     return savedView;
   }
 
+  return 'Discover';
+};
+
+const viewForPath = (pathname: string): RecipeBuilderView => {
+  if (pathname.startsWith('/build')) return 'Build';
+  if (pathname.startsWith('/saved')) return 'SavedRecipes';
+  if (pathname.startsWith('/drafts')) return 'Drafts';
+  if (pathname.startsWith('/u/') || pathname.startsWith('/profile/')) {
+    return 'Profile';
+  }
   return 'Discover';
 };
 
@@ -668,6 +680,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   onSignOut,
   onProfileSaved,
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_RECIPE_DRAFT);
@@ -703,6 +717,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   >(() => new Set());
   const [recipeSaves, setRecipeSaves] = useState<Record<string, number>>({});
   const [expandedRecipeId, setExpandedRecipeId] = useState<string | null>(null);
+  const justClosedRecipeIdRef = useRef<string | null>(null);
   const [expandedRecipeIngredients, setExpandedRecipeIngredients] = useState<
     Record<string, string[]>
   >({});
@@ -808,14 +823,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const normalized = sanitizeUsername(username);
     if (!normalized) return;
 
-    if (typeof window !== 'undefined') {
-      const nextPath = getProfileRoutePath(normalized);
-      window.history.pushState({}, '', nextPath);
-    }
+    navigate(getProfileRoutePath(normalized));
 
     setViewingProfileUsername(normalized);
     setCurrentView('Profile');
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -1076,103 +1088,113 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     window.localStorage.setItem(RECIPE_BUILDER_VIEW_KEY, currentView);
   }, [currentView]);
 
+  const previousAuthenticatedRef = useRef(isAuthenticated);
+
   useEffect(() => {
-    if (!isAuthenticated && currentView === 'Build') {
+    if (previousAuthenticatedRef.current && !isAuthenticated) {
+      setExpandedRecipeId(null);
       setCurrentView('Discover');
+      navigate('/');
     }
-  }, [currentView, isAuthenticated]);
+    previousAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const syncRecipeRoute = async () => {
-      const routeTarget = getRouteTargetFromPathname(
-        `${window.location.pathname}${window.location.search}`
-      );
+      const fullPath = `${location.pathname}${location.search}`;
+      const recipeIdFromPath = getRecipeIdFromPath(fullPath);
+      const profileUsername = getProfileUsernameFromPath(location.pathname);
 
-      if (!routeTarget) {
-        if (expandedRecipeId) {
-          setExpandedRecipeId(null);
+      if (recipeIdFromPath) {
+        if (expandedRecipeId === recipeIdFromPath || isLoadingFeed) return;
+        if (justClosedRecipeIdRef.current === recipeIdFromPath) {
+          justClosedRecipeIdRef.current = null;
+          return;
         }
-        setExpandedRecipeMessage('');
-        setViewingProfileUsername(null);
+
+        const matchingRecipe = feedRecipes.find(
+          (recipe) => recipe.id === recipeIdFromPath
+        );
+
+        if (matchingRecipe) {
+          setExpandedRecipeId(matchingRecipe.id);
+          setExpandedRecipeMessage('');
+          void expandRecipe(matchingRecipe);
+          return;
+        }
+
+        try {
+          const authMode = isAuthenticated ? 'userPool' : 'identityPool';
+          const result = await client.models.Recipe.get(
+            { id: recipeIdFromPath },
+            { authMode }
+          );
+
+          if (result.errors?.length || !result.data) {
+            throw new Error('not found');
+          }
+
+          const recipe = result.data;
+          const profilesByOwnerId = loadUserProfiles();
+          const profileForOwner = profilesByOwnerId[recipe.ownerId || ''];
+          const authorHandle = profileForOwner?.username || undefined;
+          const authorName = profileForOwner?.displayName || recipe.createdBy || 'Arcane cook';
+
+          const directRecipe: FeedRecipe = {
+            id: recipe.id as string,
+            ownerId: recipe.ownerId || '',
+            name: recipe.name,
+            author: authorName,
+            authorHandle,
+            createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
+            description: recipe.description || 'No description yet.',
+            image: await getRecipeImageSource(recipe.imageUrl),
+            time: recipe.prepTime || 'Prep time open',
+            rating: getBackendRating(recipe.ratings),
+            saves: 'New',
+            tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
+            instructions: (recipe.instructions?.filter(Boolean) as string[]) ?? [],
+            utensils: (recipe.utensils?.filter(Boolean) as string[]) ?? [],
+          };
+
+          setFeedRecipes((previous) =>
+            previous.some((existing) => existing.id === directRecipe.id)
+              ? previous
+              : [directRecipe, ...previous]
+          );
+
+          void expandRecipe(directRecipe);
+        } catch {
+          setExpandedRecipeId(null);
+          setExpandedRecipeMessage('Recipe could not be found.');
+        }
         return;
       }
 
-      if (routeTarget.type === 'profile') {
-        setViewingProfileUsername(routeTarget.username);
+      if (profileUsername) {
+        setViewingProfileUsername(profileUsername);
         setCurrentView('Profile');
         return;
       }
 
-      setViewingProfileUsername(null);
-
-      const recipeIdFromPath = routeTarget.recipeId;
-      const matchingRecipe = feedRecipes.find((recipe) => recipe.id === recipeIdFromPath);
-
-      if (matchingRecipe) {
-        if (expandedRecipeId !== matchingRecipe.id) {
-          void expandRecipe(matchingRecipe);
-        }
-        return;
-      }
-
-      if (isLoadingFeed || expandedRecipeId === recipeIdFromPath) return;
-
-      try {
-        const authMode = isAuthenticated ? 'userPool' : 'identityPool';
-        const result = await client.models.Recipe.get(
-          { id: recipeIdFromPath },
-          { authMode }
-        );
-
-        if (result.errors?.length || !result.data) {
-          throw new Error('not found');
-        }
-
-        const recipe = result.data;
-        const profilesByOwnerId = loadUserProfiles();
-        const profileForOwner = profilesByOwnerId[recipe.ownerId || ''];
-        const authorHandle = profileForOwner?.username || undefined;
-        const authorName = profileForOwner?.displayName || recipe.createdBy || 'Arcane cook';
-
-        const directRecipe: FeedRecipe = {
-          id: recipe.id as string,
-          ownerId: recipe.ownerId || '',
-          name: recipe.name,
-          author: authorName,
-          authorHandle,
-          createdAt: recipe.createdAt ? String(recipe.createdAt) : undefined,
-          description: recipe.description || 'No description yet.',
-          image: await getRecipeImageSource(recipe.imageUrl),
-          time: recipe.prepTime || 'Prep time open',
-          rating: getBackendRating(recipe.ratings),
-          saves: 'New',
-          tags: (recipe.tags?.filter(Boolean) as string[]) ?? [],
-          instructions: (recipe.instructions?.filter(Boolean) as string[]) ?? [],
-          utensils: (recipe.utensils?.filter(Boolean) as string[]) ?? [],
-        };
-
-        setFeedRecipes((previous) =>
-          previous.some((existing) => existing.id === directRecipe.id)
-            ? previous
-            : [directRecipe, ...previous]
-        );
-
-        void expandRecipe(directRecipe);
-      } catch {
+      if (expandedRecipeId) {
         setExpandedRecipeId(null);
-        setExpandedRecipeMessage('Recipe could not be found.');
+      }
+      justClosedRecipeIdRef.current = null;
+      setExpandedRecipeMessage('');
+      setViewingProfileUsername(null);
+      if (location.pathname !== '/') {
+        const pathView = viewForPath(location.pathname);
+        if (pathView !== currentView) {
+          setCurrentView(pathView);
+        }
       }
     };
 
-    window.addEventListener('popstate', syncRecipeRoute);
     void syncRecipeRoute();
-
-    return () => {
-      window.removeEventListener('popstate', syncRecipeRoute);
-    };
-  }, [expandedRecipeId, feedRecipes, isLoadingFeed, isAuthenticated]);
+  }, [location.pathname, location.search, feedRecipes, isLoadingFeed, isAuthenticated, expandedRecipeId, currentView]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1715,9 +1737,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return;
     }
 
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      window.history.replaceState({}, '', '/');
-    }
+    navigate('/', { replace: true });
 
     setEditingRecipeId(null);
     if (!draftId && isRecipeDraftEmpty(draft)) {
@@ -1734,9 +1754,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const loadExampleRecipe = () => {
-    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-      window.history.replaceState({}, '', '/');
-    }
+    navigate('/', { replace: true });
 
     setEditingRecipeId(null);
     setSelectedImageFile(null);
@@ -1862,9 +1880,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )
           .filter(Boolean),
       }));
-      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-        window.history.replaceState({}, '', '/');
-      }
+      navigate('/', { replace: true });
       setNewTagValue('');
       setExpandedRecipeId(null);
       setCurrentView('Build');
@@ -2214,6 +2230,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setDiscoverQuery('');
       setExpandedRecipeId(null);
       setCurrentView('Discover');
+      navigate('/');
     } catch (error) {
       console.error('Failed to save recipe:', error);
 
@@ -2328,19 +2345,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
   };
 
-  const expandRecipe = async (
-    recipe: FeedRecipe,
-    options?: { stayInView?: boolean }
-  ) => {
+  const expandRecipe = async (recipe: FeedRecipe) => {
     setExpandedRecipeId(recipe.id);
     setExpandedRecipeMessage('');
 
-    if (!options?.stayInView) {
-      setCurrentView('Discover');
-    }
-
-    if (typeof window !== 'undefined' && window.location.pathname !== getRecipeRoutePath(recipe.id)) {
-      window.history.pushState({}, '', getRecipeRoutePath(recipe.id));
+    const currentUrl = window.location.pathname + window.location.search;
+    if (getRecipeIdFromPath(currentUrl) !== recipe.id) {
+      const basePath = window.location.pathname.startsWith('/recipe/')
+        ? '/'
+        : window.location.pathname || '/';
+      navigate(`${basePath}?recipe=${encodeURIComponent(recipe.id)}`);
     }
 
     if (isAuthenticated) {
@@ -2433,6 +2447,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const collapseExpandedRecipe = () => {
+    justClosedRecipeIdRef.current = expandedRecipeId;
     setExpandedRecipeId(null);
     setExpandedRecipeMessage('');
     setComments((prev) => {
@@ -2453,7 +2468,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setMentionQuery('');
     setMentionCursor(0);
     if (typeof window !== 'undefined') {
-      window.history.replaceState({}, '', '/');
+      const basePath = window.location.pathname.startsWith('/recipe/')
+        ? '/'
+        : window.location.pathname || '/';
+      navigate(basePath);
     }
   };
 
@@ -2697,9 +2715,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setExpandedRecipeId((previous) =>
         previous === recipeId ? null : previous
       );
-      if (typeof window !== 'undefined' && window.location.pathname === getRecipeRoutePath(recipeId)) {
-        window.history.replaceState({}, '', '/');
-      }
+      navigate('/', { replace: true });
       setFavoriteRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
@@ -3305,7 +3321,10 @@ const expandedRecipeArticle = expandedRecipe ? (
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setCurrentView('Discover')}
+                onClick={() => {
+                  setCurrentView('Discover');
+                  navigate('/');
+                }}
                 className="rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
                 aria-label="Home"
               >
@@ -3322,7 +3341,10 @@ const expandedRecipeArticle = expandedRecipe ? (
             </div>
             <nav className="hidden md:flex items-center gap-1">
               <button
-                onClick={() => setCurrentView('Discover')}
+                onClick={() => {
+                  setCurrentView('Discover');
+                  navigate('/');
+                }}
                 className={`rounded-md px-2 py-1 text-sm font-medium transition ${
                   currentView === 'Discover'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
@@ -3379,9 +3401,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                       <button
                         onClick={() => {
                           setExpandedRecipeId(null);
-                          if (typeof window !== 'undefined') {
-                            window.history.replaceState({}, '', '/');
-                          }
+                          navigate('/saved');
                           setCurrentView('SavedRecipes');
                           setShowUserMenu(false);
                         }}
@@ -3395,9 +3415,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                       <button
                         onClick={() => {
                           setExpandedRecipeId(null);
-                          if (typeof window !== 'undefined') {
-                            window.history.replaceState({}, '', '/');
-                          }
+                          navigate('/drafts');
                           setCurrentView('Drafts');
                           setShowUserMenu(false);
                         }}
@@ -4078,7 +4096,10 @@ const expandedRecipeArticle = expandedRecipe ? (
                 </p>
               </div>
               <button
-                onClick={() => setCurrentView('Discover')}
+                onClick={() => {
+                  setCurrentView('Discover');
+                  navigate('/');
+                }}
                 className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
                 Back to Discover
@@ -4140,7 +4161,10 @@ const expandedRecipeArticle = expandedRecipe ? (
                 </p>
               </div>
               <button
-                onClick={() => setCurrentView('Discover')}
+                onClick={() => {
+                  setCurrentView('Discover');
+                  navigate('/');
+                }}
                 className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
                 Back to Discover
@@ -4295,7 +4319,9 @@ const expandedRecipeArticle = expandedRecipe ? (
                           isFavorited={favoriteRecipeIds.has(recipe.id)}
                           isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
                           saveCount={recipeSaves[recipe.id] ?? 0}
-                          onOpenRecipe={expandRecipe}
+                          onOpenRecipe={(recipeToOpen) => {
+                            void expandRecipe(recipeToOpen);
+                          }}
                           onToggleFavorite={toggleFavoriteRecipe}
                           onEditRecipe={startEditRecipe}
                           onDeleteRecipe={deleteRecipe}
@@ -4357,7 +4383,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               onNewRecipe={startCreateRecipe}
               onOpenRecipe={(recipeId: string | number) => {
                 const recipe = feedRecipes.find((r) => r.id === String(recipeId));
-                if (recipe) void expandRecipe(recipe, { stayInView: true });
+                if (recipe) void expandRecipe(recipe);
               }}
               onRecipeOptions={(recipeId: string | number) => {
                 void startEditRecipe(String(recipeId), currentUserId || '');
@@ -4428,6 +4454,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                         setPublishMessage('');
                         setPublishMessageTone('error');
                         setCurrentView('Discover');
+                        navigate('/');
                       }}
                       className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                     >
