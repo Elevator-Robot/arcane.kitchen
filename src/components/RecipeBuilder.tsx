@@ -762,6 +762,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftHydratedRef = useRef(false);
+  const tagColorsRef = useRef<Record<string, string>>({});
+  const getTagColor = (tag: string) => {
+    const key = tag.trim().toLowerCase();
+    if (!tagColorsRef.current[key]) {
+      tagColorsRef.current[key] = randomMerlinColor();
+    }
+    return tagColorsRef.current[key];
+  };
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -3064,7 +3072,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                       return (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-[var(--theme-accent)] px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm"
+                          style={{ backgroundColor: getTagColor(tag) }}
                         >
                           {tag}
                           {category && (
@@ -3952,7 +3961,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                     key={tag}
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="inline-flex items-center gap-1 rounded-full bg-[var(--theme-accent)] px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    style={{ backgroundColor: getTagColor(tag) }}
                     aria-label={`Remove tag ${tag}`}
                     title={`Remove ${tag}`}
                   >
@@ -4593,7 +4603,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                       {draft.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-[var(--theme-sage)]/10 px-2.5 py-1 text-xs font-medium text-[var(--theme-sage-strong)]"
+                          className="rounded-full px-2.5 py-1 text-xs font-medium text-white"
+                          style={{ backgroundColor: getTagColor(tag) }}
                         >
                           {tag}
                         </span>
