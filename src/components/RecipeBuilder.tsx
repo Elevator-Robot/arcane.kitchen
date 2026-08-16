@@ -197,7 +197,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
     const parts = text.split(/(@\w+)/g);
     return parts.map((part, i) =>
       part.startsWith('@') ? (
-        <span key={i} className="font-medium text-[var(--theme-accent)]">{part}</span>
+        <span key={i} className="font-medium text-[#0891b2]">{part}</span>
       ) : (
         <span key={i}>{part}</span>
       )
@@ -245,12 +245,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
             <input
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-2 py-1 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--theme-accent)]"
+              className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-2 py-1 text-sm text-[var(--theme-text)] outline-none focus:border-[#0891b2]"
             />
             <button
               onClick={() => onEdit(comment.id, editValue)}
               disabled={!editValue.trim()}
-              className="rounded bg-[var(--theme-accent)] px-2 py-1 text-xs font-medium text-white disabled:opacity-40"
+              className="rounded bg-[#0891b2] px-2 py-1 text-xs font-medium text-white transition hover:bg-[#0e7490] disabled:opacity-40"
             >
               Save
             </button>
@@ -262,7 +262,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           <div className="mt-1.5 flex gap-2">
             <button
               onClick={() => onReply(comment.id, comment.author)}
-              className="text-xs text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition"
+              className="text-xs text-[var(--theme-text-muted)] hover:text-[#0891b2] transition"
             >
               Reply
             </button>
@@ -784,6 +784,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUserMenu]);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+  const homeNavigationRef = useRef(false);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -1202,6 +1203,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (profileUsername) {
         setViewingProfileUsername(profileUsername);
         setCurrentView('Profile');
+        return;
+      }
+
+      if (location.pathname === '/' && homeNavigationRef.current) {
+        homeNavigationRef.current = false;
+        setViewingProfileUsername(null);
+        setCurrentView('Discover');
         return;
       }
 
@@ -3248,16 +3256,12 @@ const expandedRecipeArticle = expandedRecipe ? (
                               onChange={(e) => handleCommentInput(e.target.value)}
                               onKeyDown={handleCommentKeyDown}
                               placeholder={replyingTo ? `Replying to ${replyingToAuthor}...` : 'Add a comment...'}
-                              className={`flex-1 rounded border px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:ring-2 ${
-                                replyingTo
-                                  ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]/5 ring-[var(--theme-focus)]'
-                                  : 'border-[var(--theme-border)] bg-[var(--theme-surface-alt)] focus:border-[var(--theme-accent)] focus:ring-[var(--theme-focus)]'
-                              }`}
+                              className="flex-1 rounded border border-[#0891b2]/40 bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[#0891b2] focus:ring-2 focus:ring-[#0891b2]/20"
                             />
                             <button
                               onClick={() => void addComment(expandedRecipe.id, replyingTo)}
                               disabled={!commentInput.trim()}
-                              className="rounded bg-[var(--theme-accent)] px-3 py-2 text-sm font-medium text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-40 disabled:cursor-not-allowed"
+                              className="rounded bg-[#0891b2] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#0e7490] disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {replyingTo ? 'Reply' : 'Post'}
                             </button>
@@ -3284,11 +3288,11 @@ const expandedRecipeArticle = expandedRecipe ? (
                                     onClick={() => insertMention(author)}
                                     className={`w-full px-3 py-1.5 text-left text-sm transition ${
                                       i === mentionCursor
-                                        ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
+                                        ? 'bg-[#0891b2]/10 text-[#0e7490]'
                                         : 'text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)]'
                                     }`}
                                   >
-                                    <span className="font-medium text-[var(--theme-accent)]">@{author}</span>
+                                    <span className="font-medium text-[#0891b2]">@{author}</span>
                                   </button>
                                 ))}
                               </div>
@@ -3300,7 +3304,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                       <p className="text-sm text-[var(--theme-text-muted)]">
                         <button
                           onClick={onRequestAuth}
-                          className="text-[var(--theme-accent)] hover:underline"
+                          className="text-[#0e7490] hover:text-[#0891b2] hover:underline"
                         >
                           Sign in
                         </button>{' '}
@@ -3412,6 +3416,9 @@ const expandedRecipeArticle = expandedRecipe ? (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
+                  setExpandedRecipeId(null);
+                  setViewingProfileUsername(null);
+                  homeNavigationRef.current = true;
                   setCurrentView('Discover');
                   navigate('/');
                 }}
@@ -4671,7 +4678,7 @@ const expandedRecipeArticle = expandedRecipe ? (
           href="https://elevatorrobot.com"
           target="_blank"
           rel="noreferrer"
-          className="font-medium text-[var(--theme-accent-strong)] hover:text-[var(--theme-accent)]"
+          className="font-medium text-[#0891b2] hover:text-[#0e7490]"
         >
           Elevator Robot
         </a>
