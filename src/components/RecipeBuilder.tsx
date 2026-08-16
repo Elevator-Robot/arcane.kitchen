@@ -3428,7 +3428,7 @@ const expandedRecipeArticle = expandedRecipe ? (
       )}
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
-        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
+        <div className="relative mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <button
@@ -3453,7 +3453,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                 </span>
               </button>
             </div>
-            <nav className="hidden md:flex items-center gap-2">
+            <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-2 md:flex">
               <button
                 onClick={() => {
                   setActiveNavColor(randomMerlinColor());
@@ -3463,8 +3463,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                 style={currentView === 'Discover' ? { color: activeNavColor } : undefined}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                   currentView === 'Discover'
-                    ? ''
-                    : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                    ? 'border-b-2'
+                    : 'border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text)]'
                 }`}
               >
                 Discover
@@ -3477,8 +3477,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                 style={currentView === 'Build' ? { color: activeNavColor } : undefined}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                   currentView === 'Build'
-                    ? ''
-                    : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
+                    ? 'border-b-2'
+                    : 'border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text)]'
                 }`}
               >
                 Build
