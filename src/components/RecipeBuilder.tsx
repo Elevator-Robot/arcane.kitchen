@@ -4467,6 +4467,9 @@ const expandedRecipeArticle = expandedRecipe ? (
                 likes: 0,
                 saves: recipeSaves[r.id] ?? 0,
               }))}
+              favoriteRecipeIds={favoriteRecipeIds}
+              pendingFavoriteRecipeIds={pendingFavoriteRecipeIds}
+              onToggleFavorite={toggleFavoriteRecipe}
               onAvatarUpload={(file?: File) => updateImageFile(file)}
               onSelectPreset={handleSelectAvatarPreset}
               onNewRecipe={startCreateRecipe}

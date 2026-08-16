@@ -15,6 +15,9 @@ type Props = {
   onNewRecipe?: () => void;
   onRecipeOptions?: (id: Recipe['id']) => void;
   onOpenRecipe?: (id: Recipe['id']) => void;
+  favoriteRecipeIds?: Set<string>;
+  pendingFavoriteRecipeIds?: Set<string>;
+  onToggleFavorite?: (id: string) => void;
   isOwnProfile?: boolean;
   onProfileUpdated?: (next: { name?: string; handle?: string; bio?: string }) => void;
 };
@@ -27,6 +30,9 @@ export default function UserProfileView({
   onAvatarUpload,
   onRecipeOptions,
   onOpenRecipe,
+  favoriteRecipeIds,
+  pendingFavoriteRecipeIds,
+  onToggleFavorite,
   isOwnProfile = true,
   onProfileUpdated,
   onSelectPreset,
@@ -50,7 +56,7 @@ export default function UserProfileView({
                   } else {
                     window.location.assign(`/recipe/${id}`);
                   }
-                }} onOptions={onRecipeOptions} />
+                }} onOptions={onRecipeOptions} isFavorited={favoriteRecipeIds?.has(String(r.id))} isPendingFavorite={pendingFavoriteRecipeIds?.has(String(r.id))} onToggleFavorite={onToggleFavorite} />
               ))}
             </div>
           )}
@@ -72,7 +78,7 @@ export default function UserProfileView({
                   } else {
                     window.location.assign(`/recipe/${id}`);
                   }
-                }} onOptions={onRecipeOptions} />
+                }} onOptions={onRecipeOptions} isFavorited={favoriteRecipeIds?.has(String(r.id))} isPendingFavorite={pendingFavoriteRecipeIds?.has(String(r.id))} onToggleFavorite={onToggleFavorite} />
               ))}
             </div>
           )}
