@@ -192,6 +192,29 @@ describe('RecipeBuilder Component', () => {
     );
   });
 
+  it('opens a recipe in-place from the profile page without a hard navigation', async () => {
+    const user = userEvent.setup();
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe({ name: 'Test Recipe' })],
+      errors: undefined,
+    });
+
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+
+    await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+
+    const card = (await screen.findAllByText('Test Recipe'))[0];
+    await user.click(card);
+
+    expect(window.location.pathname + window.location.search).toBe(
+      '/?recipe=recipe-1'
+    );
+  });
+
   it('keeps an invalid shared recipe on its route instead of redirecting home', async () => {
     mockRecipeGet.mockResolvedValue({ data: null, errors: [{ message: 'not found' }] });
 

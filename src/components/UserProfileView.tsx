@@ -42,7 +42,13 @@ export default function UserProfileView({
           {activeTab === 'recipes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {publishedRecipes.map((r) => (
-                <RecipeCard key={r.id} recipe={r} onClick={(id) => onOpenRecipe?.(id) ?? window.location.assign(`/recipe/${id}`)} onOptions={onRecipeOptions} />
+                <RecipeCard key={r.id} recipe={r} onClick={(id) => {
+                  if (onOpenRecipe) {
+                    onOpenRecipe(id);
+                  } else {
+                    window.location.assign(`/recipe/${id}`);
+                  }
+                }} onOptions={onRecipeOptions} />
               ))}
             </div>
           )}
@@ -58,7 +64,13 @@ export default function UserProfileView({
           {activeTab === 'saved' && isOwnProfile && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {savedRecipes.map((r) => (
-                <RecipeCard key={r.id} recipe={r} onClick={(id) => onOpenRecipe?.(id) ?? window.location.assign(`/recipe/${id}`)} onOptions={onRecipeOptions} />
+                <RecipeCard key={r.id} recipe={r} onClick={(id) => {
+                  if (onOpenRecipe) {
+                    onOpenRecipe(id);
+                  } else {
+                    window.location.assign(`/recipe/${id}`);
+                  }
+                }} onOptions={onRecipeOptions} />
               ))}
             </div>
           )}
