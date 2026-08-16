@@ -700,6 +700,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     getInitialRecipeBuilderView
   );
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
+  const feedLoadRequestRef = useRef(0);
   const [isPublishing, setIsPublishing] = useState(false);
   const [deletingRecipeIds, setDeletingRecipeIds] = useState<Set<string>>(
     () => new Set()
@@ -744,6 +745,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionCursor, setMentionCursor] = useState(0);
   const [shareNotice, setShareNotice] = useState('');
+  const [profileShareCopied, setProfileShareCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(null);
@@ -1019,6 +1021,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const isEditingRecipe = Boolean(editingRecipeId);
 
   const loadRecipes = useCallback(async () => {
+    const requestId = ++feedLoadRequestRef.current;
     setIsLoadingFeed(true);
 
     try {
@@ -1058,7 +1061,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
 
       if (!data.length) {
-        setFeedRecipes([]);
+        if (requestId === feedLoadRequestRef.current) setFeedRecipes([]);
         return;
       }
 
@@ -1092,11 +1095,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           })
       );
 
-      setFeedRecipes(recipes);
+      if (requestId === feedLoadRequestRef.current) setFeedRecipes(recipes);
     } catch (error) {
       console.error('Failed to load recipes:', error);
     } finally {
-      setIsLoadingFeed(false);
+      if (requestId === feedLoadRequestRef.current) {
+        setIsLoadingFeed(false);
+      }
     }
   }, [isAuthenticated]);
 
@@ -2811,6 +2816,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     const shareUrl = getProfileShareUrl(username, window.location.origin);
     if (!shareUrl) return;
+    const markProfileShareCopied = () => {
+      setProfileShareCopied(true);
+      window.setTimeout(() => setProfileShareCopied(false), 2000);
+    };
 
     try {
       if (typeof navigator !== 'undefined' && navigator.share) {
@@ -2818,12 +2827,24 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           title: `@${username} on Arcane Kitchen`,
           url: shareUrl,
         });
+        markProfileShareCopied();
         setShareNotice('Profile link shared');
       } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl);
+        markProfileShareCopied();
         setShareNotice('Profile link copied to clipboard');
       } else {
-        setShareNotice('Profile link ready to share');
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = shareUrl;
+        temporaryInput.setAttribute('readonly', '');
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.left = '-9999px';
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(temporaryInput);
+        if (copied) markProfileShareCopied();
+        setShareNotice(copied ? 'Profile link copied to clipboard' : 'Profile link ready to share');
       }
     } catch (error: any) {
       if (error?.name === 'AbortError') return;
@@ -3465,7 +3486,12 @@ const expandedRecipeArticle = expandedRecipe ? (
                 {showUserMenu && (
                   <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
                       <button
-                        onClick={() => { setCurrentView('Profile'); setShowUserMenu(false); }}
+                        onClick={() => {
+                          setViewingProfileUsername(null);
+                          setCurrentView('Profile');
+                          navigate('/');
+                          setShowUserMenu(false);
+                        }}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
                       >
                         <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -4308,31 +4334,20 @@ const expandedRecipeArticle = expandedRecipe ? (
                     <span className="rounded-full bg-[var(--theme-surface-alt)] px-3 py-1 text-xs font-medium text-[var(--theme-text-muted)]">
                       {feedRecipes.filter((recipe) => recipe.ownerId === profileRouteProfile.userId).length} published recipes
                     </span>
-                    {currentUserId === profileRouteProfile.userId && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setViewingProfileUsername(null);
-                          setCurrentView('Profile');
-                        }}
-                        className="rounded-md border border-[var(--theme-border)] px-3 py-1.5 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        Edit Profile
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => void shareProfile(profileRouteProfile.username)}
-                      className="rounded-md border border-[var(--theme-border)] px-3 py-1.5 text-sm font-medium text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
                     >
-                      Share Profile
+                      <Share className="h-4 w-4" aria-hidden="true" />
+                      {profileShareCopied ? 'Copied!' : 'Share'}
                     </button>
                   </div>
                 </div>
               </div>
 
               <div className="mt-8">
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-4 flex items-center justify-start gap-2">
                   <h3 className="font-heading text-lg font-semibold text-[var(--theme-text)]">
                     Published recipes
                   </h3>
@@ -4349,6 +4364,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                       const rightTime = right.createdAt ? dayjs(right.createdAt).valueOf() : 0;
                       return rightTime - leftTime;
                     });
+
+                  if (isLoadingFeed) return null;
 
                   if (!authorRecipes.length) {
                     return (

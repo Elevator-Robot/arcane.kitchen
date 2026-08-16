@@ -14,6 +14,7 @@ import {
 import RecipeBuilder from './components/RecipeBuilder';
 import SignInForm from './components/SignInForm';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import { randomMerlinColor } from './theme/merlinPalette';
 
 const authFormFields = {
   signIn: {
@@ -294,6 +295,7 @@ function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
 }
 
 function App() {
+  const [loadingColor] = useState(randomMerlinColor);
   const [authState, setAuthState] = useState<AuthState>(() => {
     const persisted = getPersistedAuthState();
     const currentUser = persisted?.isAuthenticated
@@ -410,9 +412,9 @@ function App() {
   if (!isAuthInitialized) {
     return (
       <div className="flex h-screen items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
-        <div className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-6 py-4 text-sm font-medium text-[var(--theme-text-muted)]">
+        <span className="text-sm font-medium" style={{ color: loadingColor }}>
           Preparing your kitchen…
-        </div>
+        </span>
       </div>
     );
   }
