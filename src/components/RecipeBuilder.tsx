@@ -3355,8 +3355,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                   setCurrentView('Discover');
                   navigate('/');
                 }}
-                className="rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
-                aria-label="Home"
+                className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+                aria-label="Go to Home"
               >
                 <img
                   src="/logo-no-background.svg"
@@ -3364,10 +3364,10 @@ const expandedRecipeArticle = expandedRecipe ? (
                   draggable={false}
                   className="h-14 w-14 object-contain brightness-[0.3] pointer-events-none"
                 />
+                <span className="font-heading text-base font-semibold text-[var(--theme-text)] select-none">
+                  Arcane Kitchen
+                </span>
               </button>
-              <span className="font-heading text-base font-semibold text-[var(--theme-text)] select-none">
-                Arcane Kitchen
-              </span>
             </div>
             <nav className="hidden md:flex items-center gap-1">
               <button
