@@ -28,7 +28,8 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Save counts ("hearts") are DERIVED from the `Favorite` records, not a stored counter: the count on a recipe is the number of `Favorite` rows whose `recipeId` matches it — i.e. how many people currently have it saved.
 - To make this queryable, `Favorite` authorization includes `read` for authenticated users and guests (in addition to the owner write via `ownerDefinedIn('userId')`).
 - `RecipeBuilder.tsx` loads all favorites once (`Favorite.list`) and builds a `recipeId → count` map (`recipeSaves` state); `toggleFavoriteRecipe` updates the map optimistically (±1) alongside the `Favorite` create/delete.
-- Card previews and the expanded view show this count next to a heart; clicking the heart toggles the save (the heart was removed from the image overlay).
+- The save-count load falls back from `userPool` to `identityPool` auth (same pattern as the recipe feed) so guests get real counts too; `Favorite.list` with no `authMode` fails for guests.
+- Card previews, the expanded view, and the Profile page (published + saved card counts) all read from `recipeSaves`; clicking the heart toggles the save (the heart was removed from the image overlay). The legacy `FeedRecipe.saves` string field (`'New'`) is NOT a count and must not be used for display.
 
 ## Routing (React Router)
 
