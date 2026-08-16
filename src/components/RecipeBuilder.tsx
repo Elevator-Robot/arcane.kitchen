@@ -1264,10 +1264,40 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     const loadSaveCounts = async () => {
       try {
-        const { data, errors } = await client.models.Favorite.list({});
+        const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
+          ? ['userPool', 'identityPool']
+          : ['identityPool'];
+
+        let data: Awaited<
+          ReturnType<typeof client.models.Favorite.list>
+        >['data'] = [];
+        let errors: Awaited<
+          ReturnType<typeof client.models.Favorite.list>
+        >['errors'] = undefined;
+
+        for (const authMode of authModes) {
+          const result = await client.models.Favorite.list({ authMode });
+          data = result.data;
+          errors = result.errors;
+
+          if (!errors?.length) break;
+
+          const isNotAuthorized = errors.some((error: any) =>
+            error.message.toLowerCase().includes('not authorized')
+          );
+
+          if (!isNotAuthorized || authMode === authModes[authModes.length - 1]) {
+            break;
+          }
+        }
 
         if (errors?.length) {
-          throw new Error(errors.map((error: any) => error.message).join(', '));
+          const errorMessage = errors.map((error: any) => error.message).join(', ');
+          if (errorMessage.toLowerCase().includes('not authorized')) {
+            return;
+          }
+
+          throw new Error(errorMessage);
         }
 
         const counts: Record<string, number> = {};
@@ -1289,7 +1319,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (
@@ -4358,7 +4388,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                   time: r.time,
                   image: r.image,
                   likes: 0,
-                  saves: Number(r.saves) || 0,
+                  saves: recipeSaves[r.id] ?? 0,
                 }))}
               draftRecipes={draftRecords
                 .filter((d) => d.ownerId === currentUserId)
@@ -4376,7 +4406,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                 time: r.time,
                 image: r.image,
                 likes: 0,
-                saves: Number(r.saves) || 0,
+                saves: recipeSaves[r.id] ?? 0,
               }))}
               onAvatarUpload={(file?: File) => updateImageFile(file)}
               onSelectPreset={handleSelectAvatarPreset}
