@@ -13,6 +13,7 @@ import {
   Copy,
   Heart,
   Mail,
+  Maximize2,
   MessageCircle,
   Send,
   Share,
@@ -747,6 +748,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [shareNotice, setShareNotice] = useState('');
   const [profileShareCopied, setProfileShareCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showRecipeImageLightbox, setShowRecipeImageLightbox] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
@@ -2513,6 +2515,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
   const collapseExpandedRecipe = () => {
     justClosedRecipeIdRef.current = expandedRecipeId;
+    setShowRecipeImageLightbox(false);
     setExpandedRecipeId(null);
     setExpandedRecipeMessage('');
     setComments((prev) => {
@@ -2975,11 +2978,25 @@ const expandedRecipeArticle = expandedRecipe ? (
                       <span className="text-sm font-medium text-[var(--theme-text-muted)]">Add Photo</span>
                     </div>
                   ) : (
-                    <img
-                      src={expandedRecipe.image}
-                      alt={expandedRecipe.name}
-                      className="h-64 w-full object-cover sm:h-80"
-                    />
+                    <>
+                      <img
+                        src={expandedRecipe.image}
+                        alt={expandedRecipe.name}
+                        className="h-64 w-full object-cover sm:h-80"
+                      />
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setShowRecipeImageLightbox(true);
+                        }}
+                        aria-label="View full-size image"
+                        title="View full-size image"
+                        className="absolute right-3 top-3 z-20 rounded-full bg-black/65 p-2 text-white transition hover:bg-black/85"
+                      >
+                        <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </>
                   )}
 
                 </div>
@@ -4703,6 +4720,27 @@ const expandedRecipeArticle = expandedRecipe ? (
           >
             {expandedRecipeArticle}
           </div>
+        </div>
+      )}
+      {showRecipeImageLightbox && expandedRecipe && !isPlaceholder(expandedRecipe.image) && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          onClick={() => setShowRecipeImageLightbox(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setShowRecipeImageLightbox(false)}
+            aria-label="Close full-size image"
+            className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <img
+            src={expandedRecipe.image}
+            alt={expandedRecipe.name}
+            className="max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
       )}
     </main>
