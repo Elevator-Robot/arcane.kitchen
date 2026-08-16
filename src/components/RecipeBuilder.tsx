@@ -895,14 +895,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     // flicker to intermediate values. Never clobber a saved profile.
     const nextProfile: Record<string, UserProfile> = existing
       ? { ...profiles, [currentUserId]: existing }
-      : upsertUserProfile(profiles, {
-          userId: currentUserId,
-          displayName: getDisplayNameFromAuth(currentUser, userAttributes),
-          currentUser,
-          userAttributes,
-          avatar: profileAvatar,
-          bio: profileBio,
-        });
+      : (() => {
+          const avatar =
+            profileAvatar ||
+            avatarEntries[Math.floor(Math.random() * avatarEntries.length)]?.file ||
+            null;
+
+          return upsertUserProfile(profiles, {
+            userId: currentUserId,
+            displayName: getDisplayNameFromAuth(currentUser, userAttributes),
+            currentUser,
+            userAttributes,
+            avatar,
+            bio: profileBio,
+          });
+        })();
 
     const savedProfile = nextProfile[currentUserId];
     setProfileData(savedProfile);
@@ -3466,34 +3473,6 @@ const expandedRecipeArticle = expandedRecipe ? (
                         </svg>
                         Profile
                       </button>
-                      <button
-                        onClick={() => {
-                          setExpandedRecipeId(null);
-                          navigate('/saved');
-                          setCurrentView('SavedRecipes');
-                          setShowUserMenu(false);
-                        }}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0110.186 0z" />
-                        </svg>
-                        Saved Recipes
-                      </button>
-                      <button
-                        onClick={() => {
-                          setExpandedRecipeId(null);
-                          navigate('/drafts');
-                          setCurrentView('Drafts');
-                          setShowUserMenu(false);
-                        }}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Drafts
-                      </button>
                       <div className="my-1 border-t border-[var(--theme-border)]" />
                       <a
                         href="https://x.com/ElevatorRobot"
@@ -4320,6 +4299,11 @@ const expandedRecipeArticle = expandedRecipe ? (
                   <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
                     @{profileRouteProfile.username}
                   </p>
+                  {profileRouteProfile.bio && (
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--theme-text-muted)]">
+                      {profileRouteProfile.bio}
+                    </p>
+                  )}
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-[var(--theme-surface-alt)] px-3 py-1 text-xs font-medium text-[var(--theme-text-muted)]">
                       {feedRecipes.filter((recipe) => recipe.ownerId === profileRouteProfile.userId).length} published recipes

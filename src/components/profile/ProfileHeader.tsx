@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Edit2, Share, MapPin, Calendar, Camera, X, Check } from 'lucide-react';
+import { Edit2, Share, MapPin, Calendar, Camera, X } from 'lucide-react';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
-import { loadUserProfiles, saveUserProfiles, upsertUserProfile, sanitizeUsername, validateUsername, isUsernameChangeAllowed, USERNAME_CHANGE_COOLDOWN_DAYS } from '../../utils/userProfiles';
+import { getProfileShareUrl, loadUserProfiles, saveUserProfiles, upsertUserProfile, sanitizeUsername, validateUsername, isUsernameChangeAllowed, USERNAME_CHANGE_COOLDOWN_DAYS } from '../../utils/userProfiles';
 
 type Props = {
   user: User;
@@ -36,7 +36,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
 
   const handleShareProfile = async () => {
     if (typeof window === 'undefined') return;
-    const url = window.location.href;
+    const url = getProfileShareUrl(user.handle) || window.location.href;
 
     try {
       if (navigator.share) {
@@ -215,8 +215,9 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
 
         <div className="w-full md:w-auto mt-2 md:mt-0">
           <div className="flex md:flex-col items-center md:items-end gap-3">
-            <button type="button" onClick={handleShareProfile} className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium ${copied ? 'border border-emerald-500 text-emerald-600 bg-emerald-50' : 'border border-[#e6dacb] text-[#44403c] bg-white hover:bg-[#fffaf6]'}`}>
-              {copied ? <><Check className="w-4 h-4" /> <span>Copied! ✓</span></> : <><Share className="w-4 h-4" /> <span>Share profile</span></>}
+            <button type="button" onClick={handleShareProfile} aria-label="Share profile" title="Share profile" className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]">
+              <Share className="h-4 w-4" aria-hidden="true" />
+              {copied ? 'Copied!' : 'Share'}
             </button>
           </div>
         </div>

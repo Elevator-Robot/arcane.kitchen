@@ -58,6 +58,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024); users select from a grid — no custom photo upload
 - Optimized at build time via `vite-plugin-image-optimizer` (sharp, ~74% size reduction); all avatar `<img>` tags use `loading="lazy"`
 - Selected avatar filename is saved to `custom:avatar` + `profileData.avatar`; displayed via `<img src={url} />`
+- New profiles without an existing avatar are seeded with one random preset avatar from `src/assets/avatars/` and persist it until changed
 - Fallback: if no avatar selected, shows the initial letter of the display name
 
 ## CloudFront CDN
