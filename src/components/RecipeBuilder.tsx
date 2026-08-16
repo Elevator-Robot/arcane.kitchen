@@ -3369,13 +3369,13 @@ const expandedRecipeArticle = expandedRecipe ? (
                 </span>
               </button>
             </div>
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => {
                   setCurrentView('Discover');
                   navigate('/');
                 }}
-                className={`rounded-md px-2 py-1 text-sm font-medium transition ${
+                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                   currentView === 'Discover'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
@@ -3385,7 +3385,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               </button>
               <button
                 onClick={startCreateRecipe}
-                className={`rounded-md px-2 py-1 text-sm font-medium transition ${
+                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                   currentView === 'Build'
                     ? 'bg-[var(--theme-accent)]/10 text-[var(--theme-accent)]'
                     : 'text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
