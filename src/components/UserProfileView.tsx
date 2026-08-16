@@ -13,6 +13,8 @@ type Props = {
   onAvatarUpload?: (file?: File) => void;
   onSelectPreset?: (file: string) => void;
   onNewRecipe?: () => void;
+  onContinueDraft?: (id: Draft['id']) => void;
+  onDeleteDraft?: (id: Draft['id']) => void;
   onRecipeOptions?: (id: Recipe['id']) => void;
   onOpenRecipe?: (id: Recipe['id']) => void;
   favoriteRecipeIds?: Set<string>;
@@ -30,6 +32,8 @@ export default function UserProfileView({
   onAvatarUpload,
   onRecipeOptions,
   onOpenRecipe,
+  onContinueDraft,
+  onDeleteDraft,
   favoriteRecipeIds,
   pendingFavoriteRecipeIds,
   onToggleFavorite,
@@ -64,7 +68,7 @@ export default function UserProfileView({
           {activeTab === 'drafts' && isOwnProfile && (
             <div className="space-y-4">
               {draftRecipes.map((d) => (
-                <DraftCard key={d.id} draft={d} onContinue={() => {}} onOptions={() => {}} />
+                <DraftCard key={d.id} draft={d} onContinue={onContinueDraft} onOptions={onDeleteDraft} />
               ))}
             </div>
           )}

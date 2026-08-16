@@ -15,6 +15,7 @@ import {
   Mail,
   Maximize2,
   MessageCircle,
+  Plus,
   Send,
   Share,
   X,
@@ -1394,6 +1395,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     }
 
     if (isRecipeDraftEmpty(draft) && !draftId && !draftImageDataUrl) {
+      return;
+    }
+
+    const hasMandatoryFields = Boolean(
+      draft.name.trim() &&
+        draft.ingredients.some((ingredient) => ingredient.name.trim()) &&
+        !isPlaceholder(imagePreviewUrl)
+    );
+
+    if (!hasMandatoryFields && !draftId) {
       return;
     }
 
@@ -3576,16 +3587,27 @@ const expandedRecipeArticle = expandedRecipe ? (
             <>
               <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">Search recipes</h2>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative flex-1">
-                  <input
-                    value={discoverQuery}
-                    onChange={(event) => setDiscoverQuery(event.target.value)}
-                    placeholder="Search recipes..."
-                    className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                  />
-                  <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                <div className="flex flex-1 gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      value={discoverQuery}
+                      onChange={(event) => setDiscoverQuery(event.target.value)}
+                      placeholder="Search recipes..."
+                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                    />
+                    <svg className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={startCreateRecipe}
+                    aria-label="Create a recipe"
+                    title="Create a recipe"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#0891b2] via-[#0e7490] to-[#155e75] text-white shadow-lg shadow-cyan-900/40 transition hover:from-[#06b6d4] hover:via-[#0891b2] hover:to-[#0e7490] active:scale-95 sm:hidden"
+                  >
+                    <Plus className="h-5 w-5" aria-hidden="true" />
+                  </button>
                 </div>
                 <div className="flex gap-3">
                   <div className="relative flex-1 sm:flex-none sm:min-w-[140px]">
@@ -4459,6 +4481,14 @@ const expandedRecipeArticle = expandedRecipe ? (
                     : undefined,
                   image: d.imageDataUrl || neutralImagePlaceholder,
                 }))}
+              onContinueDraft={(draftIdToResume) => {
+                const draftRecord = draftRecords.find((record) => record.id === String(draftIdToResume));
+                if (draftRecord) resumeDraft(draftRecord);
+              }}
+              onDeleteDraft={(draftIdToDelete) => {
+                const draftRecord = draftRecords.find((record) => record.id === String(draftIdToDelete));
+                if (draftRecord) void removeDraftRecord(draftRecord);
+              }}
               savedRecipes={savedRecipes.map((r) => ({
                 id: r.id,
                 title: r.name,
