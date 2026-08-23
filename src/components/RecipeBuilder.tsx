@@ -3526,7 +3526,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                   onClick={() => setShowUserMenu((p) => !p)}
                   className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
                 >
-                  <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white transition-transform duration-300 ${showUserMenu ? 'scale-150' : ''} group-hover:scale-150`}>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-sm font-semibold text-white shadow-md">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
                     ) : (

@@ -18,6 +18,7 @@ import AdminDashboard from './components/AdminDashboard';
 import SignInForm from './components/SignInForm';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { randomMerlinColor } from './theme/merlinPalette';
+import { getProfileRoutePath, loadUserProfiles } from './utils/userProfiles';
 
 const authFormFields = {
   signIn: {
@@ -338,6 +339,7 @@ function App({ pathname }: AppProps = {}) {
     };
   });
   const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized, isAdmin } = authState;
+  const profileCache = currentUser?.userId ? loadUserProfiles()[currentUser.userId] : null;
   const [showAuth, setShowAuth] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
@@ -458,6 +460,9 @@ function App({ pathname }: AppProps = {}) {
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
+        profilePath={getProfileRoutePath(profileCache?.username || userAttributes?.nickname || currentUser?.username)}
+        profileLabel={profileCache?.displayName || userAttributes?.nickname || userAttributes?.email?.split('@')[0] || currentUser?.username || 'Admin'}
+        profileAvatar={profileCache?.avatar || userAttributes?.['custom:avatar'] || null}
       />
     );
   }

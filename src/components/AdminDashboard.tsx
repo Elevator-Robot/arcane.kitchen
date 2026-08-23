@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
@@ -10,6 +10,9 @@ type Props = {
   isAdmin: boolean;
   onBack: () => void;
   onSignOut?: () => void;
+  profilePath?: string;
+  profileLabel?: string;
+  profileAvatar?: string | null;
 };
 
 type Recipe = { id: string; name: string; description?: string | null; ownerId: string };
@@ -23,8 +26,27 @@ const Notice = ({ children }: { children: ReactNode }) => (
   </div>
 );
 
-export default function AdminDashboard({ isAuthenticated, isAdmin, onBack, onSignOut }: Props) {
+export default function AdminDashboard({
+  isAuthenticated,
+  isAdmin,
+  onBack,
+  onSignOut,
+  profilePath = '/discover',
+  profileLabel = 'Admin',
+  profileAvatar = null,
+}: Props) {
   const navigate = useNavigate();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const avatarEntries = useMemo(
+    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, module]) => ({
+      file: path.split('/').pop()!,
+      url: module.default,
+    })),
+    [],
+  );
+  const avatarUrl = profileAvatar
+    ? avatarEntries.find((entry) => entry.file === profileAvatar)?.url
+    : undefined;
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [tab, setTab] = useState<'recipes' | 'comments'>('recipes');
@@ -127,8 +149,30 @@ export default function AdminDashboard({ isAuthenticated, isAdmin, onBack, onSig
             <button onClick={() => navigate('/build')} className="rounded-md border-b-2 border-transparent px-4 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]">Build</button>
           </nav>
           <div className="flex items-center gap-2">
-            <span className="hidden rounded-full border border-amber-400/40 px-3 py-1 text-xs font-semibold text-amber-200 sm:inline-flex">Admin session</span>
-            {onSignOut && <button onClick={onSignOut} className="rounded-full border border-red-400/40 px-4 py-2 text-sm font-medium text-red-200">Sign out</button>}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu((current) => !current)}
+                className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
+                aria-expanded={showProfileMenu}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-sm font-semibold text-white shadow-md">
+                  {avatarUrl ? <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full rounded-full object-cover" /> : profileLabel.charAt(0).toUpperCase()}
+                </span>
+                <span className="hidden max-w-[120px] truncate text-sm font-medium sm:inline">{profileLabel}</span>
+                <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showProfileMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showProfileMenu && (
+                <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
+                  <button onClick={() => { navigate(profilePath); setShowProfileMenu(false); }} className="flex w-full items-center gap-3 px-4 py-2 text-sm transition hover:bg-[var(--theme-surface-alt)]">Profile</button>
+                  <button onClick={() => setShowProfileMenu(false)} className="flex w-full items-center gap-3 px-4 py-2 text-sm font-medium text-[var(--theme-accent)] transition hover:bg-[var(--theme-surface-alt)]">Admin dashboard</button>
+                  <div className="my-1 border-t border-[var(--theme-border)]" />
+                  <a href="https://x.com/ElevatorRobot" target="_blank" rel="noopener noreferrer" className="flex w-full items-center gap-3 px-4 py-2 text-sm transition hover:bg-[var(--theme-surface-alt)]">Feedback &amp; Support</a>
+                  {onSignOut && <button onClick={onSignOut} className="flex w-full items-center gap-3 px-4 py-2 text-sm transition hover:bg-[var(--theme-surface-alt)]">Logout</button>}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
