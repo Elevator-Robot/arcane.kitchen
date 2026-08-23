@@ -92,16 +92,17 @@ ordinary users.
 - [x] Define the `Admins` Cognito group as the admin-role mechanism.
 - [x] Add group-scoped backend authorization for recipe and comment mutations.
 - [ ] Define backend authorization rules for user and moderation operations.
-- [ ] Define user moderation state and content-visibility behavior.
+- [x] Define user moderation state and content-visibility fields.
 - [ ] Define safe deletion behavior and linked-record cleanup.
 - [ ] Add backend operations for admin recipe/comment moderation.
+- [x] Add the admin-authorized Cognito user-list operation.
 - [ ] Add backend operations for user delete, ban, unban, and content hide.
 - [ ] Add an ownership-transfer operation that safely supports swaps.
 - [x] Build protected admin routing and access-denied behavior.
 - [x] Build the initial admin dashboard shell and navigation.
 - [x] Build initial recipe and comment moderation views with explicit admin
   action confirmations.
-- [ ] Build the scrollable user-management table.
+- [x] Build the initial scrollable user-management table.
 - [ ] Build ownership-transfer UI and confirmation flows.
 - [ ] Add visible admin-context and destructive-action warnings.
 - [ ] Add unit, integration, and authorization tests.
@@ -137,8 +138,9 @@ still be refined as the backend capabilities are validated.
   `RecipeIngredient`, `Favorite`, and `Comment` models.
 - `Recipe` currently uses `ownerId` for owner authorization.
 - `Comment` currently uses `userId` for owner authorization.
-- There is currently no documented admin role, moderation state, audit log, or
-  admin dashboard route.
+- The admin role, moderation metadata, audit-log model, and admin dashboard
+  route now exist; privileged user operations and enforcement are still being
+  implemented.
 - The deployed Cognito schema is treated as immutable in this project; any
   admin-role design must account for that constraint before changing auth
   attributes.
@@ -162,6 +164,14 @@ still be refined as the backend capabilities are validated.
 - Added initial recipe/comment admin edit and delete controls. User management,
   moderation state, audit logging, and ownership transfer remain disabled until
   their privileged backend operations exist.
+- Added `UserProfile` moderation state, recipe/comment visibility metadata, and
+  `AdminAuditLog` schema models as the next backend implementation slice.
+- Added the initial admin Users tab and read-only moderation-state table. User
+  mutations remain disabled until the privileged backend operations are wired.
+- Added an admin-authorized Cognito user-list query with pagination, so the
+  Users tab no longer depends on `UserProfile` rows existing for every user.
+- Granted the user-list Lambda role `cognito-idp:ListUsers` access scoped to
+  Cognito user pools in the deployed account and region.
 - The admin UI reads group membership from a fresh Cognito session. Admins may
   need to sign out and back in after being added to the group so new token
   claims are issued.

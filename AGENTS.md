@@ -93,6 +93,8 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - The initial protected admin UI is available at `/admin` and reads the live Cognito session group claim; group membership is not persisted in localStorage.
 - Primary navigation routes are consistent: Discover is `/discover`, Build is `/build`, and the admin dashboard is `/admin` from the profile dropdown.
 - User deletion, banning, content hiding, restoration, audit logging, and safe ownership swaps remain implementation work and must use backend-enforced operations.
+- `Recipe` and `Comment` include moderation visibility metadata; `UserProfile` stores moderation state and `AdminAuditLog` stores admin-action history. Privileged operations and feed filtering must still be backend-enforced before these fields are used in production flows.
+- The admin Users tab reads all Cognito users through the admin-authorized `listAdminUsers` query; `UserProfile` remains the source for app profile and moderation metadata.
 
 ## Agent checklist for every PR
 

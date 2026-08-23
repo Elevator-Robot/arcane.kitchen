@@ -355,7 +355,8 @@ function App({ pathname }: AppProps = {}) {
     };
   });
   const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized, isAdmin } = authState;
-  const profileCache = currentUser?.userId ? loadUserProfiles()[currentUser.userId] : null;
+  const profileIds = [currentUser?.userId, userAttributes?.sub, currentUser?.username].filter(Boolean);
+  const profileCache = Object.values(loadUserProfiles()).find((profile) => profileIds.includes(profile.userId));
   const [showAuth, setShowAuth] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
