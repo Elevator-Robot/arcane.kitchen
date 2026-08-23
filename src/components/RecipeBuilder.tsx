@@ -84,6 +84,7 @@ const getInitialRecipeBuilderView = (): RecipeBuilderView => {
 };
 
 const viewForPath = (pathname: string): RecipeBuilderView => {
+  if (pathname.startsWith('/discover')) return 'Discover';
   if (pathname.startsWith('/build')) return 'Build';
   if (pathname.startsWith('/saved')) return 'SavedRecipes';
   if (pathname.startsWith('/drafts')) return 'Drafts';
@@ -116,6 +117,7 @@ const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
+  isAdmin?: boolean;
   currentUser: any;
   userAttributes?: any;
   onRequestAuth?: () => void;
@@ -673,6 +675,7 @@ const parseRecipeQuantity = (value: unknown): RecipeQuantity => {
 
 const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   isAuthenticated,
+  isAdmin = false,
   currentUser,
   userAttributes,
   onRequestAuth,
@@ -787,7 +790,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUserMenu]);
   const shareMenuRef = useRef<HTMLDivElement>(null);
-  const homeNavigationRef = useRef(false);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -1124,7 +1126,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (previousAuthenticatedRef.current && !isAuthenticated) {
       setExpandedRecipeId(null);
       setCurrentView('Discover');
-      navigate('/');
+      navigate('/discover');
     }
     previousAuthenticatedRef.current = isAuthenticated;
   }, [isAuthenticated, navigate]);
@@ -1138,6 +1140,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const profileUsername = getProfileUsernameFromPath(location.pathname);
 
       if (recipeIdFromPath) {
+        if (location.pathname === '/') {
+          navigate(`/discover?recipe=${encodeURIComponent(recipeIdFromPath)}`, {
+            replace: true,
+          });
+          return;
+        }
+
         if (expandedRecipeId === recipeIdFromPath || isLoadingFeed) return;
         if (justClosedRecipeIdRef.current === recipeIdFromPath) {
           justClosedRecipeIdRef.current = null;
@@ -1209,8 +1218,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         return;
       }
 
-      if (location.pathname === '/' && homeNavigationRef.current) {
-        homeNavigationRef.current = false;
+      if (location.pathname === '/') {
+        navigate('/discover', { replace: true });
+        return;
+      }
+
+      if (location.pathname === '/discover') {
+        if (expandedRecipeId) {
+          setExpandedRecipeId(null);
+        }
+        justClosedRecipeIdRef.current = null;
+        setExpandedRecipeMessage('');
         setViewingProfileUsername(null);
         setCurrentView('Discover');
         return;
@@ -1222,7 +1240,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       justClosedRecipeIdRef.current = null;
       setExpandedRecipeMessage('');
       setViewingProfileUsername(null);
-      if (location.pathname !== '/') {
+      if (location.pathname !== '/discover') {
         const pathView = viewForPath(location.pathname);
         if (pathView !== currentView) {
           setCurrentView(pathView);
@@ -1610,6 +1628,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setPublishMessage('Draft loaded.');
     setPublishMessageTone('success');
     setCurrentView('Build');
+    navigate('/build');
   };
 
   const removeDraftRecord = async (draftRecord: RecipeDraftRecord) => {
@@ -1815,7 +1834,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return;
     }
 
-    navigate('/', { replace: true });
+    navigate('/build', { replace: true });
 
     setEditingRecipeId(null);
     if (!draftId && isRecipeDraftEmpty(draft)) {
@@ -1832,7 +1851,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const loadExampleRecipe = () => {
-    navigate('/', { replace: true });
+    navigate('/build', { replace: true });
 
     setEditingRecipeId(null);
     setSelectedImageFile(null);
@@ -1958,7 +1977,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )
           .filter(Boolean),
       }));
-      navigate('/', { replace: true });
+      navigate('/build', { replace: true });
       setNewTagValue('');
       setExpandedRecipeId(null);
       setCurrentView('Build');
@@ -2308,7 +2327,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setDiscoverQuery('');
       setExpandedRecipeId(null);
       setCurrentView('Discover');
-      navigate('/');
+      navigate('/discover');
     } catch (error) {
       console.error('Failed to save recipe:', error);
 
@@ -2430,8 +2449,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const currentUrl = window.location.pathname + window.location.search;
     if (getRecipeIdFromPath(currentUrl) !== recipe.id) {
       const basePath = window.location.pathname.startsWith('/recipe/')
-        ? '/'
-        : window.location.pathname || '/';
+        ? '/discover'
+        : window.location.pathname === '/'
+          ? '/discover'
+          : window.location.pathname || '/discover';
       navigate(`${basePath}?recipe=${encodeURIComponent(recipe.id)}`);
     }
 
@@ -2548,8 +2569,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setMentionCursor(0);
     if (typeof window !== 'undefined') {
       const basePath = window.location.pathname.startsWith('/recipe/')
-        ? '/'
-        : window.location.pathname || '/';
+        ? '/discover'
+        : window.location.pathname === '/'
+          ? '/discover'
+          : window.location.pathname || '/discover';
       navigate(basePath);
     }
   };
@@ -2794,7 +2817,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setExpandedRecipeId((previous) =>
         previous === recipeId ? null : previous
       );
-      navigate('/', { replace: true });
+      navigate('/discover', { replace: true });
       setFavoriteRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
@@ -3446,9 +3469,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                 onClick={() => {
                   setExpandedRecipeId(null);
                   setViewingProfileUsername(null);
-                  homeNavigationRef.current = true;
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
                 aria-label="Go to Home"
@@ -3469,7 +3491,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                 onClick={() => {
                   setActiveNavColor(randomMerlinColor());
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 style={currentView === 'Discover' ? { color: activeNavColor } : undefined}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
@@ -3524,7 +3546,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                         onClick={() => {
                           setViewingProfileUsername(null);
                           setCurrentView('Profile');
-                          navigate('/');
+                          navigate(getProfileRoutePath(activeUsername));
+                          setViewingProfileUsername(activeUsername);
                           setShowUserMenu(false);
                         }}
                         className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
@@ -3534,6 +3557,21 @@ const expandedRecipeArticle = expandedRecipe ? (
                         </svg>
                         Profile
                       </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            navigate('/admin');
+                            setShowUserMenu(false);
+                          }}
+                          className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+                        >
+                          <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 12l1.7 1.7 3.3-3.4" />
+                          </svg>
+                          Admin dashboard
+                        </button>
+                      )}
                       <div className="my-1 border-t border-[var(--theme-border)]" />
                       <a
                         href="https://x.com/ElevatorRobot"
@@ -4213,7 +4251,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               <button
                 onClick={() => {
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
@@ -4278,7 +4316,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               <button
                 onClick={() => {
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
@@ -4576,7 +4614,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                         setPublishMessage('');
                         setPublishMessageTone('error');
                         setCurrentView('Discover');
-                        navigate('/');
+                        navigate('/discover');
                       }}
                       className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                     >

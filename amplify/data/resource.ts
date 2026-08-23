@@ -21,6 +21,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.ownerDefinedIn('ownerId'),
+      allow.group('Admins'),
       allow.authenticated().to(['read']),
       allow.guest().to(['read']),
     ]),
@@ -55,6 +56,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.ownerDefinedIn('userId'),
+      allow.group('Admins'),
       allow.authenticated().to(['read']),
       allow.guest().to(['read']),
     ]),

@@ -26,6 +26,7 @@ Main fields:
 Auth:
 
 - Owner can create/update/delete/read
+- Members of the Cognito `Admins` group can create/update/delete/read
 - Authenticated users can read
 - Guests can read
 
@@ -73,8 +74,34 @@ Auth:
 
 - Owner-only access based on `userId`
 
+## `Comment`
+
+Purpose: stores comments attached to recipes.
+
+Main fields:
+
+- `id`
+- `recipeId` (required)
+- `userId` (required)
+- `author` (required)
+- `content` (required)
+- `parentId`
+
+Auth:
+
+- Owner can create/update/delete/read
+- Members of the Cognito `Admins` group can create/update/delete/read
+- Authenticated users can read
+
 ## Relationships at a glance
 
 - A recipe can have many linked ingredients through `RecipeIngredient`.
 - An ingredient can be reused across many recipes through `RecipeIngredient`.
 - A user can have many favorite recipes through `Favorite`.
+
+## Admin authorization
+
+- The Cognito `Admins` group has backend-authorized mutation access to
+  `Recipe` and `Comment` records, including records the admin does not own.
+- User moderation, audit logging, content hiding, and ownership-transfer
+  workflows are not yet implemented.

@@ -38,7 +38,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
   - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
   - `/u/:username` (`getProfileUsernameFromPath`) → Profile view.
-  - `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` keeps `currentView` (localStorage-restored internal views like self-profile).
+  - `/discover` `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` redirects to `/discover`.
 - Closing the modal navigates back to the bare base path (legacy `/recipe/:id` deep links fall back to Home on close).
 - `UserProfileView`'s `RecipeCard` click must only fall back to `window.location.assign('/recipe/<id>')` when there is NO `onOpenRecipe` handler — never use `onOpenRecipe?.(id) ?? window.location.assign(...)`, because `onOpenRecipe` returns `undefined` (void) and `??` would then always hard-navigate to the legacy deep-link route, forcing a `Recipe.get` load instead of the in-place modal.
 - The route-sync `useEffect` (`syncRecipeRoute`) must NOT re-open a recipe that was just dismissed: the effect depends on `expandedRecipeId`, so `collapseExpandedRecipe` sets `justClosedRecipeIdRef` to the id being closed and the effect skips re-expanding that id while the URL's `?recipe=` param is still pending a `navigate` flush. Without this guard, closing would reset `expandedRecipeId` → the effect re-runs → finds the recipe still in the URL → reopens the modal.
@@ -84,6 +84,15 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Why: `sw.js` serves every same-origin GET cache-first, including Vite dev modules (`/node_modules/.vite/deps/*`). Caching those across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
 - Caches left behind by an unregistered dev SW can hold stale/mangled copies of unhashed source modules (e.g. the old pre-router `RecipeBuilder.tsx`), so dev boot also runs `caches.delete()` on every recognized cache name.
 - If the dev console still shows the duplicate-React error after a code fix, unregister the SW + clear site data once (DevTools → Application → Service Workers).
+
+## Admin Dashboard
+
+- Planning and progress are tracked in `docs/admin-dashboard.md`.
+- Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
+- Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.
+- The initial protected admin UI is available at `/admin` and reads the live Cognito session group claim; group membership is not persisted in localStorage.
+- Primary navigation routes are consistent: Discover is `/discover`, Build is `/build`, and the admin dashboard is `/admin` from the profile dropdown.
+- User deletion, banning, content hiding, restoration, audit logging, and safe ownership swaps remain implementation work and must use backend-enforced operations.
 
 ## Agent checklist for every PR
 
