@@ -99,6 +99,11 @@ const hasAmplifyAuthConfig = () => {
   }
 };
 
+const isAlreadyConfirmedError = (error: any) =>
+  error?.name === 'UserAlreadyConfirmedException' ||
+  (error?.name === 'NotAuthorizedException' &&
+    /current status is confirmed/i.test(error?.message || ''));
+
 const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
@@ -165,10 +170,21 @@ const authServices = {
       throw new Error('Code is required to confirm sign up');
     }
 
-    const result = await confirmSignUp({
-      username,
-      confirmationCode,
-    });
+    let result;
+    try {
+      result = await confirmSignUp({
+        username,
+        confirmationCode,
+      });
+    } catch (error: any) {
+      if (!isAlreadyConfirmedError(error)) {
+        throw error;
+      }
+
+      // The Authenticator can submit the confirmation callback twice. The
+      // first request confirms the account; make the duplicate idempotent.
+      return await autoSignIn();
+    }
 
     if (result.isSignUpComplete) {
       return await autoSignIn();
