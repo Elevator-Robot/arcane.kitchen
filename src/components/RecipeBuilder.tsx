@@ -824,7 +824,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (!viewingProfileUsername) return null;
     return Object.values(localProfiles).find((profile: any) => sanitizeUsername(profile.username) === sanitizeUsername(viewingProfileUsername)) || null;
   }, [localProfiles, viewingProfileUsername]);
-  const isViewingExternalProfile = currentView === 'Profile' && viewingProfileUsername !== null;
+  const isViewingOwnProfile = currentView === 'Profile' &&
+    viewingProfileUsername !== null &&
+    sanitizeUsername(viewingProfileUsername) === sanitizeUsername(activeUsername);
+  const isViewingExternalProfile = currentView === 'Profile' &&
+    viewingProfileUsername !== null &&
+    !isViewingOwnProfile;
   const creatorName = getCreatorName(userAttributes, currentUser) !== 'Guest cook'
     ? getCreatorName(userAttributes, currentUser)
     : (cachedName || activeProfile?.displayName || 'Guest cook');
@@ -4391,7 +4396,7 @@ const expandedRecipeArticle = expandedRecipe ? (
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          {profileRouteProfile ? (
+          {profileRouteProfile && !isViewingOwnProfile ? (
             <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
