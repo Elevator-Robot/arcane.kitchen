@@ -78,6 +78,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Profile navigation tabs use a cool-to-warm left-to-right progression from the same palette: Recipes, Drafts, then Saved.
 - The `Preparing your kitchen…` loading message uses one random Merlin palette color per display and has no surrounding card container.
 - The sign-in button (`Button` primary variant in `src/components/ui/Button.tsx`) uses amethyst/indigo tones from the palette.
+- Active and selected controls use `randomMerlinColor()` from `src/theme/merlinPalette.ts`; do not add hard-coded orange or brown button states.
 
 ## Service Worker (PWA)
 

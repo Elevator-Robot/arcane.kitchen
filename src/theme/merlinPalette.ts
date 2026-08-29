@@ -14,5 +14,7 @@ export const MERLIN_PALETTE = [
   '#155e75', // dark teal
 ] as const;
 
+// Use this for transient selected/active UI states so every surface shares
+// the same high-contrast Merlin color choices.
 export const randomMerlinColor = (): string =>
   MERLIN_PALETTE[Math.floor(Math.random() * MERLIN_PALETTE.length)];
