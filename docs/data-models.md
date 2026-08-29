@@ -73,6 +73,32 @@ Auth:
 
 - Owner-only access based on `userId`
 
+## `UserProfile`
+
+Purpose: stores a user's public profile (display name, handle, bio, avatar) for `/u/:username` pages and recipe author attribution.
+
+Main fields:
+
+- `id` (auto-generated)
+- `userId` (required, owner)
+- `username` (required; GSI key — renames delete + recreate the row, cannot UpdateItem a GSI key)
+- `displayName` (required)
+- `bio`
+- `avatar` (preset filename)
+- `needsUsernameSetup`
+
+Indexes:
+
+- `secondaryIndexes([index('username'), index('userId')])`
+
+Auth:
+
+- Owner-only writes via `ownerDefinedIn('userId')`
+- Authenticated users can read
+- Guests can read (so external profiles render logged-out)
+
+Uniqueness: `username` uniqueness is enforced server-side by `isUsernameTakenServerSide` (backend list check) on create/rename; a tiny race window is accepted (no Lambda).
+
 ## Relationships at a glance
 
 - A recipe can have many linked ingredients through `RecipeIngredient`.

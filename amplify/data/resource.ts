@@ -25,6 +25,23 @@ const schema = a.schema({
       allow.guest().to(['read']),
     ]),
 
+  UserProfile: a
+    .model({
+      id: a.id(),
+      userId: a.string().required(),
+      username: a.string().required(),
+      displayName: a.string().required(),
+      bio: a.string(),
+      avatar: a.string(),
+      needsUsernameSetup: a.boolean(),
+    })
+    .authorization((allow) => [
+      allow.ownerDefinedIn('userId'),
+      allow.authenticated().to(['read']),
+      allow.guest().to(['read']),
+    ])
+    .secondaryIndexes((index) => [index('username'), index('userId')]),
+
   Ingredient: a
     .model({
       id: a.id(),
