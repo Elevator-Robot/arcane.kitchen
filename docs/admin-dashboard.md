@@ -91,19 +91,19 @@ ordinary users.
 - [ ] Choose and implement the authoritative admin-role mechanism.
 - [x] Define the `Admins` Cognito group as the admin-role mechanism.
 - [x] Add group-scoped backend authorization for recipe and comment mutations.
-- [ ] Define backend authorization rules for user and moderation operations.
+- [x] Define backend authorization rules for user and moderation operations.
 - [x] Define user moderation state and content-visibility fields.
 - [ ] Define safe deletion behavior and linked-record cleanup.
 - [ ] Add backend operations for admin recipe/comment moderation.
 - [x] Add the admin-authorized Cognito user-list operation.
-- [ ] Add backend operations for user delete, ban, unban, and content hide.
-- [ ] Add an ownership-transfer operation that safely supports swaps.
+- [x] Add backend operations for user delete, ban, unban, content hide, and restore through the admin-only `adminActions` mutation.
+- [x] Add an ownership-transfer operation with preflight validation and compensating rollback on failed batches.
 - [x] Build protected admin routing and access-denied behavior.
 - [x] Build the initial admin dashboard shell and navigation.
 - [x] Build initial recipe and comment moderation views with explicit admin
   action confirmations.
 - [x] Build the initial scrollable user-management table.
-- [ ] Build ownership-transfer UI and confirmation flows.
+- [x] Build ownership-transfer UI and confirmation flows.
 - [ ] Add visible admin-context and destructive-action warnings.
 - [ ] Add unit, integration, and authorization tests.
 - [ ] Update application documentation and deployment notes.
@@ -161,13 +161,11 @@ still be refined as the backend capabilities are validated.
   dropdown for users in the `Admins` group.
 - Standardized the three primary tabs on explicit routes: `Discover` uses `/discover`,
   `Build` uses `/build`, and `Admin` uses `/admin`.
-- Added initial recipe/comment admin edit and delete controls. User management,
-  moderation state, audit logging, and ownership transfer remain disabled until
-  their privileged backend operations exist.
+- Added initial recipe/comment admin edit and delete controls.
 - Added `UserProfile` moderation state, recipe/comment visibility metadata, and
   `AdminAuditLog` schema models as the next backend implementation slice.
-- Added the initial admin Users tab and read-only moderation-state table. User
-  mutations remain disabled until the privileged backend operations are wired.
+- Added the initial admin Users tab and moderation-state actions backed by the
+  privileged `adminActions` mutation.
 - Added an admin-authorized Cognito user-list query with pagination, so the
   Users tab no longer depends on `UserProfile` rows existing for every user.
 - Granted the user-list Lambda role `cognito-idp:ListUsers` access scoped to
@@ -175,3 +173,12 @@ still be refined as the backend capabilities are validated.
 - The admin UI reads group membership from a fresh Cognito session. Admins may
   need to sign out and back in after being added to the group so new token
   claims are issued.
+- User actions now run through the `adminActions` Lambda-backed mutation. The
+  function verifies the `Admins` claim, updates Cognito and moderation records,
+  hides owned recipes/comments, and writes an `AdminAuditLog` record.
+- Ownership transfers validate every source recipe and destination profile
+  before updating, and compensate previously updated recipes if a later update
+  fails. A DynamoDB-native transaction is still preferable for strict atomicity.
+- The application feed and recipe comment view exclude records marked
+  `isHidden`; backend read rules still need a dedicated filtered feed operation
+  before hidden records can be considered inaccessible through direct API reads.

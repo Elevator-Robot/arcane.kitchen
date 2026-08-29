@@ -1,6 +1,6 @@
 import { defineData, defineFunction, a } from '@aws-amplify/backend';
 import { ClientSchema } from '@aws-amplify/backend';
-import { Aws } from 'aws-cdk-lib';
+import { Aws, Duration } from 'aws-cdk-lib';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -16,6 +16,22 @@ export const listAdminUsers = defineFunction((scope) => {
   lambda.addToRolePolicy(new PolicyStatement({
     effect: Effect.ALLOW,
     actions: ['cognito-idp:ListUsers'],
+    resources: [`arn:aws:cognito-idp:${Aws.REGION}:${Aws.ACCOUNT_ID}:userpool/*`],
+  }));
+
+  return lambda;
+});
+
+export const adminActions = defineFunction((scope) => {
+  const lambda = new NodejsFunction(scope, 'AdminActions', {
+    entry: path.join(path.dirname(fileURLToPath(import.meta.url)), '../functions/admin-actions/handler.ts'),
+    runtime: Runtime.NODEJS_20_X,
+    timeout: Duration.seconds(30),
+  });
+
+  lambda.addToRolePolicy(new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ['cognito-idp:AdminDisableUser', 'cognito-idp:AdminEnableUser', 'cognito-idp:ListUsers'],
     resources: [`arn:aws:cognito-idp:${Aws.REGION}:${Aws.ACCOUNT_ID}:userpool/*`],
   }));
 
@@ -38,6 +54,27 @@ const schema = a.schema({
     .returns(a.ref('AdminUser').array())
     .authorization((allow) => [allow.group('Admins')])
     .handler(a.handler.function(listAdminUsers)),
+
+  AdminActionResult: a.customType({
+    success: a.boolean().required(),
+    message: a.string().required(),
+  }),
+
+  OwnershipTransfer: a.customType({
+    recipeId: a.id().required(),
+    newOwnerId: a.string().required(),
+  }),
+
+  adminActions: a
+    .mutation()
+    .arguments({
+      action: a.string().required(),
+      userId: a.string(),
+      transfers: a.ref('OwnershipTransfer').array(),
+    })
+    .returns(a.ref('AdminActionResult'))
+    .authorization((allow) => [allow.group('Admins')])
+    .handler(a.handler.function(adminActions)),
 
   Recipe: a
     .model({
@@ -153,7 +190,7 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.group('Admins').to(['read']),
     ]),
-});
+}).authorization((allow) => [allow.resource(adminActions)]);
 
 export const data = defineData({
   schema,

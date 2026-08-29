@@ -1080,7 +1080,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       const recipes = await Promise.all(
         data
-          .filter((recipe: any) => recipe.id && recipe.name)
+          .filter((recipe: any) => recipe.id && recipe.name && !recipe.isHidden)
           .map(async (recipe: any) => {
             const profileForOwner = profilesByOwnerId[recipe.ownerId || ''];
             const authorHandle = profileForOwner?.username || undefined;
@@ -2594,7 +2594,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         setComments((prev) => ({
           ...prev,
           [recipeId]: result.data
-            .filter((c: any) => c.id && c.userId && c.content)
+            .filter((c: any) => c.id && c.userId && c.content && !c.isHidden)
             .map((c: any) => ({
               id: c.id,
               recipeId: c.recipeId,

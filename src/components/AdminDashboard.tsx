@@ -58,6 +58,9 @@ export default function AdminDashboard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userListUnavailable, setUserListUnavailable] = useState(false);
+  const [pendingUserAction, setPendingUserAction] = useState<string | null>(null);
+  const [transferRecipeId, setTransferRecipeId] = useState('');
+  const [transferOwnerId, setTransferOwnerId] = useState('');
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, module]) => ({
@@ -141,6 +144,54 @@ export default function AdminDashboard({
     } catch (operationError) { setError(errorText(operationError)); }
   };
 
+  const moderateUser = async (user: UserProfile, action: 'delete' | 'ban' | 'unban' | 'hideContent' | 'restoreContent' | 'restore') => {
+    const descriptions = {
+      delete: 'disable this user and hide their content',
+      ban: 'disable this user and hide their content',
+      unban: 're-enable this user without deleting their records',
+      hideContent: 'hide this user\'s recipes and comments without disabling access',
+      restoreContent: 'restore this user\'s recipe and comment visibility without changing account access',
+      restore: 're-enable this user and restore their content visibility',
+    };
+    if (!window.confirm(`ADMIN ACTION: ${descriptions[action]}?\n\nUser: ${user.displayName} (${user.userId})`)) return;
+    setPendingUserAction(`${action}:${user.userId}`);
+    setError(null);
+    try {
+      const result = await client.mutations.adminActions({ action, userId: user.userId }, { authMode: 'userPool' });
+      if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => operationError.message).join(', '));
+      setUsers((current) => current.map((entry) => entry.userId === user.userId ? {
+        ...entry,
+        isBanned: action === 'ban' ? true : action === 'unban' || action === 'restore' ? false : entry.isBanned,
+        isDeleted: action === 'delete' ? true : action === 'restore' ? false : entry.isDeleted,
+        contentHidden: ['ban', 'delete', 'hideContent'].includes(action)
+          ? true
+          : action === 'restoreContent' || action === 'restore' ? false : entry.contentHidden,
+      } : entry));
+    } catch (operationError) { setError(errorText(operationError)); }
+    finally { setPendingUserAction(null); }
+  };
+
+  const transferOwnership = async () => {
+    if (!transferRecipeId || !transferOwnerId) return;
+    const recipe = recipes.find((entry) => entry.id === transferRecipeId);
+    const destination = users.find((entry) => entry.userId === transferOwnerId);
+    if (!recipe || !destination) return;
+    if (!window.confirm(`ADMIN ACTION: transfer “${recipe.name}” from ${recipe.ownerId} to ${destination.displayName} (${destination.userId})?`)) return;
+    setPendingUserAction('transferOwnership');
+    setError(null);
+    try {
+      const result = await client.mutations.adminActions({
+        action: 'transferOwnership',
+        transfers: [{ recipeId: recipe.id, newOwnerId: destination.userId }],
+      }, { authMode: 'userPool' });
+      if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => operationError.message).join(', '));
+      setRecipes((current) => current.map((entry) => entry.id === recipe.id ? { ...entry, ownerId: destination.userId } : entry));
+      setTransferRecipeId('');
+      setTransferOwnerId('');
+    } catch (operationError) { setError(errorText(operationError)); }
+    finally { setPendingUserAction(null); }
+  };
+
   if (!isAuthenticated || !isAdmin) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--theme-bg)] p-6 text-[var(--theme-text)]">
@@ -191,9 +242,9 @@ export default function AdminDashboard({
           <div className="flex flex-wrap justify-between gap-3"><div className="flex gap-2"><TabButton active={tab === 'recipes'} onClick={() => setTab('recipes')}>Recipes</TabButton><TabButton active={tab === 'comments'} onClick={() => setTab('comments')}>Comments</TabButton><TabButton active={tab === 'users'} onClick={() => setTab('users')}>Users</TabButton></div><button onClick={() => void loadContent()} disabled={loading} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">{loading ? 'Refreshing...' : 'Refresh'}</button></div>
           {tab === 'recipes' && <RecipeList recipes={recipes} editingRecipe={editingRecipe} recipeForm={recipeForm} setEditingRecipe={setEditingRecipe} setRecipeForm={setRecipeForm} saveRecipe={saveRecipe} removeRecipe={removeRecipe} loading={loading} />}
           {tab === 'comments' && <CommentList comments={comments} editingComment={editingComment} commentForm={commentForm} setEditingComment={setEditingComment} setCommentForm={setCommentForm} saveComment={saveComment} removeComment={removeComment} loading={loading} />}
-          {tab === 'users' && <UserTable users={users} loading={loading} unavailable={userListUnavailable} />}
+          {tab === 'users' && <UserTable users={users} loading={loading} unavailable={userListUnavailable} onModerateUser={moderateUser} pendingUserAction={pendingUserAction} />}
         </section>
-        <section className="mt-6 rounded-3xl border border-dashed border-[var(--theme-border)] p-6"><h2 className="font-semibold">User actions and ownership transfers</h2><p className="mt-2 text-sm text-[var(--theme-text-muted)]">These mutations remain disabled until the backend-enforced Cognito operations, audit logging, content filtering, and safe ownership-transfer transaction are connected.</p></section>
+        <section className="mt-6 rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6"><h2 className="font-semibold">Ownership transfer</h2><p className="mt-2 text-sm text-[var(--theme-text-muted)]">Transfer recipe ownership through the administrator-only backend operation. The original creator metadata is retained.</p><div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={transferRecipeId} onChange={(event) => setTransferRecipeId(event.target.value)} className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2 text-sm"><option value="">Select a recipe</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name} · {recipe.ownerId}</option>)}</select><select value={transferOwnerId} onChange={(event) => setTransferOwnerId(event.target.value)} className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2 text-sm"><option value="">Select a destination user</option>{users.map((user) => <option key={user.userId} value={user.userId}>{user.displayName} · {user.userId}</option>)}</select><button onClick={() => void transferOwnership()} disabled={!transferRecipeId || !transferOwnerId || pendingUserAction !== null} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{pendingUserAction === 'transferOwnership' ? 'Transferring...' : 'Transfer ownership'}</button></div></section>
       </div></div>
     </main>
   );
@@ -215,10 +266,10 @@ function CommentList({ comments, editingComment, commentForm, setEditingComment,
   return <div className="mt-5 space-y-3">{comments.map((comment: Comment) => <article key={comment.id} className="rounded-2xl border border-[var(--theme-border)] p-4">{editingComment?.id === comment.id ? <div className="grid gap-3"><textarea value={commentForm} onChange={(event) => setCommentForm(event.target.value)} aria-label="Comment content" className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><div className="flex gap-2"><button onClick={() => void saveComment()} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white">Save admin edit</button><button onClick={() => setEditingComment(null)} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">Cancel</button></div></div> : <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-semibold">{comment.author}</p><p className="mt-2 text-sm">{comment.content}</p><p className="mt-2 text-xs text-[var(--theme-text-muted)]">Recipe: {comment.recipeId} | User: {comment.userId}</p></div><div className="flex gap-2"><button onClick={() => { setEditingComment(comment); setCommentForm(comment.content); }} className="rounded-full border border-amber-400/40 px-3 py-2 text-sm text-amber-100">Edit as admin</button><button onClick={() => void removeComment(comment)} className="rounded-full border border-red-400/40 px-3 py-2 text-sm text-red-200">Delete as admin</button></div></div>}</article>)}{!comments.length && !loading && <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">No comments found.</p>}</div>;
 }
 
-function UserTable({ users, loading, unavailable }: { users: UserProfile[]; loading: boolean; unavailable: boolean }) {
+function UserTable({ users, loading, unavailable, onModerateUser, pendingUserAction }: { users: UserProfile[]; loading: boolean; unavailable: boolean; onModerateUser: (user: UserProfile, action: 'delete' | 'ban' | 'unban' | 'hideContent' | 'restoreContent' | 'restore') => void; pendingUserAction: string | null }) {
   if (unavailable) {
     return <div className="mt-5 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-5 text-sm text-amber-100">The deployed backend does not include the admin Cognito user-list operation yet. Deploy the latest Amplify backend and reload this page.</div>;
   }
 
-  return <div className="mt-5 max-h-[32rem] overflow-auto rounded-2xl border border-[var(--theme-border)]"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-[var(--theme-surface-alt)] text-xs uppercase text-[var(--theme-text-muted)]"><tr><th className="px-4 py-3">User</th><th className="px-4 py-3">User ID</th><th className="px-4 py-3">Cognito status</th><th className="px-4 py-3">Moderation</th></tr></thead><tbody>{users.map((user) => <tr key={user.id} className="border-t border-[var(--theme-border)]"><td className="px-4 py-3"><div className="font-semibold">{user.displayName}</div><div className="text-[var(--theme-text-muted)]">{user.email || user.username}</div></td><td className="px-4 py-3 font-mono text-xs text-[var(--theme-text-muted)]">{user.userId}</td><td className="px-4 py-3">{user.status || 'UNKNOWN'}{user.enabled === false ? ' · Disabled' : ''}</td><td className="px-4 py-3">{user.isDeleted ? 'Deleted' : user.isBanned ? 'Banned' : user.contentHidden ? 'Content hidden' : 'Visible'}</td></tr>)}</tbody></table>{!users.length && !loading && <p className="p-8 text-center text-sm text-[var(--theme-text-muted)]">No Cognito users found.</p>}</div>;
+  return <div className="mt-5 max-h-[32rem] overflow-auto rounded-2xl border border-[var(--theme-border)]"><table className="min-w-full text-left text-sm"><thead className="sticky top-0 bg-[var(--theme-surface-alt)] text-xs uppercase text-[var(--theme-text-muted)]"><tr><th className="px-4 py-3">User</th><th className="px-4 py-3">User ID</th><th className="px-4 py-3">Cognito status</th><th className="px-4 py-3">Moderation</th><th className="px-4 py-3">Actions</th></tr></thead><tbody>{users.map((user) => <tr key={user.id} className="border-t border-[var(--theme-border)]"><td className="px-4 py-3"><div className="font-semibold">{user.displayName}</div><div className="text-[var(--theme-text-muted)]">{user.email || user.username}</div></td><td className="px-4 py-3 font-mono text-xs text-[var(--theme-text-muted)]">{user.userId}</td><td className="px-4 py-3">{user.status || 'UNKNOWN'}{user.enabled === false ? ' · Disabled' : ''}</td><td className="px-4 py-3">{user.isDeleted ? 'Deleted' : user.isBanned ? 'Banned' : user.contentHidden ? 'Content hidden' : 'Visible'}</td><td className="px-4 py-3"><div className="flex min-w-52 flex-wrap gap-2"><button disabled={pendingUserAction !== null} onClick={() => onModerateUser(user, user.isBanned ? 'unban' : 'ban')} className="rounded-full border border-amber-400/40 px-3 py-1.5 text-xs text-amber-100 disabled:opacity-50">{user.isBanned ? 'Unban' : 'Ban'}</button><button disabled={pendingUserAction !== null} onClick={() => onModerateUser(user, user.contentHidden ? 'restoreContent' : 'hideContent')} className="rounded-full border border-amber-400/40 px-3 py-1.5 text-xs text-amber-100 disabled:opacity-50">{user.contentHidden ? 'Restore content' : 'Hide content'}</button><button disabled={pendingUserAction !== null} onClick={() => onModerateUser(user, user.isDeleted ? 'restore' : 'delete')} className="rounded-full border border-red-400/40 px-3 py-1.5 text-xs text-red-200 disabled:opacity-50">{user.isDeleted ? 'Restore user' : 'Delete user'}</button></div></td></tr>)}</tbody></table>{!users.length && !loading && <p className="p-8 text-center text-sm text-[var(--theme-text-muted)]">No Cognito users found.</p>}</div>;
 }
