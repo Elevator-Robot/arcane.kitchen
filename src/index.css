@@ -12,11 +12,11 @@
     --theme-text-muted: #8b7355;
     --theme-border: #d4c4a8;
     --theme-border-strong: #b8a48a;
-    --theme-accent: #d97706;
-    --theme-accent-strong: #b45309;
+    --theme-accent: #6d28d9;
+    --theme-accent-strong: #5b21a7;
     --theme-sage: #5a7a4a;
     --theme-sage-strong: #4a663a;
-    --theme-focus: rgba(217, 119, 6, 0.18);
+    --theme-focus: rgba(109, 40, 217, 0.18);
     --theme-overlay: rgba(44, 24, 16, 0.64);
   }
 

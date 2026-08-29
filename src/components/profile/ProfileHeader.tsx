@@ -3,6 +3,7 @@ import { Edit2, Share, MapPin, Calendar, Camera, X } from 'lucide-react';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import { getProfileShareUrl, loadUserProfiles, saveUserProfiles, upsertUserProfile, sanitizeUsername, validateUsername, isUsernameChangeAllowed, USERNAME_CHANGE_COOLDOWN_DAYS } from '../../utils/userProfiles';
+import { randomMerlinColor } from '../../theme/merlinPalette';
 
 type Props = {
   user: User;
@@ -16,6 +17,8 @@ type Props = {
 export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, isOwnProfile = true, onSelectPreset, onProfileUpdated }: Props) {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'presets' | 'upload'>('presets');
+  const [activeTabColor, setActiveTabColor] = useState(randomMerlinColor);
+  const [actionColor] = useState(randomMerlinColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -90,7 +93,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
             <img src={user.avatarUrl || '/api/placeholder/160/160'} alt={user.name} className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-md" />
             {isOwnProfile && (
               <button onClick={() => setShowAvatarModal(true)} className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow border border-gray-200" aria-label="update avatar">
-                <Camera className="w-4 h-4 text-[#945d3f]" />
+                <Camera className="w-4 h-4" style={{ color: actionColor }} />
               </button>
             )}
           </div>
@@ -112,7 +115,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                     saveUserProfiles(updated);
                     setIsEditingName(false);
                     if (onProfileUpdated) onProfileUpdated({ name: draftName });
-                  }} className="px-3 py-1 bg-[#945d3f] text-white rounded">Save</button>
+                  }} style={{ backgroundColor: actionColor }} className="px-3 py-1 text-white rounded">Save</button>
                   <button onClick={() => { setIsEditingName(false); setDraftName(user.name || ''); }} className="px-3 py-1 border rounded">Cancel</button>
                 </div>
               )}
@@ -158,7 +161,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                     setIsEditingHandle(false);
                     setDraftHandle(desired);
                     if (onProfileUpdated) onProfileUpdated({ handle: desired });
-                  }} className="px-3 py-1 bg-[#945d3f] text-white rounded">Save</button>
+                  }} style={{ backgroundColor: actionColor }} className="px-3 py-1 text-white rounded">Save</button>
                   <button onClick={() => { setIsEditingHandle(false); setDraftHandle(user.handle || ''); }} className="px-3 py-1 border rounded">Cancel</button>
                 </div>
               )}
@@ -191,7 +194,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                       saveUserProfiles(updated);
                       setIsEditingBio(false);
                       if (onProfileUpdated) onProfileUpdated({ bio: draftBio });
-                    }} className="px-3 py-1 bg-[#945d3f] text-white rounded">Save</button>
+                    }} style={{ backgroundColor: actionColor }} className="px-3 py-1 text-white rounded">Save</button>
                   </div>
                 </div>
               )}
@@ -232,8 +235,8 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
 
             <div className="mt-4">
               <div className="inline-flex rounded-full bg-gray-100 p-1 gap-1">
-                <button onClick={() => setActiveTab('presets')} className={`px-3 py-1 rounded-full text-sm font-medium ${activeTab === 'presets' ? 'bg-[#945d3f] text-white' : 'text-gray-700'}`}>Preset Avatars</button>
-                <button onClick={() => setActiveTab('upload')} className={`px-3 py-1 rounded-full text-sm font-medium ${activeTab === 'upload' ? 'bg-[#945d3f] text-white' : 'text-gray-700'}`}>Upload Photo</button>
+                <button onClick={() => { setActiveTab('presets'); setActiveTabColor(randomMerlinColor()); }} style={activeTab === 'presets' ? { backgroundColor: activeTabColor } : undefined} className={`px-3 py-1 rounded-full text-sm font-medium ${activeTab === 'presets' ? 'text-white' : 'text-gray-700'}`}>Preset Avatars</button>
+                <button onClick={() => { setActiveTab('upload'); setActiveTabColor(randomMerlinColor()); }} style={activeTab === 'upload' ? { backgroundColor: activeTabColor } : undefined} className={`px-3 py-1 rounded-full text-sm font-medium ${activeTab === 'upload' ? 'text-white' : 'text-gray-700'}`}>Upload Photo</button>
               </div>
 
               <div className="mt-3">
@@ -246,12 +249,13 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
                     onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) setUploadFile(f); }}
-                    className={`border-2 border-dashed rounded-xl p-6 text-center ${dragOver ? 'border-[#945d3f]/80 bg-[var(--theme-surface)]' : 'border-gray-200'}`}
+                    style={dragOver ? { borderColor: activeTabColor, backgroundColor: 'var(--theme-surface)' } : undefined}
+                    className={`border-2 border-dashed rounded-xl p-6 text-center ${dragOver ? '' : 'border-gray-200'}`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       <Camera className="w-8 h-8 text-gray-400" />
                       <p className="text-sm text-gray-600">Click to choose or drag an image here</p>
-                      <label className="mt-2 inline-flex items-center px-4 py-2 bg-[#faf6f3] text-[#8c5a35] border border-[#e2d5c8] rounded-lg cursor-pointer">
+                      <label style={{ color: actionColor, borderColor: actionColor }} className="mt-2 inline-flex items-center px-4 py-2 bg-[var(--theme-surface-alt)] border rounded-lg cursor-pointer">
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleInputChange} className="hidden" />
                         Choose file
                       </label>
@@ -273,7 +277,7 @@ export default function ProfileHeader({ user, onAvatarUpload, onShareProfile, is
                     handleFile(uploadFile);
                     return;
                   }
-                }} className="rounded px-3 py-1 bg-[#945d3f] text-white">Save Picture</button>
+                }} style={{ backgroundColor: actionColor }} className="rounded px-3 py-1 text-white">Save Picture</button>
               </div>
             </div>
           </div>

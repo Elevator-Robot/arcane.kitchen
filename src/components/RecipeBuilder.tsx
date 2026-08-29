@@ -56,6 +56,7 @@ import {
   type UserProfile,
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
+import ProfileDropdown from './ProfileDropdown';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 
 const client: any = generateClient<Schema>();
@@ -84,6 +85,7 @@ const getInitialRecipeBuilderView = (): RecipeBuilderView => {
 };
 
 const viewForPath = (pathname: string): RecipeBuilderView => {
+  if (pathname.startsWith('/discover')) return 'Discover';
   if (pathname.startsWith('/build')) return 'Build';
   if (pathname.startsWith('/saved')) return 'SavedRecipes';
   if (pathname.startsWith('/drafts')) return 'Drafts';
@@ -116,6 +118,7 @@ const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;
+  isAdmin?: boolean;
   currentUser: any;
   userAttributes?: any;
   onRequestAuth?: () => void;
@@ -673,6 +676,7 @@ const parseRecipeQuantity = (value: unknown): RecipeQuantity => {
 
 const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   isAuthenticated,
+  isAdmin = false,
   currentUser,
   userAttributes,
   onRequestAuth,
@@ -754,7 +758,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [displayNameDraft, setDisplayNameDraft] = useState('');
   const [usernameDraft, setUsernameDraft] = useState('');
@@ -764,7 +767,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [profileData, setProfileData] = useState<any>(null);
   const [viewingProfileUsername, setViewingProfileUsername] = useState<string | null>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const menuContainerRef = useRef<HTMLDivElement>(null);
   const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftHydratedRef = useRef(false);
   const tagColorsRef = useRef<Record<string, string>>({});
@@ -776,18 +778,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return tagColorsRef.current[key];
   };
 
-  useEffect(() => {
-    if (!showUserMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUserMenu]);
   const shareMenuRef = useRef<HTMLDivElement>(null);
-  const homeNavigationRef = useRef(false);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -822,10 +813,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (!viewingProfileUsername) return null;
     return Object.values(localProfiles).find((profile: any) => sanitizeUsername(profile.username) === sanitizeUsername(viewingProfileUsername)) || null;
   }, [localProfiles, viewingProfileUsername]);
-  const isViewingExternalProfile = currentView === 'Profile' && viewingProfileUsername !== null;
-  const creatorName = getCreatorName(userAttributes, currentUser) !== 'Guest cook'
-    ? getCreatorName(userAttributes, currentUser)
-    : (cachedName || activeProfile?.displayName || 'Guest cook');
+  const isViewingOwnProfile = currentView === 'Profile' &&
+    viewingProfileUsername !== null &&
+    sanitizeUsername(viewingProfileUsername) === sanitizeUsername(activeUsername);
+  const isViewingExternalProfile = currentView === 'Profile' &&
+    viewingProfileUsername !== null &&
+    !isViewingOwnProfile;
+  const creatorName = activeProfile?.displayName || cachedName || getCreatorName(userAttributes, currentUser);
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -1073,7 +1067,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       const recipes = await Promise.all(
         data
-          .filter((recipe: any) => recipe.id && recipe.name)
+          .filter((recipe: any) => recipe.id && recipe.name && !recipe.isHidden)
           .map(async (recipe: any) => {
             const profileForOwner = profilesByOwnerId[recipe.ownerId || ''];
             const authorHandle = profileForOwner?.username || undefined;
@@ -1124,7 +1118,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     if (previousAuthenticatedRef.current && !isAuthenticated) {
       setExpandedRecipeId(null);
       setCurrentView('Discover');
-      navigate('/');
+      navigate('/discover');
     }
     previousAuthenticatedRef.current = isAuthenticated;
   }, [isAuthenticated, navigate]);
@@ -1138,6 +1132,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const profileUsername = getProfileUsernameFromPath(location.pathname);
 
       if (recipeIdFromPath) {
+        if (location.pathname === '/') {
+          navigate(`/discover?recipe=${encodeURIComponent(recipeIdFromPath)}`, {
+            replace: true,
+          });
+          return;
+        }
+
         if (expandedRecipeId === recipeIdFromPath || isLoadingFeed) return;
         if (justClosedRecipeIdRef.current === recipeIdFromPath) {
           justClosedRecipeIdRef.current = null;
@@ -1209,8 +1210,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         return;
       }
 
-      if (location.pathname === '/' && homeNavigationRef.current) {
-        homeNavigationRef.current = false;
+      if (location.pathname === '/') {
+        navigate('/discover', { replace: true });
+        return;
+      }
+
+      if (location.pathname === '/discover') {
+        if (expandedRecipeId) {
+          setExpandedRecipeId(null);
+        }
+        justClosedRecipeIdRef.current = null;
+        setExpandedRecipeMessage('');
         setViewingProfileUsername(null);
         setCurrentView('Discover');
         return;
@@ -1222,7 +1232,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       justClosedRecipeIdRef.current = null;
       setExpandedRecipeMessage('');
       setViewingProfileUsername(null);
-      if (location.pathname !== '/') {
+      if (location.pathname !== '/discover') {
         const pathView = viewForPath(location.pathname);
         if (pathView !== currentView) {
           setCurrentView(pathView);
@@ -1610,6 +1620,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setPublishMessage('Draft loaded.');
     setPublishMessageTone('success');
     setCurrentView('Build');
+    navigate('/build');
   };
 
   const removeDraftRecord = async (draftRecord: RecipeDraftRecord) => {
@@ -1815,7 +1826,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       return;
     }
 
-    navigate('/', { replace: true });
+    navigate('/build', { replace: true });
 
     setEditingRecipeId(null);
     if (!draftId && isRecipeDraftEmpty(draft)) {
@@ -1832,7 +1843,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const loadExampleRecipe = () => {
-    navigate('/', { replace: true });
+    navigate('/build', { replace: true });
 
     setEditingRecipeId(null);
     setSelectedImageFile(null);
@@ -1958,7 +1969,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )
           .filter(Boolean),
       }));
-      navigate('/', { replace: true });
+      navigate('/build', { replace: true });
       setNewTagValue('');
       setExpandedRecipeId(null);
       setCurrentView('Build');
@@ -2308,7 +2319,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setDiscoverQuery('');
       setExpandedRecipeId(null);
       setCurrentView('Discover');
-      navigate('/');
+      navigate('/discover');
     } catch (error) {
       console.error('Failed to save recipe:', error);
 
@@ -2430,8 +2441,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const currentUrl = window.location.pathname + window.location.search;
     if (getRecipeIdFromPath(currentUrl) !== recipe.id) {
       const basePath = window.location.pathname.startsWith('/recipe/')
-        ? '/'
-        : window.location.pathname || '/';
+        ? '/discover'
+        : window.location.pathname === '/'
+          ? '/discover'
+          : window.location.pathname || '/discover';
       navigate(`${basePath}?recipe=${encodeURIComponent(recipe.id)}`);
     }
 
@@ -2548,8 +2561,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setMentionCursor(0);
     if (typeof window !== 'undefined') {
       const basePath = window.location.pathname.startsWith('/recipe/')
-        ? '/'
-        : window.location.pathname || '/';
+        ? '/discover'
+        : window.location.pathname === '/'
+          ? '/discover'
+          : window.location.pathname || '/discover';
       navigate(basePath);
     }
   };
@@ -2566,7 +2581,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         setComments((prev) => ({
           ...prev,
           [recipeId]: result.data
-            .filter((c: any) => c.id && c.userId && c.content)
+            .filter((c: any) => c.id && c.userId && c.content && !c.isHidden)
             .map((c: any) => ({
               id: c.id,
               recipeId: c.recipeId,
@@ -2794,7 +2809,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setExpandedRecipeId((previous) =>
         previous === recipeId ? null : previous
       );
-      navigate('/', { replace: true });
+      navigate('/discover', { replace: true });
       setFavoriteRecipeIds((previous) => {
         const next = new Set(previous);
         next.delete(recipeId);
@@ -3446,9 +3461,8 @@ const expandedRecipeArticle = expandedRecipe ? (
                 onClick={() => {
                   setExpandedRecipeId(null);
                   setViewingProfileUsername(null);
-                  homeNavigationRef.current = true;
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
                 aria-label="Go to Home"
@@ -3469,7 +3483,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                 onClick={() => {
                   setActiveNavColor(randomMerlinColor());
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 style={currentView === 'Discover' ? { color: activeNavColor } : undefined}
                 className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
@@ -3496,68 +3510,15 @@ const expandedRecipeArticle = expandedRecipe ? (
               </button>
             </nav>
           </div>
-
           <div className="flex items-center gap-2">
             {onSignOut ? (
-              <div ref={menuContainerRef} className="relative">
-                <button
-                  onClick={() => setShowUserMenu((p) => !p)}
-                  className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
-                >
-                  <div className={`flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-xs font-semibold text-white transition-transform duration-300 ${showUserMenu ? 'scale-150' : ''} group-hover:scale-150`}>
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                    ) : (
-                      creatorName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span className={`max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 ${showUserMenu ? 'translate-x-1 text-[var(--theme-accent)]' : ''} group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]`}>
-                    {creatorName}
-                  </span>
-                  <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {showUserMenu && (
-                  <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
-                      <button
-                        onClick={() => {
-                          setViewingProfileUsername(null);
-                          setCurrentView('Profile');
-                          navigate('/');
-                          setShowUserMenu(false);
-                        }}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                        </svg>
-                        Profile
-                      </button>
-                      <div className="my-1 border-t border-[var(--theme-border)]" />
-                      <a
-                        href="https://x.com/ElevatorRobot"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                        </svg>
-                        Feedback & Support
-                      </a>
-                      <button
-                        onClick={onSignOut}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                        </svg>
-                        Logout
-                      </button>
-                  </div>
-                )}
-              </div>
+              <ProfileDropdown
+                profilePath={getProfileRoutePath(activeUsername)}
+                profileLabel={creatorName}
+                profileAvatar={effectiveAvatar}
+                isAdmin={isAdmin}
+                onSignOut={onSignOut}
+              />
             ) : (
               <button
                 onClick={onRequestAuth}
@@ -4213,7 +4174,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               <button
                 onClick={() => {
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
@@ -4278,7 +4239,7 @@ const expandedRecipeArticle = expandedRecipe ? (
               <button
                 onClick={() => {
                   setCurrentView('Discover');
-                  navigate('/');
+                  navigate('/discover');
                 }}
                 className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
               >
@@ -4353,7 +4314,7 @@ const expandedRecipeArticle = expandedRecipe ? (
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          {profileRouteProfile ? (
+          {profileRouteProfile && !isViewingOwnProfile ? (
             <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
@@ -4576,7 +4537,7 @@ const expandedRecipeArticle = expandedRecipe ? (
                         setPublishMessage('');
                         setPublishMessageTone('error');
                         setCurrentView('Discover');
-                        navigate('/');
+                        navigate('/discover');
                       }}
                       className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
                     >

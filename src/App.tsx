@@ -5,16 +5,20 @@ import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
   autoSignIn,
   confirmSignUp,
+  fetchAuthSession,
   fetchUserAttributes,
   getCurrentUser,
   signIn,
   signOut as amplifySignOut,
   signUp,
 } from 'aws-amplify/auth';
+import { useLocation, useNavigate } from 'react-router-dom';
 import RecipeBuilder from './components/RecipeBuilder';
+import AdminDashboard from './components/AdminDashboard';
 import SignInForm from './components/SignInForm';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { randomMerlinColor } from './theme/merlinPalette';
+import { getProfileRoutePath, loadUserProfiles } from './utils/userProfiles';
 
 const authFormFields = {
   signIn: {
@@ -35,6 +39,7 @@ type AuthState = {
   currentUser: any | null;
   userAttributes: any | null;
   isInitialized: boolean;
+  isAdmin: boolean;
 };
 
 type PersistedAuthState = {
@@ -93,6 +98,11 @@ const hasAmplifyAuthConfig = () => {
     return false;
   }
 };
+
+const isAlreadyConfirmedError = (error: any) =>
+  error?.name === 'UserAlreadyConfirmedException' ||
+  (error?.name === 'NotAuthorizedException' &&
+    /current status is confirmed/i.test(error?.message || ''));
 
 const authServices = {
   async handleSignIn(input: any) {
@@ -160,10 +170,21 @@ const authServices = {
       throw new Error('Code is required to confirm sign up');
     }
 
-    const result = await confirmSignUp({
-      username,
-      confirmationCode,
-    });
+    let result;
+    try {
+      result = await confirmSignUp({
+        username,
+        confirmationCode,
+      });
+    } catch (error: any) {
+      if (!isAlreadyConfirmedError(error)) {
+        throw error;
+      }
+
+      // The Authenticator can submit the confirmation callback twice. The
+      // first request confirms the account; make the duplicate idempotent.
+      return await autoSignIn();
+    }
 
     if (result.isSignUpComplete) {
       return await autoSignIn();
@@ -294,7 +315,21 @@ function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
   return null;
 }
 
-function App() {
+function AdminDashboardRoute(props: Omit<React.ComponentProps<typeof AdminDashboard>, 'onBack'>) {
+  const navigate = useNavigate();
+  return <AdminDashboard {...props} onBack={() => navigate('/discover')} />;
+}
+
+type AppProps = {
+  pathname?: string;
+};
+
+export function AppRouteAware() {
+  const { pathname } = useLocation();
+  return <App pathname={pathname} />;
+}
+
+function App({ pathname }: AppProps = {}) {
   const [loadingColor] = useState(randomMerlinColor);
   const [authState, setAuthState] = useState<AuthState>(() => {
     const persisted = getPersistedAuthState();
@@ -316,9 +351,12 @@ function App() {
       currentUser,
       userAttributes,
       isInitialized: persisted === null,
+      isAdmin: false,
     };
   });
-  const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized } = authState;
+  const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized, isAdmin } = authState;
+  const profileIds = [currentUser?.userId, userAttributes?.sub, currentUser?.username].filter(Boolean);
+  const profileCache = Object.values(loadUserProfiles()).find((profile) => profileIds.includes(profile.userId));
   const [showAuth, setShowAuth] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
@@ -332,6 +370,7 @@ function App() {
         currentUser: null,
         userAttributes: null,
         isInitialized: true,
+        isAdmin: false,
       });
       persistAuthState(null);
       return;
@@ -340,12 +379,21 @@ function App() {
     try {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
+      let isAdmin = false;
+      try {
+        const session = await fetchAuthSession();
+        const groups = session.tokens?.accessToken?.payload?.['cognito:groups'];
+        isAdmin = Array.isArray(groups) && groups.includes('Admins');
+      } catch {
+        // Session claims are optional for the regular application shell.
+      }
 
       setAuthState({
         isAuthenticated: true,
         currentUser: user,
         userAttributes: attributes,
         isInitialized: true,
+        isAdmin,
       });
       persistAuthState({
         isAuthenticated: true,
@@ -359,6 +407,7 @@ function App() {
         currentUser: null,
         userAttributes: null,
         isInitialized: true,
+        isAdmin: false,
       });
       persistAuthState(null);
     }
@@ -381,6 +430,7 @@ function App() {
       currentUser: null,
       userAttributes: null,
       isInitialized: true,
+      isAdmin: false,
     });
     persistAuthState(null);
   };
@@ -419,10 +469,26 @@ function App() {
     );
   }
 
+  const currentPathname = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
+
+  if (currentPathname.startsWith('/admin')) {
+    return (
+      <AdminDashboardRoute
+        isAuthenticated={isAuthenticated}
+        isAdmin={isAdmin}
+        onSignOut={isAuthenticated ? handleSignOut : undefined}
+        profilePath={getProfileRoutePath(profileCache?.username || userAttributes?.nickname || currentUser?.username)}
+        profileLabel={profileCache?.displayName || userAttributes?.nickname || userAttributes?.email?.split('@')[0] || currentUser?.username || 'Admin'}
+        profileAvatar={profileCache?.avatar || userAttributes?.['custom:avatar'] || null}
+      />
+    );
+  }
+
   return (
     <div className="h-screen overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
+        isAdmin={isAdmin}
         currentUser={currentUser}
         userAttributes={userAttributes}
         onRequestAuth={() => setShowAuth(true)}
