@@ -1,7 +1,6 @@
 import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../data/resource';
-import { env } from '$amplify/env/admin-actions';
 import AWS from 'aws-sdk';
 
 type Event = {
@@ -19,8 +18,8 @@ Amplify.configure(
   {
     API: {
       GraphQL: {
-        endpoint: env.data_GRAPHQL_ENDPOINT,
-        region: env.AWS_REGION,
+        endpoint: process.env.DATA_GRAPHQL_ENDPOINT!,
+        region: process.env.AWS_REGION!,
         defaultAuthMode: 'identityPool',
       },
     },
@@ -28,13 +27,24 @@ Amplify.configure(
   {
     Auth: {
       credentialsProvider: {
-        getCredentialsAndIdentityId: async () => ({
-          credentials: {
-            accessKeyId: env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-            sessionToken: env.AWS_SESSION_TOKEN,
-          },
-        }),
+        getCredentialsAndIdentityId: async () => {
+          const credentials = await new Promise<AWS.Credentials>((resolve, reject) => {
+            AWS.config.getCredentials((error) => {
+              if (error || !AWS.config.credentials) {
+                reject(error || new Error('AWS credentials are unavailable.'));
+                return;
+              }
+              resolve(AWS.config.credentials as AWS.Credentials);
+            });
+          });
+          return {
+            credentials: {
+              accessKeyId: credentials.accessKeyId,
+              secretAccessKey: credentials.secretAccessKey,
+              sessionToken: credentials.sessionToken,
+            },
+          };
+        },
         clearCredentialsAndIdentityId: () => undefined,
       },
     },
@@ -42,6 +52,33 @@ Amplify.configure(
 );
 
 const client = generateClient<Schema>();
+
+const errorText = (error: unknown): string => {
+  if (error instanceof Error) {
+    if (error.message && error.message !== '[object Object]') return error.message;
+    const details = Object.fromEntries(Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]));
+    if (Object.keys(details).length) return JSON.stringify(details);
+    return '';
+  }
+  if (error == null) return '';
+  if (typeof error === 'string') return error !== '[object Object]' ? error : '';
+  if (error && typeof error === 'object') {
+    const record = error as { message?: unknown; cause?: unknown; details?: unknown; errors?: unknown };
+    for (const nested of [record.message, record.cause, record.details, record.errors]) {
+      const message: string = errorText(nested);
+      if (message) return message;
+    }
+    try { return JSON.stringify(error) || ''; } catch { /* use fallback */ }
+  }
+  return 'The data operation failed.';
+};
+
+const request = async <T>(query: string, variables: Record<string, unknown>) => {
+  const result = await client.graphql({ query, variables }) as { data?: T; errors?: Array<{ message: string }> };
+  if (result.errors?.length) throw new Error(result.errors.map(errorText).join(', '));
+  if (!result.data) throw new Error('The data operation returned no result.');
+  return result.data;
+};
 
 const isAdmin = (event: Event) => {
   const groups = event.identity?.claims?.['cognito:groups'];
@@ -74,22 +111,21 @@ const cognitoUsername = async (event: Event, userId: string) => {
 };
 
 const audit = async (event: Event, action: string, targetType: string, targetId: string, before: unknown, after: unknown) => {
-  const result = await client.models.AdminAuditLog.create({
-    actorUserId: actorId(event),
-    action,
-    targetType,
-    targetId,
-    before: before as any,
-    after: after as any,
-    createdAt: new Date().toISOString(),
+  await request<{ createAdminAuditLog: unknown }>(`mutation CreateAdminAuditLog($input: CreateAdminAuditLogInput!) {
+    createAdminAuditLog(input: $input) { id }
+  }`, {
+    input: {
+      actorUserId: actorId(event), action, targetType, targetId,
+      before, after, createdAt: new Date().toISOString(),
+    },
   });
-  if (result.errors?.length) throw new Error(result.errors.map((error) => error.message).join(', '));
 };
 
 const findProfile = async (userId: string) => {
-  const result = await client.models.UserProfile.list({ filter: { userId: { eq: userId } } });
-  if (result.errors?.length) throw new Error(result.errors.map((error) => error.message).join(', '));
-  return result.data?.[0] ?? null;
+  const result = await request<{ listUserProfiles: { items: any[] } }>(`query ListUserProfiles($filter: ModelUserProfileFilterInput) {
+    listUserProfiles(filter: $filter) { items { id userId username displayName bio avatar isBanned isDeleted contentHidden moderationUpdatedAt moderationUpdatedBy } }
+  }`, { filter: { userId: { eq: userId } } });
+  return result.listUserProfiles.items[0] ?? null;
 };
 
 const moderateUser = async (event: Event, action: string, userId: string) => {
@@ -108,31 +144,27 @@ const moderateUser = async (event: Event, action: string, userId: string) => {
     moderationUpdatedBy: actorId(event),
   };
 
-  const updatedProfile = await client.models.UserProfile.update({ id: profile.id, ...next });
-  if (updatedProfile.errors?.length) throw new Error(updatedProfile.errors.map((error) => error.message).join(', '));
+  await request<{ updateUserProfile: unknown }>(`mutation UpdateUserProfile($input: UpdateUserProfileInput!) {
+    updateUserProfile(input: $input) { id }
+  }`, { input: { id: profile.id, ...next } });
 
   const [recipeResult, commentResult] = await Promise.all([
-    client.models.Recipe.list({ filter: { ownerId: { eq: userId } } }),
-    client.models.Comment.list({ filter: { userId: { eq: userId } } }),
+    request<{ listRecipes: { items: any[] } }>(`query ListRecipes($filter: ModelRecipeFilterInput) {
+      listRecipes(filter: $filter) { items { id ownerId } }
+    }`, { filter: { ownerId: { eq: userId } } }),
+    request<{ listComments: { items: any[] } }>(`query ListComments($filter: ModelCommentFilterInput) {
+      listComments(filter: $filter) { items { id userId } }
+    }`, { filter: { userId: { eq: userId } } }),
   ]);
-  if (recipeResult.errors?.length || commentResult.errors?.length) {
-    throw new Error([...recipeResult.errors ?? [], ...commentResult.errors ?? []].map((error) => error.message).join(', '));
-  }
 
   const hidden = next.contentHidden === true;
   await Promise.all([
-    ...(recipeResult.data ?? []).map((recipe) => client.models.Recipe.update({
-      id: recipe.id,
-      isHidden: hidden,
-      hiddenAt: hidden ? next.moderationUpdatedAt : null,
-      hiddenBy: hidden ? actorId(event) : null,
-    })),
-    ...(commentResult.data ?? []).map((comment) => client.models.Comment.update({
-      id: comment.id,
-      isHidden: hidden,
-      hiddenAt: hidden ? next.moderationUpdatedAt : null,
-      hiddenBy: hidden ? actorId(event) : null,
-    })),
+    ...(recipeResult.listRecipes.items ?? []).map((recipe) => request(`mutation UpdateRecipe($input: UpdateRecipeInput!) {
+      updateRecipe(input: $input) { id }
+    }`, { input: { id: recipe.id, isHidden: hidden, hiddenAt: hidden ? next.moderationUpdatedAt : null, hiddenBy: hidden ? actorId(event) : null } })),
+    ...(commentResult.listComments.items ?? []).map((comment) => request(`mutation UpdateComment($input: UpdateCommentInput!) {
+      updateComment(input: $input) { id }
+    }`, { input: { id: comment.id, isHidden: hidden, hiddenAt: hidden ? next.moderationUpdatedAt : null, hiddenBy: hidden ? actorId(event) : null } })),
   ]);
 
   if (action === 'ban' || action === 'delete') {
@@ -151,9 +183,11 @@ const transferOwnership = async (event: Event, transfers: Array<{ recipeId: stri
   if (uniqueRecipeIds.size !== transfers.length) throw new Error('A recipe may only appear once in a transfer batch.');
 
   const recipes = await Promise.all(transfers.map(async ({ recipeId }) => {
-    const result = await client.models.Recipe.get({ id: recipeId });
-    if (result.errors?.length || !result.data) throw new Error(`Recipe ${recipeId} could not be found.`);
-    return result.data;
+    const result = await request<{ getRecipe: any }>(`query GetRecipe($id: ID!) {
+      getRecipe(id: $id) { id ownerId }
+    }`, { id: recipeId });
+    if (!result.getRecipe) throw new Error(`Recipe ${recipeId} could not be found.`);
+    return result.getRecipe;
   }));
   const userIds = new Set(transfers.flatMap((transfer, index) => [recipes[index].ownerId, transfer.newOwnerId]));
   await Promise.all([...userIds].map(async (userId) => {
@@ -163,18 +197,15 @@ const transferOwnership = async (event: Event, transfers: Array<{ recipeId: stri
   const updatedRecipes: typeof recipes = [];
   try {
     for (const [index, recipe] of recipes.entries()) {
-      const result = await client.models.Recipe.update({
-        id: recipe.id,
-        ownerId: transfers[index].newOwnerId,
-      });
-      if (result.errors?.length) throw new Error(result.errors.map((error) => error.message).join(', '));
+      await request(`mutation UpdateRecipe($input: UpdateRecipeInput!) {
+        updateRecipe(input: $input) { id }
+      }`, { input: { id: recipe.id, ownerId: transfers[index].newOwnerId } });
       updatedRecipes.push(recipe);
     }
   } catch (transferError) {
-    await Promise.all(updatedRecipes.map((recipe) => client.models.Recipe.update({
-      id: recipe.id,
-      ownerId: recipe.ownerId,
-    })));
+    await Promise.all(updatedRecipes.map((recipe) => request(`mutation UpdateRecipe($input: UpdateRecipeInput!) {
+      updateRecipe(input: $input) { id }
+    }`, { input: { id: recipe.id, ownerId: recipe.ownerId } })));
     throw new Error(`Ownership transfer rolled back: ${transferError instanceof Error ? transferError.message : 'the update failed.'}`);
   }
 
@@ -186,11 +217,18 @@ const transferOwnership = async (event: Event, transfers: Array<{ recipeId: stri
 };
 
 export const handler = async (event: Event) => {
-  if (!isAdmin(event)) throw new Error('Administrator access is required.');
-  const action = event.arguments?.action;
-  if (!action) throw new Error('An admin action is required.');
-  if (action === 'transferOwnership') return transferOwnership(event, event.arguments?.transfers ?? []);
-  if (!event.arguments?.userId) throw new Error('A target user is required.');
-  if (!['delete', 'ban', 'unban', 'hideContent', 'restoreContent', 'restore'].includes(action)) throw new Error('Unsupported admin action.');
-  return moderateUser(event, action, event.arguments.userId);
+  try {
+    if (!isAdmin(event)) throw new Error('Administrator access is required.');
+    const action = event.arguments?.action;
+    if (!action) throw new Error('An admin action is required.');
+    if (action === 'transferOwnership') return transferOwnership(event, event.arguments?.transfers ?? []);
+    if (!event.arguments?.userId) throw new Error('A target user is required.');
+    if (!['delete', 'ban', 'unban', 'hideContent', 'restoreContent', 'restore'].includes(action)) throw new Error('Unsupported admin action.');
+    return moderateUser(event, action, event.arguments.userId);
+  } catch (error) {
+    return {
+      success: false,
+      message: errorText(error) || 'The admin action failed in the backend.',
+    };
+  }
 };

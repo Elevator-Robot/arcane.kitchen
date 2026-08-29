@@ -56,6 +56,7 @@ import {
   type UserProfile,
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
+import ProfileDropdown from './ProfileDropdown';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 
 const client: any = generateClient<Schema>();
@@ -757,7 +758,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(neutralImagePlaceholder);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(null);
   const [displayNameDraft, setDisplayNameDraft] = useState('');
   const [usernameDraft, setUsernameDraft] = useState('');
@@ -767,7 +767,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [profileData, setProfileData] = useState<any>(null);
   const [viewingProfileUsername, setViewingProfileUsername] = useState<string | null>(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const menuContainerRef = useRef<HTMLDivElement>(null);
   const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftHydratedRef = useRef(false);
   const tagColorsRef = useRef<Record<string, string>>({});
@@ -779,16 +778,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return tagColorsRef.current[key];
   };
 
-  useEffect(() => {
-    if (!showUserMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showUserMenu]);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
@@ -830,9 +819,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const isViewingExternalProfile = currentView === 'Profile' &&
     viewingProfileUsername !== null &&
     !isViewingOwnProfile;
-  const creatorName = getCreatorName(userAttributes, currentUser) !== 'Guest cook'
-    ? getCreatorName(userAttributes, currentUser)
-    : (cachedName || activeProfile?.displayName || 'Guest cook');
+  const creatorName = activeProfile?.displayName || cachedName || getCreatorName(userAttributes, currentUser);
 
   const avatarEntries = useMemo(
     () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, mod]) => ({
@@ -3523,84 +3510,15 @@ const expandedRecipeArticle = expandedRecipe ? (
               </button>
             </nav>
           </div>
-
           <div className="flex items-center gap-2">
             {onSignOut ? (
-              <div ref={menuContainerRef} className="relative">
-                <button
-                  onClick={() => setShowUserMenu((p) => !p)}
-                  className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-sm font-semibold text-white shadow-md">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                    ) : (
-                      creatorName.charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <span className={`max-w-[100px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 ${showUserMenu ? 'translate-x-1 text-[var(--theme-accent)]' : ''} group-hover:translate-x-1 group-hover:text-[var(--theme-accent)]`}>
-                    {creatorName}
-                  </span>
-                  <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showUserMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {showUserMenu && (
-                  <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
-                      <button
-                        onClick={() => {
-                          setViewingProfileUsername(null);
-                          setCurrentView('Profile');
-                          navigate(getProfileRoutePath(activeUsername));
-                          setViewingProfileUsername(activeUsername);
-                          setShowUserMenu(false);
-                        }}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                        </svg>
-                        Profile
-                      </button>
-                      {isAdmin && (
-                        <button
-                          onClick={() => {
-                            navigate('/admin');
-                            setShowUserMenu(false);
-                          }}
-                          className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                        >
-                          <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.5 12l1.7 1.7 3.3-3.4" />
-                          </svg>
-                          Admin dashboard
-                        </button>
-                      )}
-                      <div className="my-1 border-t border-[var(--theme-border)]" />
-                      <a
-                        href="https://x.com/ElevatorRobot"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                        </svg>
-                        Feedback & Support
-                      </a>
-                      <button
-                        onClick={onSignOut}
-                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
-                      >
-                        <svg className="h-4 w-4 text-[var(--theme-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                        </svg>
-                        Logout
-                      </button>
-                  </div>
-                )}
-              </div>
+              <ProfileDropdown
+                profilePath={getProfileRoutePath(activeUsername)}
+                profileLabel={creatorName}
+                profileAvatar={effectiveAvatar}
+                isAdmin={isAdmin}
+                onSignOut={onSignOut}
+              />
             ) : (
               <button
                 onClick={onRequestAuth}

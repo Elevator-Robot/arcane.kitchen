@@ -1,11 +1,12 @@
 import { defineData, defineFunction, a } from '@aws-amplify/backend';
 import { ClientSchema } from '@aws-amplify/backend';
-import { Aws, Duration } from 'aws-cdk-lib';
+import { Aws } from 'aws-cdk-lib';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { adminActions } from '../functions/admin-actions/resource';
 
 export const listAdminUsers = defineFunction((scope) => {
   const lambda = new NodejsFunction(scope, 'ListAdminUsers', {
@@ -16,22 +17,6 @@ export const listAdminUsers = defineFunction((scope) => {
   lambda.addToRolePolicy(new PolicyStatement({
     effect: Effect.ALLOW,
     actions: ['cognito-idp:ListUsers'],
-    resources: [`arn:aws:cognito-idp:${Aws.REGION}:${Aws.ACCOUNT_ID}:userpool/*`],
-  }));
-
-  return lambda;
-});
-
-export const adminActions = defineFunction((scope) => {
-  const lambda = new NodejsFunction(scope, 'AdminActions', {
-    entry: path.join(path.dirname(fileURLToPath(import.meta.url)), '../functions/admin-actions/handler.ts'),
-    runtime: Runtime.NODEJS_20_X,
-    timeout: Duration.seconds(30),
-  });
-
-  lambda.addToRolePolicy(new PolicyStatement({
-    effect: Effect.ALLOW,
-    actions: ['cognito-idp:AdminDisableUser', 'cognito-idp:AdminEnableUser', 'cognito-idp:ListUsers'],
     resources: [`arn:aws:cognito-idp:${Aws.REGION}:${Aws.ACCOUNT_ID}:userpool/*`],
   }));
 

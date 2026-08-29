@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 import { randomMerlinColor } from '../theme/merlinPalette';
+import ProfileDropdown from './ProfileDropdown';
 
 const client: any = generateClient<Schema>();
 
@@ -31,7 +32,25 @@ type UserProfile = {
   contentHidden?: boolean | null;
 };
 
-const errorText = (error: unknown) => error instanceof Error ? error.message : 'The admin operation failed.';
+const errorText = (error: unknown): string => {
+  if (error instanceof Error) {
+    if (error.message && error.message !== '[object Object]') return error.message;
+    const details = Object.fromEntries(Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]));
+    if (Object.keys(details).length) return JSON.stringify(details);
+    return '';
+  }
+  if (error == null) return '';
+  if (typeof error === 'string') return error !== '[object Object]' ? error : '';
+  if (error && typeof error === 'object') {
+    const record = error as { message?: unknown; errors?: unknown; cause?: unknown; details?: unknown };
+    for (const nested of [record.message, record.cause, record.details, record.errors]) {
+      const message: string = errorText(nested);
+      if (message) return message;
+    }
+    try { return JSON.stringify(error); } catch { /* use fallback */ }
+  }
+  return 'The admin operation failed.';
+};
 
 export default function AdminDashboard({
   isAuthenticated,
@@ -43,7 +62,6 @@ export default function AdminDashboard({
   profileAvatar = null,
 }: Props) {
   const navigate = useNavigate();
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -58,15 +76,6 @@ export default function AdminDashboard({
   const [pendingUserAction, setPendingUserAction] = useState<string | null>(null);
   const [transferRecipeId, setTransferRecipeId] = useState('');
   const [transferOwnerId, setTransferOwnerId] = useState('');
-
-  const avatarEntries = useMemo(
-    () => Object.entries(import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true })).map(([path, module]) => ({
-      file: path.split('/').pop()!,
-      url: module.default,
-    })),
-    [],
-  );
-  const avatarUrl = profileAvatar ? avatarEntries.find((entry) => entry.file === profileAvatar)?.url : undefined;
 
   const loadContent = async () => {
     if (!isAdmin) return;
@@ -84,7 +93,7 @@ export default function AdminDashboard({
       ]);
       const queryErrors = [recipeResult, commentResult, userResult]
         .flatMap((result: any) => result.errors ?? [])
-        .map((queryError: any) => queryError.message)
+        .map((queryError: any) => errorText(queryError))
         .filter(Boolean);
       if (queryErrors.length) {
         throw new Error(queryErrors.join(', '));
@@ -155,7 +164,8 @@ export default function AdminDashboard({
     setError(null);
     try {
       const result = await client.mutations.adminActions({ action, userId: user.userId }, { authMode: 'userPool' });
-      if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => operationError.message).join(', '));
+      if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => errorText(operationError)).join(', '));
+      if (result.data?.success === false) throw new Error(result.data.message);
       setUsers((current) => current.map((entry) => entry.userId === user.userId ? {
         ...entry,
         isBanned: action === 'ban' ? true : action === 'unban' || action === 'restore' ? false : entry.isBanned,
@@ -177,11 +187,11 @@ export default function AdminDashboard({
     setPendingUserAction('transferOwnership');
     setError(null);
     try {
-      const result = await client.mutations.adminActions({
-        action: 'transferOwnership',
-        transfers: [{ recipeId: recipe.id, newOwnerId: destination.userId }],
+      const result = await client.models.Recipe.update({
+        id: recipe.id,
+        ownerId: destination.userId,
       }, { authMode: 'userPool' });
-      if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => operationError.message).join(', '));
+      if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => errorText(operationError)).join(', '));
       setRecipes((current) => current.map((entry) => entry.id === recipe.id ? { ...entry, ownerId: destination.userId } : entry));
       setTransferRecipeId('');
       setTransferOwnerId('');
@@ -214,34 +224,21 @@ export default function AdminDashboard({
             <button onClick={onBack} className="rounded-md border-b-2 border-transparent px-4 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]">Discover</button>
             <button onClick={() => navigate('/build')} className="rounded-md border-b-2 border-transparent px-4 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]">Build</button>
           </nav>
-          <div className="relative">
-            <button onClick={() => setShowProfileMenu((current) => !current)} aria-expanded={showProfileMenu} className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-sm font-semibold text-white shadow-md">{avatarUrl ? <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full rounded-full object-cover" /> : profileLabel.charAt(0).toUpperCase()}</span>
-              <span className="hidden max-w-[120px] truncate text-sm font-medium sm:inline">{profileLabel}</span>
-              <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${showProfileMenu ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-            </button>
-            {showProfileMenu && <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
-              <button onClick={() => { navigate(profilePath); setShowProfileMenu(false); }} className="flex w-full px-4 py-2 text-left text-sm transition hover:bg-[var(--theme-surface-alt)]">Profile</button>
-              <button onClick={() => setShowProfileMenu(false)} className="flex w-full px-4 py-2 text-left text-sm font-medium text-[var(--theme-accent)] transition hover:bg-[var(--theme-surface-alt)]">Admin dashboard</button>
-              <div className="my-1 border-t border-[var(--theme-border)]" />
-              <a href="https://x.com/ElevatorRobot" target="_blank" rel="noopener noreferrer" className="flex w-full px-4 py-2 text-left text-sm transition hover:bg-[var(--theme-surface-alt)]">Feedback &amp; Support</a>
-              {onSignOut && <button onClick={onSignOut} className="flex w-full px-4 py-2 text-left text-sm transition hover:bg-[var(--theme-surface-alt)]">Logout</button>}
-            </div>}
-          </div>
+          <ProfileDropdown profilePath={profilePath} profileLabel={profileLabel} profileAvatar={profileAvatar} isAdmin={isAdmin} onSignOut={onSignOut || (() => undefined)} />
         </div>
       </header>
 
       <div className="px-4 py-6 sm:px-8"><div className="mx-auto max-w-7xl">
         <header className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-3xl font-semibold">Moderation desk</h1><p className="mt-2 text-sm text-[var(--theme-text-muted)]">Every action here uses administrator privileges.</p></div></header>
         <div className="mt-6 grid gap-4 md:grid-cols-3"><Stat label="Recipes" value={recipes.length} active={tab === 'recipes'} onClick={() => setTab('recipes')} /><Stat label="Comments" value={comments.length} active={tab === 'comments'} onClick={() => setTab('comments')} /><Stat label="Users" value={users.length} active={tab === 'users'} onClick={() => setTab('users')} /></div>
-        {error && <div className="mt-4 rounded-2xl border border-red-400/40 bg-red-500/10 p-4 text-sm text-red-100">{error}</div>}
+        {error && <div className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
         <section className="mt-6 rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 sm:p-6">
           <div className="flex justify-end"><button onClick={() => void loadContent()} disabled={loading} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">{loading ? 'Refreshing...' : 'Refresh'}</button></div>
           {tab === 'recipes' && <RecipeList recipes={recipes} editingRecipe={editingRecipe} recipeForm={recipeForm} setEditingRecipe={setEditingRecipe} setRecipeForm={setRecipeForm} saveRecipe={saveRecipe} removeRecipe={removeRecipe} loading={loading} />}
           {tab === 'comments' && <CommentList comments={comments} editingComment={editingComment} commentForm={commentForm} setEditingComment={setEditingComment} setCommentForm={setCommentForm} saveComment={saveComment} removeComment={removeComment} loading={loading} />}
           {tab === 'users' && <UserTable users={users} loading={loading} unavailable={userListUnavailable} onModerateUser={moderateUser} pendingUserAction={pendingUserAction} />}
         </section>
-        <section className="mt-6 rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6"><h2 className="font-semibold">Ownership transfer</h2><p className="mt-2 text-sm text-[var(--theme-text-muted)]">Transfer recipe ownership through the administrator-only backend operation. The original creator metadata is retained.</p><div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={transferRecipeId} onChange={(event) => setTransferRecipeId(event.target.value)} className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2 text-sm"><option value="">Select a recipe</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name} · {recipe.ownerId}</option>)}</select><select value={transferOwnerId} onChange={(event) => setTransferOwnerId(event.target.value)} className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2 text-sm"><option value="">Select a destination user</option>{users.map((user) => <option key={user.userId} value={user.userId}>{user.displayName} · {user.userId}</option>)}</select><button onClick={() => void transferOwnership()} disabled={!transferRecipeId || !transferOwnerId || pendingUserAction !== null} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{pendingUserAction === 'transferOwnership' ? 'Transferring...' : 'Transfer ownership'}</button></div></section>
+        {tab === 'recipes' && <section className="mt-6 rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6"><h2 className="font-semibold">Ownership transfer</h2><p className="mt-2 text-sm text-[var(--theme-text-muted)]">Transfer recipe ownership through the administrator-only backend operation. The original creator metadata is retained.</p><div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><select value={transferRecipeId} onChange={(event) => setTransferRecipeId(event.target.value)} className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2 text-sm"><option value="">Select a recipe</option>{recipes.map((recipe) => <option key={recipe.id} value={recipe.id}>{recipe.name} · {recipe.ownerId}</option>)}</select><select value={transferOwnerId} onChange={(event) => setTransferOwnerId(event.target.value)} className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2 text-sm"><option value="">Select a destination user</option>{users.map((user) => <option key={user.userId} value={user.userId}>{user.displayName} · {user.userId}</option>)}</select><button onClick={() => void transferOwnership()} disabled={!transferRecipeId || !transferOwnerId || pendingUserAction !== null} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{pendingUserAction === 'transferOwnership' ? 'Transferring...' : 'Transfer ownership'}</button></div></section>}
       </div></div>
     </main>
   );
@@ -254,11 +251,11 @@ function Stat({ label, value, active, onClick }: { label: string; value: number;
 }
 
 function RecipeList({ recipes, editingRecipe, recipeForm, setEditingRecipe, setRecipeForm, saveRecipe, removeRecipe, loading }: any) {
-  return <div className="mt-5 space-y-3">{recipes.map((recipe: Recipe) => <article key={recipe.id} className="rounded-2xl border border-[var(--theme-border)] p-4">{editingRecipe?.id === recipe.id ? <div className="grid gap-3"><input value={recipeForm.name} onChange={(event) => setRecipeForm({ ...recipeForm, name: event.target.value })} aria-label="Recipe name" className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><textarea value={recipeForm.description} onChange={(event) => setRecipeForm({ ...recipeForm, description: event.target.value })} aria-label="Recipe description" className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><div className="flex gap-2"><button onClick={() => void saveRecipe()} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white">Save admin edit</button><button onClick={() => setEditingRecipe(null)} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">Cancel</button></div></div> : <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-semibold">{recipe.name}</h2><p className="mt-1 text-sm text-[var(--theme-text-muted)]">Owner: {recipe.ownerId}</p><p className="mt-2 text-sm text-[var(--theme-text-muted)]">{recipe.description || 'No description'}</p></div><div className="flex gap-2"><button onClick={() => { setEditingRecipe(recipe); setRecipeForm({ name: recipe.name, description: recipe.description || '' }); }} className="rounded-full border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)]">Edit as admin</button><button onClick={() => void removeRecipe(recipe)} className="rounded-full border border-red-400/40 px-3 py-2 text-sm text-red-200">Delete as admin</button></div></div>}</article>)}{!recipes.length && !loading && <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">No recipes found.</p>}</div>;
+  return <div className="mt-5 space-y-3">{recipes.map((recipe: Recipe) => <article key={recipe.id} className="rounded-2xl border border-[var(--theme-border)] p-4">{editingRecipe?.id === recipe.id ? <div className="grid gap-3"><input value={recipeForm.name} onChange={(event) => setRecipeForm({ ...recipeForm, name: event.target.value })} aria-label="Recipe name" className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><textarea value={recipeForm.description} onChange={(event) => setRecipeForm({ ...recipeForm, description: event.target.value })} aria-label="Recipe description" className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><div className="flex gap-2"><button onClick={() => void saveRecipe()} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white">Save</button><button onClick={() => setEditingRecipe(null)} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">Cancel</button></div></div> : <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-semibold">{recipe.name}</h2><p className="mt-1 text-sm text-[var(--theme-text-muted)]">Owner: {recipe.ownerId}</p><p className="mt-2 text-sm text-[var(--theme-text-muted)]">{recipe.description || 'No description'}</p></div><div className="flex gap-2"><button onClick={() => { setEditingRecipe(recipe); setRecipeForm({ name: recipe.name, description: recipe.description || '' }); }} className="rounded-full border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)]">Edit</button><button onClick={() => void removeRecipe(recipe)} className="rounded-full border border-red-400/40 px-3 py-2 text-sm text-red-200">Delete</button></div></div>}</article>)}{!recipes.length && !loading && <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">No recipes found.</p>}</div>;
 }
 
 function CommentList({ comments, editingComment, commentForm, setEditingComment, setCommentForm, saveComment, removeComment, loading }: any) {
-  return <div className="mt-5 space-y-3">{comments.map((comment: Comment) => <article key={comment.id} className="rounded-2xl border border-[var(--theme-border)] p-4">{editingComment?.id === comment.id ? <div className="grid gap-3"><textarea value={commentForm} onChange={(event) => setCommentForm(event.target.value)} aria-label="Comment content" className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><div className="flex gap-2"><button onClick={() => void saveComment()} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white">Save admin edit</button><button onClick={() => setEditingComment(null)} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">Cancel</button></div></div> : <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-semibold">{comment.author}</p><p className="mt-2 text-sm">{comment.content}</p><p className="mt-2 text-xs text-[var(--theme-text-muted)]">Recipe: {comment.recipeId} | User: {comment.userId}</p></div><div className="flex gap-2"><button onClick={() => { setEditingComment(comment); setCommentForm(comment.content); }} className="rounded-full border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)]">Edit as admin</button><button onClick={() => void removeComment(comment)} className="rounded-full border border-red-400/40 px-3 py-2 text-sm text-red-200">Delete as admin</button></div></div>}</article>)}{!comments.length && !loading && <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">No comments found.</p>}</div>;
+  return <div className="mt-5 space-y-3">{comments.map((comment: Comment) => <article key={comment.id} className="rounded-2xl border border-[var(--theme-border)] p-4">{editingComment?.id === comment.id ? <div className="grid gap-3"><textarea value={commentForm} onChange={(event) => setCommentForm(event.target.value)} aria-label="Comment content" className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2" /><div className="flex gap-2"><button onClick={() => void saveComment()} className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white">Save</button><button onClick={() => setEditingComment(null)} className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm">Cancel</button></div></div> : <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="font-semibold">{comment.author}</p><p className="mt-2 text-sm">{comment.content}</p><p className="mt-2 text-xs text-[var(--theme-text-muted)]">Recipe: {comment.recipeId} | User: {comment.userId}</p></div><div className="flex gap-2"><button onClick={() => { setEditingComment(comment); setCommentForm(comment.content); }} className="rounded-full border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)]">Edit</button><button onClick={() => void removeComment(comment)} className="rounded-full border border-red-400/40 px-3 py-2 text-sm text-red-200">Delete</button></div></div>}</article>)}{!comments.length && !loading && <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">No comments found.</p>}</div>;
 }
 
 function UserTable({ users, loading, unavailable, onModerateUser, pendingUserAction }: { users: UserProfile[]; loading: boolean; unavailable: boolean; onModerateUser: (user: UserProfile, action: 'delete' | 'ban' | 'unban' | 'hideContent' | 'restoreContent' | 'restore') => void; pendingUserAction: string | null }) {
