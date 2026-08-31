@@ -19,6 +19,7 @@ import SignInForm from './components/SignInForm';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { randomMerlinColor } from './theme/merlinPalette';
 import { getProfileRoutePath, loadUserProfiles } from './utils/userProfiles';
+import { getUserFacingErrorMessage } from './utils/userFacingErrors';
 
 const authFormFields = {
   signIn: {
@@ -121,7 +122,7 @@ const authServices = {
         error?.name === 'NotAuthorizedException';
 
       if (!shouldCreateAccount) {
-        throw error;
+        throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
       }
 
       try {
@@ -150,10 +151,10 @@ const authServices = {
         } as any;
       } catch (signUpError: any) {
         if (signUpError?.name === 'UsernameExistsException') {
-          throw error;
+          throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
         }
 
-        throw signUpError;
+        throw new Error(getUserFacingErrorMessage(signUpError, 'Account creation failed. Please try again.'));
       }
     }
   },
@@ -178,7 +179,7 @@ const authServices = {
       });
     } catch (error: any) {
       if (!isAlreadyConfirmedError(error)) {
-        throw error;
+        throw new Error(getUserFacingErrorMessage(error, 'We could not verify your account. Please try again.'));
       }
 
       // The Authenticator can submit the confirmation callback twice. The

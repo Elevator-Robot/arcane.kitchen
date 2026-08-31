@@ -23,6 +23,16 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Included in recipe fingerprint for deduplication
 - Optional (empty if not provided)
 
+## User-Facing Errors
+
+- `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
+- Use `getUserFacingErrorMessage()` for UI messages and keep raw errors in `console.error` diagnostics only; do not render raw `error.message` or serialized error objects.
+
+## Cognito Hosted-UI Domains
+
+- The production `main-branch` stack owns the `arcanekitchen` Cognito domain prefix.
+- Other Amplify branch stacks receive a deterministic suffix; do not reuse the production prefix across branch deployments.
+
 ## Recipe Save Counts
 
 - Save counts ("hearts") are DERIVED from the `Favorite` records, not a stored counter: the count on a recipe is the number of `Favorite` rows whose `recipeId` matches it — i.e. how many people currently have it saved.
