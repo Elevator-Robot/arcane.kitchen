@@ -4,6 +4,7 @@ import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 import { randomMerlinColor } from '../theme/merlinPalette';
 import ProfileDropdown from './ProfileDropdown';
+import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
 const client: any = generateClient<Schema>();
 
@@ -32,25 +33,7 @@ type UserProfile = {
   contentHidden?: boolean | null;
 };
 
-const errorText = (error: unknown): string => {
-  if (error instanceof Error) {
-    if (error.message && error.message !== '[object Object]') return error.message;
-    const details = Object.fromEntries(Object.getOwnPropertyNames(error).map((key) => [key, (error as any)[key]]));
-    if (Object.keys(details).length) return JSON.stringify(details);
-    return '';
-  }
-  if (error == null) return '';
-  if (typeof error === 'string') return error !== '[object Object]' ? error : '';
-  if (error && typeof error === 'object') {
-    const record = error as { message?: unknown; errors?: unknown; cause?: unknown; details?: unknown };
-    for (const nested of [record.message, record.cause, record.details, record.errors]) {
-      const message: string = errorText(nested);
-      if (message) return message;
-    }
-    try { return JSON.stringify(error); } catch { /* use fallback */ }
-  }
-  return 'The admin operation failed.';
-};
+const errorText = (error: unknown) => getUserFacingErrorMessage(error, 'The admin operation could not be completed. Please try again.');
 
 export default function AdminDashboard({
   isAuthenticated,

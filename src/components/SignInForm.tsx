@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import Input from './ui/Input';
 import Button from './ui/Button';
+import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
 interface SignInFormProps {
   onSignInStart?: () => void;
@@ -35,7 +36,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
       });
     } catch (err: any) {
       setIsLoading(false);
-      setError(err?.message || 'Sign in failed. Please try again.');
+      setError(getUserFacingErrorMessage(err, 'Sign in failed. Please try again.'));
     }
   };
 

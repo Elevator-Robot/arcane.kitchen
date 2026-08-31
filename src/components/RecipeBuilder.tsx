@@ -58,6 +58,7 @@ import {
 import UserProfileView from './UserProfileView';
 import ProfileDropdown from './ProfileDropdown';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
+import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
@@ -2323,9 +2324,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     } catch (error) {
       console.error('Failed to save recipe:', error);
 
-      let message = isEditingRecipe
-        ? 'Update failed. Check your sandbox deployment and auth.'
-        : 'Publish failed. Check your sandbox deployment and auth.';
+      let message = getUserFacingErrorMessage(
+        error,
+        isEditingRecipe
+          ? 'Update failed. Check your sandbox deployment and auth.'
+          : 'Publish failed. Check your sandbox deployment and auth.'
+      );
 
       if (error instanceof Error) {
         if (error.message.includes('Missing bucket name')) {
