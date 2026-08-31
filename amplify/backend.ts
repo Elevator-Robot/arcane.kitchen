@@ -67,7 +67,7 @@ const getDomainPrefixForStack = (stackName: string) => {
 
   // The main branch owns the production hosted-UI domain. Amplify branch
   // stacks need unique prefixes because Cognito domains are region-scoped.
-  if (stackName.includes('main-branch')) {
+  if (process.env.AWS_BRANCH === 'main' || stackName.includes('main-branch')) {
     return COGNITO_DOMAIN_PREFIX;
   }
 
