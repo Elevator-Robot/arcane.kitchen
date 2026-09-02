@@ -22,10 +22,14 @@ Main fields:
 - `recipeNameKey`
 - `recipeFingerprint`
 - `ratings` (array of JSON values)
+- `isHidden`
+- `hiddenAt`
+- `hiddenBy`
 
 Auth:
 
 - Owner can create/update/delete/read
+- Members of the Cognito `Admins` group can create/update/delete/read
 - Authenticated users can read
 - Guests can read
 
@@ -73,9 +77,38 @@ Auth:
 
 - Owner-only access based on `userId`
 
+## `Comment`
+
+Purpose: stores comments attached to recipes.
+
+Main fields:
+
+- `id`
+- `recipeId` (required)
+- `userId` (required)
+- `author` (required)
+- `content` (required)
+- `parentId`
+- `isHidden`
+- `hiddenAt`
+- `hiddenBy`
+
+Auth:
+
+- Owner can create/update/delete/read
+- Members of the Cognito `Admins` group can create/update/delete/read
+- Authenticated users can read
+
+## Relationships at a glance
+
+- A recipe can have many linked ingredients through `RecipeIngredient`.
+- An ingredient can be reused across many recipes through `RecipeIngredient`.
+- A user can have many favorite recipes through `Favorite`.
+
 ## `UserProfile`
 
-Purpose: stores a user's public profile (display name, handle, bio, avatar) for `/u/:username` pages and recipe author attribution.
+Purpose: stores the public profile and moderation state for a user. Public
+profiles power `/u/:username` pages and recipe author attribution.
 
 Main fields:
 
@@ -86,21 +119,48 @@ Main fields:
 - `bio`
 - `avatar` (preset filename)
 - `needsUsernameSetup`
+- `isBanned`
+- `isDeleted`
+- `contentHidden`
+- `moderationUpdatedAt`
+- `moderationUpdatedBy`
 
 Indexes:
 
 - `secondaryIndexes([index('username'), index('userId')])`
 
+Username uniqueness is enforced server-side by
+`isUsernameTakenServerSide` (backend list check) on create/rename; a small
+race window is accepted because no Lambda is involved.
+
 Auth:
 
-- Owner-only writes via `ownerDefinedIn('userId')`
-- Authenticated users can read
-- Guests can read (so external profiles render logged-out)
+- Owners can create/update their profile through `ownerDefinedIn('userId')`
+- Authenticated users and guests can read public profiles
+- Members of the Cognito `Admins` group can access moderation operations
 
-Uniqueness: `username` uniqueness is enforced server-side by `isUsernameTakenServerSide` (backend list check) on create/rename; a tiny race window is accepted (no Lambda).
+## `AdminAuditLog`
 
-## Relationships at a glance
+Purpose: records admin moderation and ownership actions.
 
-- A recipe can have many linked ingredients through `RecipeIngredient`.
-- An ingredient can be reused across many recipes through `RecipeIngredient`.
-- A user can have many favorite recipes through `Favorite`.
+Main fields:
+
+- `actorUserId` (required)
+- `action` (required)
+- `targetType` (required)
+- `targetId` (required)
+- `before`
+- `after`
+- `createdAt` (required)
+
+Auth:
+
+- Members of the Cognito `Admins` group can read audit records
+
+## Admin authorization
+
+- The Cognito `Admins` group has backend-authorized mutation access to
+  `Recipe` and `Comment` records, including records the admin does not own.
+- Moderation fields, `UserProfile`, and `AdminAuditLog` are now represented in
+  the schema; privileged moderation functions and content filtering are still
+  implementation work.

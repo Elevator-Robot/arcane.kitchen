@@ -23,6 +23,16 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Included in recipe fingerprint for deduplication
 - Optional (empty if not provided)
 
+## User-Facing Errors
+
+- `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
+- Use `getUserFacingErrorMessage()` for UI messages and keep raw errors in `console.error` diagnostics only; do not render raw `error.message` or serialized error objects.
+
+## Cognito Hosted-UI Domains
+
+- The production `main-branch` stack owns the `arcanekitchen` Cognito domain prefix.
+- Other Amplify branch stacks receive a deterministic suffix; do not reuse the production prefix across branch deployments.
+
 ## Recipe Save Counts
 
 - Save counts ("hearts") are DERIVED from the `Favorite` records, not a stored counter: the count on a recipe is the number of `Favorite` rows whose `recipeId` matches it — i.e. how many people currently have it saved.
@@ -38,8 +48,9 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
   - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
   - `/u/:username` (`getProfileUsernameFromPath`) → Profile view.
-  - `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` keeps `currentView` (localStorage-restored internal views like self-profile).
+  - `/discover` `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` redirects to `/discover`.
 - Closing the modal navigates back to the bare base path (legacy `/recipe/:id` deep links fall back to Home on close).
+- A `/u/:username` route matching the signed-in user's normalized username renders the editable private profile view, including published recipes, drafts, and saved recipes; other matching profiles render the read-only public view.
 - `UserProfileView`'s `RecipeCard` click must only fall back to `window.location.assign('/recipe/<id>')` when there is NO `onOpenRecipe` handler — never use `onOpenRecipe?.(id) ?? window.location.assign(...)`, because `onOpenRecipe` returns `undefined` (void) and `??` would then always hard-navigate to the legacy deep-link route, forcing a `Recipe.get` load instead of the in-place modal.
 - The route-sync `useEffect` (`syncRecipeRoute`) must NOT re-open a recipe that was just dismissed: the effect depends on `expandedRecipeId`, so `collapseExpandedRecipe` sets `justClosedRecipeIdRef` to the id being closed and the effect skips re-expanding that id while the URL's `?recipe=` param is still pending a `navigate` flush. Without this guard, closing would reset `expandedRecipeId` → the effect re-runs → finds the recipe still in the URL → reopens the modal.
 - Keep all URL writes on `navigate()`/`useNavigate()` — do NOT mix raw `history.pushState`/`replaceState` with the router.
@@ -77,6 +88,7 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Profile navigation tabs use a cool-to-warm left-to-right progression from the same palette: Recipes, Drafts, then Saved.
 - The `Preparing your kitchen…` loading message uses one random Merlin palette color per display and has no surrounding card container.
 - The sign-in button (`Button` primary variant in `src/components/ui/Button.tsx`) uses amethyst/indigo tones from the palette.
+- Active and selected controls use `randomMerlinColor()` from `src/theme/merlinPalette.ts`; do not add hard-coded orange or brown button states.
 
 ## Service Worker (PWA)
 
@@ -84,6 +96,18 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Why: `sw.js` serves every same-origin GET cache-first, including Vite dev modules (`/node_modules/.vite/deps/*`). Caching those across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
 - Caches left behind by an unregistered dev SW can hold stale/mangled copies of unhashed source modules (e.g. the old pre-router `RecipeBuilder.tsx`), so dev boot also runs `caches.delete()` on every recognized cache name.
 - If the dev console still shows the duplicate-React error after a code fix, unregister the SW + clear site data once (DevTools → Application → Service Workers).
+
+## Admin Dashboard
+
+- Planning and progress are tracked in `docs/admin-dashboard.md`.
+- Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
+- Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.
+- The initial protected admin UI is available at `/admin` and reads the live Cognito session group claim; group membership is not persisted in localStorage.
+- Primary navigation routes are consistent: Discover is `/discover`, Build is `/build`, and the admin dashboard is `/admin` from the profile dropdown.
+- The authenticated profile dropdown is shared by the main app and admin dashboard through `src/components/ProfileDropdown.tsx`; keep its identity data, menu items, icons, and styling consistent across routes.
+- User deletion, banning, content hiding, restoration, audit logging, and ownership transfers use the admin-only `adminActions` backend mutation; public feed filtering and a fully atomic multi-record ownership transaction remain follow-up work.
+- `Recipe` and `Comment` include moderation visibility metadata; `UserProfile` stores moderation state and `AdminAuditLog` stores admin-action history. Privileged operations and feed filtering must still be backend-enforced before these fields are used in production flows.
+- The admin Users tab reads all Cognito users through the admin-authorized `listAdminUsers` query; `UserProfile` remains the source for app profile and moderation metadata.
 
 ## Agent checklist for every PR
 

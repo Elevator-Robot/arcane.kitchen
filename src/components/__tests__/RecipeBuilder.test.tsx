@@ -200,7 +200,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(await screen.findByText('Test Recipe'));
 
     expect(window.location.pathname + window.location.search).toBe(
-      '/?recipe=recipe-1'
+      '/discover?recipe=recipe-1'
     );
   });
 
@@ -223,7 +223,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(card);
 
     expect(window.location.pathname + window.location.search).toBe(
-      '/?recipe=recipe-1'
+      '/u/test?recipe=recipe-1'
     );
   });
 

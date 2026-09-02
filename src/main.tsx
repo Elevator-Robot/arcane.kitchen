@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import App from './App.tsx';
+import { AppRouteAware } from './App.tsx';
 import './index.css';
 import { Amplify } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
@@ -72,7 +72,7 @@ const bootstrap = async () => {
     <React.StrictMode>
       <BrowserRouter>
         <div className="min-h-screen overflow-x-hidden">
-          <App />
+          <AppRouteAware />
         </div>
       </BrowserRouter>
     </React.StrictMode>

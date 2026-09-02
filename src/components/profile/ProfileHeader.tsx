@@ -12,6 +12,7 @@ import {
   isUsernameChangeAllowed,
   USERNAME_CHANGE_COOLDOWN_DAYS,
 } from '../../utils/userProfiles';
+import { randomMerlinColor } from '../../theme/merlinPalette';
 
 type Props = {
   user: User;
@@ -19,7 +20,6 @@ type Props = {
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
   onProfileUpdated?: (next: {
-    name?: string;
     handle?: string;
     bio?: string;
   }) => void;
@@ -33,10 +33,9 @@ export default function ProfileHeader({
   onProfileUpdated,
 }: Props) {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [actionColor] = useState(randomMerlinColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingHandle, setIsEditingHandle] = useState(false);
-  const [draftName, setDraftName] = useState(user.name || '');
   const [draftHandle, setDraftHandle] = useState(user.handle || '');
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
@@ -53,7 +52,7 @@ export default function ProfileHeader({
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: `${user.name} on Arcane Kitchen`, url });
+        await navigator.share({ title: `@${user.handle} on Arcane Kitchen`, url });
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
@@ -91,7 +90,7 @@ export default function ProfileHeader({
           <div className="relative">
             <img
               src={user.avatarUrl || '/api/placeholder/160/160'}
-              alt={user.name}
+              alt={`@${user.handle}`}
               className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-md"
             />
             {isOwnProfile && (
@@ -100,65 +99,12 @@ export default function ProfileHeader({
                 className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow border border-gray-200"
                 aria-label="update avatar"
               >
-                <Camera className="w-4 h-4 text-[#945d3f]" />
+                <Camera className="w-4 h-4" style={{ color: actionColor }} />
               </button>
             )}
           </div>
 
           <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              {!isEditingName ? (
-                <>
-                  <h1 className="text-3xl font-bold text-[#1c1917] truncate">
-                    {user.name}
-                  </h1>
-                  {isOwnProfile && (
-                    <button
-                      onClick={() => setIsEditingName(true)}
-                      aria-label="edit display name"
-                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <input
-                    value={draftName}
-                    onChange={(e) => setDraftName(e.target.value)}
-                    className="px-2 py-1 border rounded"
-                  />
-                  <button
-                    onClick={() => {
-                      const userId = String(user.id || 'current');
-                      const profiles = loadUserProfiles();
-                      const updated = upsertUserProfile(profiles, {
-                        userId,
-                        displayName: draftName,
-                      });
-                      saveUserProfiles(updated);
-                      setIsEditingName(false);
-                      if (onProfileUpdated)
-                        onProfileUpdated({ name: draftName });
-                    }}
-                    className="px-3 py-1 bg-[#945d3f] text-white rounded"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsEditingName(false);
-                      setDraftName(user.name || '');
-                    }}
-                    className="px-3 py-1 border rounded"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-
             <div className="flex items-center gap-2 mt-2">
               {!isEditingHandle ? (
                 <>
@@ -238,7 +184,8 @@ export default function ProfileHeader({
                       if (onProfileUpdated)
                         onProfileUpdated({ handle: desired });
                     }}
-                    className="px-3 py-1 bg-[#945d3f] text-white rounded"
+                    style={{ backgroundColor: actionColor }}
+                    className="px-3 py-1 text-white rounded"
                   >
                     Save
                   </button>
@@ -317,7 +264,8 @@ export default function ProfileHeader({
                         if (onProfileUpdated)
                           onProfileUpdated({ bio: draftBio });
                       }}
-                      className="px-3 py-1 bg-[#945d3f] text-white rounded"
+                      style={{ backgroundColor: actionColor }}
+                      className="px-3 py-1 text-white rounded"
                     >
                       Save
                     </button>
@@ -393,7 +341,8 @@ export default function ProfileHeader({
                       setShowAvatarModal(false);
                     }
                   }}
-                  className="rounded px-3 py-1 bg-[#945d3f] text-white"
+                  style={{ backgroundColor: actionColor }}
+                  className="rounded px-3 py-1 text-white"
                 >
                   Save Picture
                 </button>

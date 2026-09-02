@@ -2,7 +2,10 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { storage } from './storage/resource';
-import { Aspects, CfnResource, Tags, CfnOutput } from 'aws-cdk-lib';
+import { adminActions } from './functions/admin-actions/resource';
+import { Aspects, Aws, CfnResource, Tags, CfnOutput } from 'aws-cdk-lib';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Function as LambdaFunction } from 'aws-cdk-lib/aws-lambda';
 import type { IConstruct } from 'constructs';
 import { Distribution, ViewerProtocolPolicy, PriceClass } from 'aws-cdk-lib/aws-cloudfront';
 import { S3Origin } from 'aws-cdk-lib/aws-cloudfront-origins';
@@ -11,7 +14,18 @@ const backend = defineBackend({
   auth,
   data,
   storage,
+  adminActions,
 });
+
+backend.adminActions.resources.lambda.addToRolePolicy(new PolicyStatement({
+  effect: Effect.ALLOW,
+  actions: ['cognito-idp:AdminDisableUser', 'cognito-idp:AdminEnableUser', 'cognito-idp:ListUsers'],
+  resources: [`arn:aws:cognito-idp:${Aws.REGION}:${Aws.ACCOUNT_ID}:userpool/*`],
+}));
+ (backend.adminActions.resources.lambda as LambdaFunction).addEnvironment(
+  'DATA_GRAPHQL_ENDPOINT',
+  backend.data.resources.cfnResources.cfnGraphqlApi.attrGraphQlUrl,
+);
 
 const cdn = new Distribution(backend.storage.stack, 'RecipeImagesCDN', {
   defaultBehavior: {
@@ -51,7 +65,9 @@ const getDomainPrefixForStack = (stackName: string) => {
     );
   }
 
-  if (!stackName.includes('sandbox')) {
+  // The main branch owns the production hosted-UI domain. Amplify branch
+  // stacks need unique prefixes because Cognito domains are region-scoped.
+  if (process.env.AWS_BRANCH === 'main' || stackName.includes('main-branch')) {
     return COGNITO_DOMAIN_PREFIX;
   }
 
