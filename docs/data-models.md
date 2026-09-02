@@ -107,16 +107,17 @@ Auth:
 
 ## `UserProfile`
 
-Purpose: stores the backend profile and moderation state for an authenticated
-user.
+Purpose: stores the public profile and moderation state for a user. Public
+profiles power `/u/:username` pages and recipe author attribution.
 
 Main fields:
 
-- `userId` (required)
-- `username` (required)
+- `id` (auto-generated)
+- `userId` (required, owner)
+- `username` (required; GSI key — renames delete + recreate the row, cannot UpdateItem a GSI key)
 - `displayName` (required)
 - `bio`
-- `avatar`
+- `avatar` (preset filename)
 - `needsUsernameSetup`
 - `isBanned`
 - `isDeleted`
@@ -124,10 +125,19 @@ Main fields:
 - `moderationUpdatedAt`
 - `moderationUpdatedBy`
 
+Indexes:
+
+- `secondaryIndexes([index('username'), index('userId')])`
+
+Username uniqueness is enforced server-side by
+`isUsernameTakenServerSide` (backend list check) on create/rename; a small
+race window is accepted because no Lambda is involved.
+
 Auth:
 
-- Owner can read/create/update their profile
-- Members of the Cognito `Admins` group can read/create/update profiles
+- Owners can create/update their profile through `ownerDefinedIn('userId')`
+- Authenticated users and guests can read public profiles
+- Members of the Cognito `Admins` group can access moderation operations
 
 ## `AdminAuditLog`
 

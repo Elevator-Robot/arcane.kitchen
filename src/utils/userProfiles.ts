@@ -23,7 +23,11 @@ export const sanitizeUsername = (value: string) =>
 
 export const validateUsername = (value: string) => {
   const normalized = value.trim().toLowerCase();
-  return normalized.length >= 3 && normalized.length <= 20 && /^[a-z0-9_]+$/.test(normalized);
+  return (
+    normalized.length >= 3 &&
+    normalized.length <= 20 &&
+    /^[a-z0-9_]+$/.test(normalized)
+  );
 };
 
 export const validateDisplayName = (value: string) => {
@@ -33,7 +37,10 @@ export const validateDisplayName = (value: string) => {
 
 export const USERNAME_CHANGE_COOLDOWN_DAYS = 30;
 
-export const isUsernameTaken = (username: string, existingUsernames: string[]) => {
+export const isUsernameTaken = (
+  username: string,
+  existingUsernames: string[]
+) => {
   const normalized = username.trim().toLowerCase();
   return existingUsernames.some(
     (existing) => existing.trim().toLowerCase() === normalized
@@ -42,16 +49,17 @@ export const isUsernameTaken = (username: string, existingUsernames: string[]) =
 
 export const isUsernameChangeAllowed = (
   profile: UserProfile,
-  desiredUsername: string,
+  desiredUsername: string
 ) => {
   const normalized = sanitizeUsername(desiredUsername);
   if (profile.username === normalized) return true;
   // Prefer numeric timestamp `lastUsernameChange` when available
-  const lastChangeMs = typeof profile.lastUsernameChange === 'number'
-    ? profile.lastUsernameChange
-    : profile.usernameUpdatedAt
-    ? Date.parse(profile.usernameUpdatedAt)
-    : NaN;
+  const lastChangeMs =
+    typeof profile.lastUsernameChange === 'number'
+      ? profile.lastUsernameChange
+      : profile.usernameUpdatedAt
+        ? Date.parse(profile.usernameUpdatedAt)
+        : NaN;
 
   if (!lastChangeMs || Number.isNaN(lastChangeMs)) return true;
 
@@ -89,7 +97,10 @@ export const validateProfileIdentity = ({
     .filter((entry) => entry.userId !== userId)
     .map((entry) => entry.username);
 
-  if (isUsernameTaken(nextUsername, existingUsernames) && profile?.username !== nextUsername) {
+  if (
+    isUsernameTaken(nextUsername, existingUsernames) &&
+    profile?.username !== nextUsername
+  ) {
     return 'That username is already taken. Please choose another.';
   }
 
@@ -122,7 +133,9 @@ export const buildSuggestedUsername = (
     'flavor_wright',
   ];
 
-  const normalizedExisting = new Set(existingUsernames.map((name) => name.toLowerCase()));
+  const normalizedExisting = new Set(
+    existingUsernames.map((name) => name.toLowerCase())
+  );
 
   // Prefer a sanitized display name if it produces a usable handle
   const namePart = sanitizeUsername(displayName).replace(/^cook$/, '');
@@ -170,7 +183,10 @@ export const saveUserProfiles = (profiles: Record<string, UserProfile>) => {
   if (typeof window === 'undefined') return;
 
   try {
-    window.localStorage.setItem(USER_PROFILES_STORAGE_KEY, JSON.stringify(profiles));
+    window.localStorage.setItem(
+      USER_PROFILES_STORAGE_KEY,
+      JSON.stringify(profiles)
+    );
   } catch {
     // ignore storage failures
   }
@@ -199,14 +215,21 @@ const isGoogleUser = (userAttributes?: Record<string, unknown> | null) => {
 
   if (Array.isArray(identities)) {
     return identities.some((entry) => {
-      const provider = (entry as { providerName?: string; provider?: string } | null)?.providerName || (entry as { providerName?: string; provider?: string } | null)?.provider;
+      const provider =
+        (entry as { providerName?: string; provider?: string } | null)
+          ?.providerName ||
+        (entry as { providerName?: string; provider?: string } | null)
+          ?.provider;
       return provider?.toLowerCase() === 'google';
     });
   }
 
   if (typeof identities === 'string') {
     try {
-      const parsed = JSON.parse(identities) as Array<{ providerName?: string; provider?: string }>;
+      const parsed = JSON.parse(identities) as Array<{
+        providerName?: string;
+        provider?: string;
+      }>;
       return parsed.some((entry) => {
         const provider = entry.providerName || entry.provider;
         return provider?.toLowerCase() === 'google';
@@ -223,7 +246,8 @@ export const getUsernameFromAuth = (
   currentUser?: { username?: string | null } | null,
   userAttributes?: Record<string, unknown> | null
 ) => {
-  const explicitUsername = (userAttributes?.username as string | undefined) || '';
+  const explicitUsername =
+    (userAttributes?.username as string | undefined) || '';
   if (explicitUsername) return sanitizeUsername(explicitUsername);
 
   const preferredDisplay =
@@ -238,7 +262,9 @@ export const getUsernameFromAuth = (
   const email = (userAttributes?.email as string | undefined) || '';
   if (email) return sanitizeUsername(email.split('@')[0] || 'cook');
 
-  return sanitizeUsername((currentUser?.username as string | undefined) || 'cook');
+  return sanitizeUsername(
+    (currentUser?.username as string | undefined) || 'cook'
+  );
 };
 
 export const upsertUserProfile = (
@@ -258,36 +284,52 @@ export const upsertUserProfile = (
   // Prefer an explicit value, then a previously saved name, then an
   // auth-derived one. Auth fallbacks can report 'Cook' (getDisplayNameFromAuth)
   // and must never clobber a name the user has already set.
-  const nextDisplayName = input.displayName || existing?.displayName || getDisplayNameFromAuth(input.currentUser, input.userAttributes) || 'Cook';
+  const nextDisplayName =
+    input.displayName ||
+    existing?.displayName ||
+    getDisplayNameFromAuth(input.currentUser, input.userAttributes) ||
+    'Cook';
   const nextUsername =
-    input.username || existing?.username || getUsernameFromAuth(input.currentUser, input.userAttributes) || sanitizeUsername(nextDisplayName);
+    input.username ||
+    existing?.username ||
+    getUsernameFromAuth(input.currentUser, input.userAttributes) ||
+    sanitizeUsername(nextDisplayName);
 
   const normalizedUsername = sanitizeUsername(nextUsername);
   // Decide whether we should prompt the user to set a username.
   // Avoid prompting repeatedly: only prompt for genuinely new profiles that
   // lack any reasonable username suggestion and when the caller hasn't
   // explicitly requested a prompt. Preserve any existing preference.
-  const usernameFromAuth = getUsernameFromAuth(input.currentUser, input.userAttributes);
+  const usernameFromAuth = getUsernameFromAuth(
+    input.currentUser,
+    input.userAttributes
+  );
   const isNewProfile = !existing;
   const shouldPromptForUsername =
     typeof input.needsUsernameSetup === 'boolean'
       ? input.needsUsernameSetup
       : typeof existing?.needsUsernameSetup === 'boolean'
-      ? existing.needsUsernameSetup
-      : (
-        // prompt only for new profiles with no provided username and no
-        // meaningful suggested username from auth; do not auto-prompt for
-        // Google-authenticated users or when auth suggests a usable name.
-        isNewProfile &&
-        !input.username &&
-        (!usernameFromAuth || usernameFromAuth === 'cook') &&
-        !isGoogleUser(input.userAttributes)
-      );
+        ? existing.needsUsernameSetup
+        : // prompt only for new profiles with no provided username and no
+          // meaningful suggested username from auth; do not auto-prompt for
+          // Google-authenticated users or when auth suggests a usable name.
+          isNewProfile &&
+          !input.username &&
+          (!usernameFromAuth || usernameFromAuth === 'cook') &&
+          !isGoogleUser(input.userAttributes);
 
   const usernameForProfile = normalizedUsername || existing?.username || 'cook';
-  const usernameChanged = Boolean(existing?.username && existing.username !== usernameForProfile);
-  const nextUsernameUpdatedAt = usernameChanged || !existing?.username ? new Date().toISOString() : existing?.usernameUpdatedAt;
-  const nextLastUsernameChange = usernameChanged || !existing?.username ? Date.now() : existing?.lastUsernameChange;
+  const usernameChanged = Boolean(
+    existing?.username && existing.username !== usernameForProfile
+  );
+  const nextUsernameUpdatedAt =
+    usernameChanged || !existing?.username
+      ? new Date().toISOString()
+      : existing?.usernameUpdatedAt;
+  const nextLastUsernameChange =
+    usernameChanged || !existing?.username
+      ? Date.now()
+      : existing?.lastUsernameChange;
 
   const nextProfile: UserProfile = {
     userId: input.userId,
@@ -340,59 +382,233 @@ export const getProfileUsernameFromPath = (pathname?: string | null) => {
   return decodeURIComponent(match[1]);
 };
 
-export const getProfileShareUrl = (username?: string | null, origin = typeof window !== 'undefined' ? window.location.origin : 'https://arcane.kitchen') => {
+export const getProfileShareUrl = (
+  username?: string | null,
+  origin = typeof window !== 'undefined'
+    ? window.location.origin
+    : 'https://arcane.kitchen'
+) => {
   const normalized = sanitizeUsername(username || '');
   if (!normalized) return '';
   return `${origin}${getProfileRoutePath(normalized)}`;
 };
 
-export const syncUserProfilesToBackend = async (profiles: Record<string, UserProfile>, client: any) => {
-  if (!client?.models?.UserProfile) return;
+export type BackendUserProfileRecord = {
+  id?: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  bio?: string | null;
+  avatar?: string | null;
+  needsUsernameSetup?: boolean | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+/**
+ * Map a backend UserProfile record into the app's UserProfile shape used by the
+ * UI. Backend fields that are optional/nullable are normalized to the local
+ * defaults so callers can rely on stable types.
+ */
+export const userProfileFromBackend = (
+  record: BackendUserProfileRecord
+): UserProfile => ({
+  userId: record.userId,
+  username: record.username,
+  displayName: record.displayName,
+  bio: record.bio ?? '',
+  avatar: record.avatar ?? null,
+  createdAt: record.createdAt ?? new Date(0).toISOString(),
+  updatedAt: record.updatedAt ?? new Date(0).toISOString(),
+  needsUsernameSetup: Boolean(record.needsUsernameSetup),
+});
+
+export type UserProfileIndex = {
+  byUserId: Record<string, UserProfile>;
+  byUsername: Record<string, UserProfile>;
+};
+
+/**
+ * Build userId→profile and username→profile lookup maps from a list of
+ * backend profile records. Usernames are keyed by their sanitized form so
+ * lookups from routes (/u/:handle) and from Recipe.ownerId both resolve.
+ */
+export const indexUserProfiles = (
+  profiles: UserProfile[]
+): UserProfileIndex => {
+  const byUserId: Record<string, UserProfile> = {};
+  const byUsername: Record<string, UserProfile> = {};
+
+  for (const profile of profiles) {
+    if (profile.userId) byUserId[String(profile.userId)] = profile;
+    if (profile.username)
+      byUsername[sanitizeUsername(profile.username)] = profile;
+  }
+
+  return { byUserId, byUsername };
+};
+
+const toBackendProfileRecord = (profile: UserProfile) => ({
+  userId: profile.userId,
+  username: profile.username,
+  displayName: profile.displayName,
+  bio: profile.bio || undefined,
+  avatar: profile.avatar || undefined,
+  needsUsernameSetup: profile.needsUsernameSetup,
+});
+
+const DEFAULT_AUTH_MODE = 'userPool';
+
+/**
+ * Server-side availability check for a username. Uses the backend username
+ * index so collisions are detected across all users/devices, not just the
+ * profiles cached in the current browser.
+ */
+export const isUsernameTakenServerSide = async (
+  username: string,
+  excludeUserId?: string | null,
+  client?: any
+) => {
+  const normalized = sanitizeUsername(username);
+  if (!normalized || !client?.models?.UserProfile) return false;
 
   try {
-    type UserProfileBackendRecord = UserProfile & { id?: string };
-
-    const { data: existingProfiles = [] } = await client.models.UserProfile.list({ authMode: 'userPool' });
-    const existingByUserId = new Map(
-      (existingProfiles as UserProfileBackendRecord[]).map((profile) => [profile.userId, profile])
+    const { data = [], errors } = await client.models.UserProfile.list({
+      filter: { username: { eq: normalized } },
+      authMode: DEFAULT_AUTH_MODE,
+    });
+    if (errors?.length) return false;
+    return data.some(
+      (profile: any) => String(profile.userId) !== String(excludeUserId)
     );
+  } catch {
+    return false;
+  }
+};
 
-    for (const [userId, profile] of Object.entries(profiles)) {
-      const current = existingByUserId.get(userId) as UserProfileBackendRecord | undefined;
-      if (current?.username === profile.username && current?.displayName === profile.displayName && current?.avatar === profile.avatar && current?.bio === profile.bio) {
-        continue;
-      }
+/**
+ * Fetch a single public profile by username (handle). Works for guests via the
+ * identityPool read role and for authenticated users via userPool.
+ */
+export const getUserProfileByUsername = async (
+  username: string,
+  client?: any,
+  authMode: 'userPool' | 'identityPool' = DEFAULT_AUTH_MODE
+): Promise<UserProfile | null> => {
+  const normalized = sanitizeUsername(username);
+  if (!normalized || !client?.models?.UserProfile) return null;
 
-      if (current?.id) {
+  try {
+    const { data = [], errors } = await client.models.UserProfile.list({
+      filter: { username: { eq: normalized } },
+      authMode,
+    });
+    if (errors?.length) return null;
+    const first = data[0];
+    return first ? userProfileFromBackend(first) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Fetch all public profiles from the backend. Used to build the author→profile
+ * hydration map for the recipe feed. Best-effort: returns [] on any failure so
+ * callers can fall back to the local cache.
+ */
+export const listUserProfilesFromBackend = async (
+  client?: any,
+  authMode: 'userPool' | 'identityPool' = DEFAULT_AUTH_MODE
+): Promise<UserProfile[]> => {
+  if (!client?.models?.UserProfile) return [];
+
+  try {
+    const { data = [], errors } = await client.models.UserProfile.list({
+      authMode,
+    });
+    if (errors?.length) return [];
+    return data.map((record: any) => userProfileFromBackend(record));
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Persist profile changes to the backend UserProfile model (best-effort).
+ *
+ * - Only the profile(s) owned by `ownerUserId` are reconciled, so this helper
+ *   can never create or overwrite another user's record.
+ * - Username changes must delete + recreate the row because `username` is a GSI
+ *   key and cannot be updated in place by DynamoDB.
+ * - A server-side availability check rejects a handle that another user has
+ *   already claimed (the local-only check remains for instant UX feedback).
+ *
+ * localStorage stays a cache/fallback for the current session; the backend is
+ * the source of truth for public profiles.
+ */
+export const syncUserProfilesToBackend = async (
+  profiles: Record<string, UserProfile>,
+  client: any,
+  ownerUserId?: string | null
+) => {
+  if (!client?.models?.UserProfile || !client?.models?.UserProfile.list) return;
+
+  const entries = ownerUserId
+    ? Object.entries(profiles).filter(
+        ([userId]) => String(userId) === String(ownerUserId)
+      )
+    : Object.entries(profiles);
+
+  for (const [userId, profile] of entries) {
+    if (!userId || !profile.username) continue;
+
+    try {
+      const existingResult = await client.models.UserProfile.list({
+        filter: { userId: { eq: userId } },
+        authMode: DEFAULT_AUTH_MODE,
+      });
+      const existing = existingResult?.data?.[0];
+
+      if (existing?.id) {
+        if (existing.username !== profile.username) {
+          // Rename: delete the row (its id is the username GSI key owner) and
+          // create a fresh one with the new handle.
+          await client.models.UserProfile.delete(
+            { id: existing.id },
+            { authMode: DEFAULT_AUTH_MODE }
+          );
+          if (
+            await isUsernameTakenServerSide(profile.username, userId, client)
+          ) {
+            continue;
+          }
+          await client.models.UserProfile.create(
+            toBackendProfileRecord(profile),
+            { authMode: DEFAULT_AUTH_MODE }
+          );
+          continue;
+        }
+
         await client.models.UserProfile.update(
           {
-            id: current.id,
-            userId: profile.userId,
-            username: profile.username,
-            displayName: profile.displayName,
-            bio: profile.bio,
-            avatar: profile.avatar ?? null,
-            needsUsernameSetup: profile.needsUsernameSetup,
+            id: existing.id,
+            ...toBackendProfileRecord(profile),
           },
-          { authMode: 'userPool' }
+          { authMode: DEFAULT_AUTH_MODE }
         );
         continue;
       }
 
-      await client.models.UserProfile.create(
-        {
-          userId: profile.userId,
-          username: profile.username,
-          displayName: profile.displayName,
-          bio: profile.bio,
-          avatar: profile.avatar ?? null,
-          needsUsernameSetup: profile.needsUsernameSetup,
-        },
-        { authMode: 'userPool' }
-      );
+      if (await isUsernameTakenServerSide(profile.username, userId, client)) {
+        continue;
+      }
+
+      await client.models.UserProfile.create(toBackendProfileRecord(profile), {
+        authMode: DEFAULT_AUTH_MODE,
+      });
+    } catch {
+      // best effort: the local cache + Cognito mirrors keep the session working
     }
-  } catch {
-    // best effort: localStorage remains the source of truth for current-session behavior
   }
 };
 
@@ -418,5 +634,9 @@ export const findProfileByUsername = (
   username: string
 ) => {
   const normalized = sanitizeUsername(username);
-  return Object.values(profiles).find((profile) => sanitizeUsername(profile.username) === normalized) || null;
+  return (
+    Object.values(profiles).find(
+      (profile) => sanitizeUsername(profile.username) === normalized
+    ) || null
+  );
 };

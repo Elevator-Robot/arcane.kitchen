@@ -57,20 +57,20 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 
 ## Profile & Avatars
 
-- **Cognito is the DB for user profiles.** Every profile edit is mirrored into Cognito user attributes via `syncProfileToCognito` (`src/utils/cognitoProfileSync.ts` → `updateUserAttributes`):
-  - displayName → `nickname`
-  - bio → `custom:bio`
-  - avatar → `custom:avatar`
+- **The DynamoDB `UserProfile` model is the backend source of truth** for public profiles (`/u/:username` pages + recipe author attribution). One row per user: `userId` (owner), `username` (required, GSI key), `displayName` (required), `bio`, `avatar`, `needsUsernameSetup`. Auth is `ownerDefinedIn('userId')` for writes + authenticated/guest read, with `secondaryIndexes([index('username'), index('userId')])`. See `docs/data-models.md`.
+- `RecipeBuilder` loads all public profiles once via `listUserProfilesFromBackend` into `backendProfilesByUserId`/`backendProfilesByUsername`; `/u/:username` (`profileRouteProfile`) and recipe author hydration read from these backend maps first, falling back to localStorage.
+- Username uniqueness is enforced server-side by `isUsernameTakenServerSide` (backend list check) on create/rename — no Lambda; a tiny race window is accepted. Because `username` is a GSI key, renames delete + recreate the row (can't UpdateItem a GSI key).
+- **Cognito is not the source of truth.** Every profile edit is still mirrored into Cognito attributes via `syncProfileToCognito` (`displayName`→`nickname`, `bio`→`custom:bio`, `avatar`→`custom:avatar`), and edits also sync to the `UserProfile` model via `syncUserProfilesToBackend` (owner-scoped, best-effort).
 - **The deployed Cognito pool schema is immutable.** Only attributes created when the pool was first deployed can be written (`nickname`, `custom:bio`, `custom:avatar`, character-preference customs). Adding new attributes to `amplify/auth/resource.ts` breaks the stack update — do not add any without recreating the pool (which deletes all users)
 - `amplify/auth/resource.ts` declares the mutable attributes: `nickname`, `custom:bio`, `custom:avatar`, plus character-preference customs (`custom:cookingStyle`, `custom:magicalSpecialty`, `custom:favoriteIngredients`)
-- The username/handle cannot be persisted to Cognito (no free attribute in the frozen schema), so it stays in localStorage + the DynamoDB `UserProfile` model
-- For offline/first-paint, profile data is cached in localStorage under `arcaneKitchen.userProfiles` (a record keyed by user id). The cache is seeded from Cognito attributes on sign-in (reads prefer `userAttributes` values) and is NOT the source of truth
-- Profile edits also sync to the DynamoDB-backed `UserProfile` model via `syncUserProfilesToBackend` (best-effort)
-- Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024); users select from a grid — no custom photo upload
+- The username/handle has no free Cognito attribute in the frozen schema, so it lives only in the `UserProfile` model + localStorage cache
+- For offline/first-paint, profile data is cached in localStorage under `arcaneKitchen.userProfiles` (a record keyed by user id), seeded from Cognito attributes on sign-in; reads prefer `userAttributes` values; it is NOT the source of truth
+- Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024); users select from a grid — no custom photo upload (the broken Upload-Photo tab was removed from `ProfileHeader.tsx`; the avatar modal is presets-only)
 - Optimized at build time via `vite-plugin-image-optimizer` (sharp, ~74% size reduction); all avatar `<img>` tags use `loading="lazy"`
-- Selected avatar filename is saved to `custom:avatar` + `profileData.avatar`; displayed via `<img src={url} />`
+- Selected avatar filename is saved to `custom:avatar` + `profileData.avatar` + the `UserProfile` row; displayed via `<img src={url} />`
 - New profiles without an existing avatar are seeded with one random preset avatar from `src/assets/avatars/` and persist it until changed
 - Fallback: if no avatar selected, shows the initial letter of the display name
+- The external-profile block shows only `profileRouteProfile.avatar` (never the viewer's own avatar), and shares the profile handle via `shareProfile` → `onShareProfile`
 
 ## CloudFront CDN
 

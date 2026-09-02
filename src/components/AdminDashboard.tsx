@@ -142,7 +142,7 @@ export default function AdminDashboard({
       restoreContent: 'restore this user\'s recipe and comment visibility without changing account access',
       restore: 're-enable this user and restore their content visibility',
     };
-    if (!window.confirm(`ADMIN ACTION: ${descriptions[action]}?\n\nUser: ${user.displayName} (${user.userId})`)) return;
+    if (!window.confirm(`ADMIN ACTION: ${descriptions[action]}?\n\nUser: @${user.username} (${user.userId})`)) return;
     setPendingUserAction(`${action}:${user.userId}`);
     setError(null);
     try {
@@ -166,7 +166,7 @@ export default function AdminDashboard({
     const recipe = recipes.find((entry) => entry.id === transferRecipeId);
     const destination = users.find((entry) => entry.userId === transferOwnerId);
     if (!recipe || !destination) return;
-    if (!window.confirm(`ADMIN ACTION: transfer “${recipe.name}” from ${recipe.ownerId} to ${destination.displayName} (${destination.userId})?`)) return;
+    if (!window.confirm(`ADMIN ACTION: transfer “${recipe.name}” from ${recipe.ownerId} to @${destination.username} (${destination.userId})?`)) return;
     setPendingUserAction('transferOwnership');
     setError(null);
     try {
