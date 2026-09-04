@@ -112,7 +112,8 @@ UserProfile login reconciliation:
 ## Service Worker (PWA)
 
 - The SW (`public/sw.js`) is registered **only in production** (`import.meta.env.PROD` in `src/main.tsx`). In dev mode any previously registered SW is unregistered and any leftover caches are purged instead.
-- Why: `sw.js` serves every same-origin GET cache-first, including Vite dev modules (`/node_modules/.vite/deps/*`). Caching those across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
+- Why: `sw.js` serves same-origin static GETs cache-first, except runtime `amplify_outputs.json`, which is always fetched from the network. Caching Vite dev modules (`/node_modules/.vite/deps/*`) across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
+- `amplify_outputs.json` is never cached because stale branch Identity Pool IDs cause authentication and data requests to fail after an Amplify environment is replaced.
 - Caches left behind by an unregistered dev SW can hold stale/mangled copies of unhashed source modules (e.g. the old pre-router `RecipeBuilder.tsx`), so dev boot also runs `caches.delete()` on every recognized cache name.
 - If the dev console still shows the duplicate-React error after a code fix, unregister the SW + clear site data once (DevTools → Application → Service Workers).
 
