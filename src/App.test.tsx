@@ -125,4 +125,59 @@ describe('App auth initialization', () => {
     });
     expect(autoSignInMock).not.toHaveBeenCalled();
   });
+
+  it('shares concurrent confirmation requests without invoking Cognito twice', async () => {
+    let resolveConfirmation: ((value: unknown) => void) | undefined;
+    confirmSignUpMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveConfirmation = resolve;
+      })
+    );
+
+    const first = authServices.handleConfirmSignUp({
+      username: ' TEST@example.com ',
+      confirmation_code: '123456',
+    });
+    const second = authServices.handleConfirmSignUp({
+      username: 'test@example.com',
+      confirmation_code: '123456',
+    });
+
+    expect(confirmSignUpMock).toHaveBeenCalledTimes(1);
+    resolveConfirmation?.({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: 'DONE' },
+    });
+    await expect(first).resolves.toEqual({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: 'DONE' },
+    });
+    await expect(second).resolves.toEqual({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: 'DONE' },
+    });
+  });
+
+  it('keeps Cognito confirmation failures as failures and logs safe diagnostics', async () => {
+    const error = Object.assign(new Error('NotAuthorizedException: confirmed'), {
+      name: 'NotAuthorizedException',
+      metadata: { httpStatusCode: 400 },
+    });
+    confirmSignUpMock.mockRejectedValue(error);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(
+      authServices.handleConfirmSignUp({
+        username: 'test@example.com',
+        confirmation_code: '123456',
+      })
+    ).rejects.toThrow();
+    expect(autoSignInMock).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith('Cognito confirmSignUp failed', {
+      name: 'NotAuthorizedException',
+      message: 'NotAuthorizedException: confirmed',
+      httpStatusCode: 400,
+    });
+    consoleError.mockRestore();
+  });
 });

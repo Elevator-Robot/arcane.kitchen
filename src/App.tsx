@@ -99,10 +99,7 @@ const hasAmplifyAuthConfig = () => {
   }
 };
 
-const isAlreadyConfirmedError = (error: any) =>
-  error?.name === 'UserAlreadyConfirmedException' ||
-  (error?.name === 'NotAuthorizedException' &&
-    /current status is confirmed/i.test(error?.message || ''));
+const pendingConfirmations = new Map<string, Promise<any>>();
 
 export const authServices = {
   async handleSignIn(input: any) {
@@ -170,29 +167,35 @@ export const authServices = {
       throw new Error('Code is required to confirm sign up');
     }
 
-    let result;
-    try {
-      result = await confirmSignUp({
-        username,
-        confirmationCode,
-      });
-    } catch (error: any) {
-      if (!isAlreadyConfirmedError(error)) {
-        throw new Error(getUserFacingErrorMessage(error, 'We could not verify your account. Please try again.'));
+    const key = `${username}:${confirmationCode}`;
+    const pending = pendingConfirmations.get(key);
+    if (pending) return pending;
+
+    const request = (async () => {
+      try {
+        return await confirmSignUp({
+          username,
+          confirmationCode,
+        });
+      } catch (error: any) {
+        console.error('Cognito confirmSignUp failed', {
+          name: error?.name,
+          message: error?.message,
+          httpStatusCode: error?.metadata?.httpStatusCode,
+        });
+        throw new Error(
+          getUserFacingErrorMessage(
+            error,
+            'We could not verify your account. Please try again.'
+          )
+        );
+      } finally {
+        pendingConfirmations.delete(key);
       }
+    })();
 
-      // The Authenticator can submit the confirmation callback twice. The
-      // first request confirms the account; let its autoSignIn state handle the
-      // duplicate confirmation consistently with the normal result.
-      return {
-        isSignUpComplete: true,
-        nextStep: {
-          signUpStep: 'COMPLETE_AUTO_SIGN_IN',
-        },
-      } as any;
-    }
-
-    return result as any;
+    pendingConfirmations.set(key, request);
+    return request;
   },
 };
 
@@ -294,6 +297,7 @@ function ConfirmationCodeHeader() {
           <input
             key={index}
             id={`confirmation-code-${index}`}
+            name={`confirmation-code-${index}`}
             aria-label={`Confirmation code digit ${index + 1}`}
             className="confirmation-code-input"
             inputMode="numeric"
