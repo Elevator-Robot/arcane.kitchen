@@ -50,7 +50,7 @@ UserProfile login reconciliation:
 ## Cognito Hosted-UI Domains
 
 - The production `main-branch` stack owns the `arcanekitchen` Cognito domain prefix.
-- Other Amplify branch stacks receive a deterministic suffix; do not reuse the production prefix across branch deployments.
+- Other Amplify branch stacks retain Amplify-managed unique domains; do not reuse the production prefix across branch deployments.
 
 ## Recipe Save Counts
 
