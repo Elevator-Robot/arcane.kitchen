@@ -23,6 +23,11 @@ Recipes now include a `utensils` field (array of strings) for kitchen tools need
 - Included in recipe fingerprint for deduplication
 - Optional (empty if not provided)
 
+Recipe identity fields:
+- `Recipe.ownerId` is the authoritative owner and authorization key
+- `Recipe.createdBy` is denormalized display metadata and must match the owner's `@username`
+- Recipe creation, edits, username changes, and ownership transfers synchronize `createdBy`
+
 ## User-Facing Errors
 
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.

@@ -122,8 +122,8 @@ still be refined as the backend capabilities are validated.
 - [x] Content hiding applies to recipes and comments.
 - [x] Admin actions are recorded in an audit log with actor, action, target,
   timestamp, and relevant before/after values.
-- [x] Ownership transfer makes the destination user the displayed owner while
-  retaining `createdBy` as historical metadata where appropriate.
+- [x] Ownership transfer makes the destination user the displayed owner and
+  updates `createdBy` to the destination user's `@username`.
 - [x] Ownership transfer must support safe multi-recipe swaps, not only
   one-recipe-at-a-time updates.
 - [x] Soft deletion hides the user's recipes and comments as well as disabling

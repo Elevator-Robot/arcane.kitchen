@@ -184,14 +184,17 @@ const transferOwnership = async (event: Event, transfers: Array<{ recipeId: stri
 
   const recipes = await Promise.all(transfers.map(async ({ recipeId }) => {
     const result = await request<{ getRecipe: any }>(`query GetRecipe($id: ID!) {
-      getRecipe(id: $id) { id ownerId }
+      getRecipe(id: $id) { id ownerId createdBy }
     }`, { id: recipeId });
     if (!result.getRecipe) throw new Error(`Recipe ${recipeId} could not be found.`);
     return result.getRecipe;
   }));
   const userIds = new Set(transfers.flatMap((transfer, index) => [recipes[index].ownerId, transfer.newOwnerId]));
+  const profiles = new Map<string, any>();
   await Promise.all([...userIds].map(async (userId) => {
-    if (!(await findProfile(userId))) throw new Error(`Destination user ${userId} could not be found.`);
+    const profile = await findProfile(userId);
+    if (!profile) throw new Error(`Destination user ${userId} could not be found.`);
+    profiles.set(userId, profile);
   }));
 
   const updatedRecipes: typeof recipes = [];
@@ -199,13 +202,17 @@ const transferOwnership = async (event: Event, transfers: Array<{ recipeId: stri
     for (const [index, recipe] of recipes.entries()) {
       await request(`mutation UpdateRecipe($input: UpdateRecipeInput!) {
         updateRecipe(input: $input) { id }
-      }`, { input: { id: recipe.id, ownerId: transfers[index].newOwnerId } });
+      }`, { input: {
+        id: recipe.id,
+        ownerId: transfers[index].newOwnerId,
+        createdBy: `@${profiles.get(transfers[index].newOwnerId).username}`,
+      } });
       updatedRecipes.push(recipe);
     }
   } catch (transferError) {
     await Promise.all(updatedRecipes.map((recipe) => request(`mutation UpdateRecipe($input: UpdateRecipeInput!) {
       updateRecipe(input: $input) { id }
-    }`, { input: { id: recipe.id, ownerId: recipe.ownerId } })));
+      }`, { input: { id: recipe.id, ownerId: recipe.ownerId, createdBy: recipe.createdBy } })));
     throw new Error(`Ownership transfer rolled back: ${transferError instanceof Error ? transferError.message : 'the update failed.'}`);
   }
 

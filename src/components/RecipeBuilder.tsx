@@ -1006,6 +1006,39 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     sanitizeUsername(activeUsername);
   const creatorName = activeUsername ? `@${activeUsername}` : 'Guest cook';
 
+  // Repair legacy records and keep the denormalized author label aligned with
+  // the owner handle whenever the current user's profile is loaded or renamed.
+  const syncedCreatorNameRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !currentUserId ||
+      !activeUsername ||
+      syncedCreatorNameRef.current === creatorName
+    ) {
+      return;
+    }
+    syncedCreatorNameRef.current = creatorName;
+    void (async () => {
+      const result = await client.models.Recipe.list({
+        filter: { ownerId: { eq: currentUserId } },
+        authMode: 'userPool',
+      });
+      if (result.errors?.length) return;
+      await Promise.all(
+        result.data
+          .filter((recipe: any) => recipe.createdBy !== creatorName)
+          .map((recipe: any) =>
+            client.models.Recipe.update(
+              { id: recipe.id, createdBy: creatorName },
+              { authMode: 'userPool' }
+            )
+          )
+      );
+    })().catch((error) =>
+      console.error('Failed to synchronize recipe authors:', error)
+    );
+  }, [currentUserId, activeUsername, creatorName]);
+
   const avatarEntries = useMemo(
     () =>
       Object.entries(
