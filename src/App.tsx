@@ -514,7 +514,7 @@ function App({ pathname }: AppProps = {}) {
         isAdmin={isAdmin}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
         profilePath={getProfileRoutePath(profileCache?.username || userAttributes?.nickname || currentUser?.username)}
-        profileLabel={profileCache?.displayName || userAttributes?.nickname || userAttributes?.email?.split('@')[0] || currentUser?.username || 'Admin'}
+        profileLabel={profileCache?.username || currentUser?.username || userAttributes?.email?.split('@')[0] || 'Admin'}
         profileAvatar={profileCache?.avatar || userAttributes?.['custom:avatar'] || null}
       />
     );
