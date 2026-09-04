@@ -916,6 +916,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [backendProfilesByUsername, setBackendProfilesByUsername] = useState<
     Record<string, UserProfile>
   >({});
+  const backendProfilesByUsernameRef = useRef(backendProfilesByUsername);
+  backendProfilesByUsernameRef.current = backendProfilesByUsername;
 
   useEffect(() => {
     let cancelled = false;
@@ -941,21 +943,31 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   // in user's own handle.
   const [profileRouteProfile, setProfileRouteProfile] =
     useState<UserProfile | null>(null);
+  const [profileRouteUsername, setProfileRouteUsername] = useState<
+    string | null
+  >(null);
+  const [isProfileRouteLoading, setIsProfileRouteLoading] = useState(false);
   useEffect(() => {
     if (!viewingProfileUsername) {
       setProfileRouteProfile(null);
+      setProfileRouteUsername(null);
+      setIsProfileRouteLoading(false);
       return;
     }
     const normalized = sanitizeUsername(viewingProfileUsername);
     if (!normalized) {
       setProfileRouteProfile(null);
+      setProfileRouteUsername(null);
+      setIsProfileRouteLoading(false);
       return;
     }
+    setProfileRouteUsername(normalized);
     const cached =
-      backendProfilesByUsername[sanitizeUsername(normalized)] ||
+      backendProfilesByUsernameRef.current[sanitizeUsername(normalized)] ||
       findProfileByUsername(localProfiles, normalized) ||
       null;
     setProfileRouteProfile(cached);
+    setIsProfileRouteLoading(true);
     let cancelled = false;
     void getUserProfileByUsername(
       normalized,
@@ -963,8 +975,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       isAuthenticated ? 'userPool' : 'identityPool'
     ).then((profile) => {
       if (cancelled) return;
+      setProfileRouteProfile(profile);
+      setIsProfileRouteLoading(false);
       if (profile) {
-        setProfileRouteProfile(profile);
         setBackendProfilesByUsername((previous) => ({
           ...previous,
           [sanitizeUsername(profile.username)]: profile,
@@ -978,18 +991,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [
-    viewingProfileUsername,
-    backendProfilesByUsername,
-    localProfiles,
-    isAuthenticated,
-  ]);
+  }, [viewingProfileUsername, localProfiles, isAuthenticated]);
 
   const isViewingExternalProfile =
     currentView === 'Profile' &&
     viewingProfileUsername !== null &&
+    profileRouteUsername === sanitizeUsername(viewingProfileUsername) &&
     profileRouteProfile !== null &&
     String(profileRouteProfile.userId) !== String(currentUserId);
+  const isViewingOwnProfile =
+    currentView === 'Profile' &&
+    viewingProfileUsername !== null &&
+    sanitizeUsername(viewingProfileUsername) ===
+    sanitizeUsername(activeUsername);
   const creatorName = activeUsername ? `@${activeUsername}` : 'Guest cook';
 
   // Repair legacy records and keep the denormalized author label aligned with
@@ -4820,8 +4834,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          {profileRouteProfile &&
-          String(profileRouteProfile.userId) !== String(currentUserId) ? (
+          {isProfileRouteLoading ? (
+            <div className="mx-auto w-full max-w-4xl p-8 text-center">
+              <p className="text-sm text-[var(--theme-text-muted)]">
+                Loading profile...
+              </p>
+            </div>
+          ) : isViewingExternalProfile && profileRouteProfile ? (
             <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
@@ -4949,7 +4968,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 })()}
               </div>
             </div>
-          ) : isViewingExternalProfile ? (
+          ) : viewingProfileUsername !== null && !isViewingOwnProfile ? (
             <div className="mx-auto w-full max-w-4xl p-8 text-center">
               <p className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
                 Profile not found

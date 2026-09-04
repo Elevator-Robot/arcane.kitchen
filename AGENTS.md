@@ -37,6 +37,16 @@ UserProfile login reconciliation:
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
 - Use `getUserFacingErrorMessage()` for UI messages and keep raw errors in `console.error` diagnostics only; do not render raw `error.message` or serialized error objects.
 
+## Profile Route Resolution
+
+- Profile routes track the requested sanitized username independently from the resolved profile record, so loading or failed `/u/:username` lookups cannot fall through to the signed-in user's profile.
+- A profile route renders the private profile only when its requested username matches the signed-in user's username; unresolved routes render a loading or not-found state.
+
+## Hosting And Image Fallbacks
+
+- Amplify Hosting serves client-side routes through the SPA rewrite in `amplify.yml`; direct `/discover` and `/discover/` visits must resolve to `index.html`.
+- Profile and recipe cards use local/inline fallbacks for missing images and must not reference nonexistent `/api/placeholder/*` endpoints.
+
 ## Cognito Hosted-UI Domains
 
 - The production `main-branch` stack owns the `arcanekitchen` Cognito domain prefix.

@@ -46,6 +46,8 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
         <div>
           <Input
             type="email"
+            id="email"
+            name="email"
             label="Email"
             placeholder="you@example.com"
             value={email}
@@ -57,6 +59,8 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
         <div>
           <Input
             type="password"
+            id="password"
+            name="password"
             label="Password"
             placeholder="••••••••"
             value={password}

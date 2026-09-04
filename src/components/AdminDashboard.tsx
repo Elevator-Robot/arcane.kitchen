@@ -67,23 +67,46 @@ export default function AdminDashboard({
     const hasAdminUserQuery = typeof client.queries?.listAdminUsers === 'function';
     setUserListUnavailable(!hasAdminUserQuery);
     try {
-      const [recipeResult, commentResult, userResult] = await Promise.all([
+      const [recipeOutcome, commentOutcome, userOutcome] = await Promise.allSettled([
         client.models.Recipe.list({ authMode: 'userPool' }),
         client.models.Comment.list({ authMode: 'userPool' }),
         hasAdminUserQuery
           ? client.queries.listAdminUsers({ authMode: 'userPool' })
           : Promise.resolve({ data: [] }),
       ]);
-      const queryErrors = [recipeResult, commentResult, userResult]
-        .flatMap((result: any) => result.errors ?? [])
-        .map((queryError: any) => errorText(queryError))
-        .filter(Boolean);
-      if (queryErrors.length) {
-        throw new Error(queryErrors.join(', '));
+
+      const queryErrors: string[] = [];
+      const readResult = (outcome: PromiseSettledResult<any>, label: string) => {
+        if (outcome.status === 'rejected') {
+          queryErrors.push(`${label}: ${errorText(outcome.reason)}`);
+          return null;
+        }
+        const errors = (outcome.value?.errors ?? [])
+          .map((queryError: any) => errorText(queryError))
+          .filter(Boolean);
+        if (errors.length) queryErrors.push(`${label}: ${errors.join(', ')}`);
+        return errors.length ? null : outcome.value;
+      };
+
+      const recipeResult = readResult(recipeOutcome, 'Recipes');
+      const commentResult = readResult(commentOutcome, 'Comments');
+      const userResult = readResult(userOutcome, 'Users');
+
+      if (recipeResult) {
+        setRecipes((recipeResult.data ?? []) as Recipe[]);
       }
-      setRecipes((recipeResult.data ?? []) as Recipe[]);
-      setComments((commentResult.data ?? []) as Comment[]);
-      setUsers(((userResult.data ?? []) as UserProfile[]).map((user) => ({ ...user, id: user.id || user.userId })));
+      if (commentResult) {
+        setComments((commentResult.data ?? []) as Comment[]);
+      }
+      if (userResult) {
+        setUsers(
+          ((userResult.data ?? []) as UserProfile[]).map((user) => ({
+            ...user,
+            id: user.id || user.userId,
+          }))
+        );
+      }
+      if (queryErrors.length) setError(queryErrors.join(', '));
     } catch (loadError) {
       setError(errorText(loadError));
     } finally {
