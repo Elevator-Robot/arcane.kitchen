@@ -32,6 +32,9 @@ UserProfile login reconciliation:
 - On every successful login, the backend `UserProfile` row is checked first and wins over Cognito/local cache values
 - Cognito attributes seed a `UserProfile` only when the backend row is missing
 
+Authentication submission:
+- Custom sign-in and account creation requests are deduplicated while in flight so one attempt cannot send multiple confirmation codes
+
 ## User-Facing Errors
 
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.

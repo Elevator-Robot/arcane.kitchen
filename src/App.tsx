@@ -108,59 +108,74 @@ const hasAmplifyAuthConfig = () => {
 };
 
 const pendingConfirmations = new Map<string, Promise<any>>();
+const pendingSignIns = new Map<string, Promise<any>>();
 
 export const authServices = {
-  async handleSignIn(input: any) {
+  handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
 
-    if (!hasAmplifyAuthConfig()) {
-      throw new Error('Authentication is not configured yet. Please try again later.');
-    }
+    const key = `${username}:${password}`;
+    const pending = pendingSignIns.get(key);
+    if (pending) return pending;
 
-    try {
-      return await signIn({ username, password });
-    } catch (error: any) {
-      const shouldCreateAccount =
-        error?.name === 'UserNotFoundException' ||
-        error?.name === 'NotAuthorizedException';
+    const request = (async () => {
 
-      if (!shouldCreateAccount) {
-        throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
+      if (!hasAmplifyAuthConfig()) {
+        throw new Error('Authentication is not configured yet. Please try again later.');
       }
 
       try {
-        const defaultNickname = username.split('@')[0] || 'cook';
-        const signUpResult = await signUp({
-          username,
-          password,
-          options: {
-            autoSignIn: true,
-            userAttributes: {
-              email: username,
-              nickname: defaultNickname,
-            },
-          },
-        });
+        return await signIn({ username, password });
+      } catch (error: any) {
+        const shouldCreateAccount =
+          error?.name === 'UserNotFoundException' ||
+          error?.name === 'NotAuthorizedException';
 
-        if (signUpResult.isSignUpComplete) {
-          return await signIn({ username, password });
-        }
-
-        return {
-          isSignedIn: false,
-          nextStep: {
-            signInStep: 'CONFIRM_SIGN_UP',
-          },
-        } as any;
-      } catch (signUpError: any) {
-        if (signUpError?.name === 'UsernameExistsException') {
+        if (!shouldCreateAccount) {
           throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
         }
 
-        throw new Error(getUserFacingErrorMessage(signUpError, 'Account creation failed. Please try again.'));
+        try {
+          const defaultNickname = username.split('@')[0] || 'cook';
+          const signUpResult = await signUp({
+            username,
+            password,
+            options: {
+              autoSignIn: true,
+              userAttributes: {
+                email: username,
+                nickname: defaultNickname,
+              },
+            },
+          });
+
+          if (signUpResult.isSignUpComplete) {
+            return await signIn({ username, password });
+          }
+
+          return {
+            isSignedIn: false,
+            nextStep: {
+              signInStep: 'CONFIRM_SIGN_UP',
+            },
+          } as any;
+        } catch (signUpError: any) {
+          if (signUpError?.name === 'UsernameExistsException') {
+            throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
+          }
+
+          throw new Error(getUserFacingErrorMessage(signUpError, 'Account creation failed. Please try again.'));
+        }
       }
-    }
+    })();
+
+    pendingSignIns.set(key, request);
+    void request.then(
+      () => pendingSignIns.delete(key),
+      () => pendingSignIns.delete(key)
+    );
+    return request;
   },
 
   async handleConfirmSignUp(input: any) {
