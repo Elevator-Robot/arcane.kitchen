@@ -3,7 +3,6 @@ import { Amplify } from 'aws-amplify';
 import { Authenticator, Text } from '@aws-amplify/ui-react';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
-  autoSignIn,
   confirmSignUp,
   fetchAuthSession,
   fetchUserAttributes,
@@ -105,7 +104,7 @@ const isAlreadyConfirmedError = (error: any) =>
   (error?.name === 'NotAuthorizedException' &&
     /current status is confirmed/i.test(error?.message || ''));
 
-const authServices = {
+export const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
@@ -183,12 +182,14 @@ const authServices = {
       }
 
       // The Authenticator can submit the confirmation callback twice. The
-      // first request confirms the account; make the duplicate idempotent.
-      return await autoSignIn();
-    }
-
-    if (result.isSignUpComplete) {
-      return await autoSignIn();
+      // first request confirms the account; let its autoSignIn state handle the
+      // duplicate confirmation consistently with the normal result.
+      return {
+        isSignUpComplete: true,
+        nextStep: {
+          signUpStep: 'COMPLETE_AUTO_SIGN_IN',
+        },
+      } as any;
     }
 
     return result as any;

@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
-import App from './App';
+import App, { authServices } from './App';
 
-const { getCurrentUserMock, fetchUserAttributesMock, signOutMock, recipeBuilderMock } = vi.hoisted(() => ({
+const {
+  autoSignInMock,
+  confirmSignUpMock,
+  getCurrentUserMock,
+  fetchUserAttributesMock,
+  signOutMock,
+  recipeBuilderMock,
+} = vi.hoisted(() => ({
+  autoSignInMock: vi.fn(),
+  confirmSignUpMock: vi.fn(),
   getCurrentUserMock: vi.fn(),
   fetchUserAttributesMock: vi.fn(),
   signOutMock: vi.fn(),
@@ -15,6 +24,8 @@ vi.mock('aws-amplify/auth', async () => {
 
   return {
     ...actual,
+    autoSignIn: autoSignInMock,
+    confirmSignUp: confirmSignUpMock,
     getCurrentUser: getCurrentUserMock,
     fetchUserAttributes: fetchUserAttributesMock,
     signOut: signOutMock,
@@ -51,6 +62,10 @@ vi.mock('./components/SignInForm', () => ({
 describe('App auth initialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    confirmSignUpMock.mockResolvedValue({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: 'COMPLETE_AUTO_SIGN_IN' },
+    });
     sessionStorage.clear();
     localStorage.clear();
   });
@@ -92,5 +107,22 @@ describe('App auth initialization', () => {
     expect(initialProps?.userAttributes).toEqual(
       expect.objectContaining({ email: 'persisted@example.com' })
     );
+  });
+
+  it('returns the confirmation result for Authenticator auto sign-in', async () => {
+    const result = await authServices.handleConfirmSignUp({
+      username: 'test@example.com',
+      confirmation_code: '123456',
+    });
+
+    expect(result).toEqual({
+      isSignUpComplete: true,
+      nextStep: { signUpStep: 'COMPLETE_AUTO_SIGN_IN' },
+    });
+    expect(confirmSignUpMock).toHaveBeenCalledWith({
+      username: 'test@example.com',
+      confirmationCode: '123456',
+    });
+    expect(autoSignInMock).not.toHaveBeenCalled();
   });
 });

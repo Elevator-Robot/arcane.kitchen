@@ -1,4 +1,8 @@
 version: 1
+customRules:
+  - source: '/<*>'
+    target: '/index.html'
+    status: '200'
 backend:
   phases:
     preBuild:

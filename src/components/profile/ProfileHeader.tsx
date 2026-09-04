@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit2, Share, MapPin, Calendar, Camera, X } from 'lucide-react';
+import { Edit2, Share, MapPin, Calendar, Camera, X, Lock } from 'lucide-react';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import {
@@ -40,6 +40,21 @@ export default function ProfileHeader({
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [copied, setCopied] = useState(false);
+  const existingProfile = isOwnProfile
+    ? loadUserProfiles()[String(user.id || 'current')]
+    : null;
+  const usernameCooldownMs =
+    USERNAME_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+  const lastUsernameChange = existingProfile?.lastUsernameChange;
+  const usernameChangeLocked = Boolean(
+    lastUsernameChange && Date.now() - lastUsernameChange < usernameCooldownMs
+  );
+  const usernameAvailableDate = lastUsernameChange
+    ? new Date(lastUsernameChange + usernameCooldownMs).toLocaleDateString()
+    : '';
+  const usernameCooldownMessage = usernameAvailableDate
+    ? `Username changes are locked until ${usernameAvailableDate}.`
+    : '';
 
   const handleShareProfile = async () => {
     if (typeof window === 'undefined') return;
@@ -88,11 +103,20 @@ export default function ProfileHeader({
       <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
         <div className="flex items-start gap-6 w-full md:w-auto">
           <div className="relative">
-            <img
-              src={user.avatarUrl || '/api/placeholder/160/160'}
-              alt={`@${user.handle}`}
-              className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-md"
-            />
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={`@${user.handle}`}
+                className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-md"
+              />
+            ) : (
+              <div
+                aria-label={`@${user.handle}`}
+                className="flex h-40 w-40 items-center justify-center rounded-full border-4 border-white bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md"
+              >
+                {(user.handle || user.name || 'C').charAt(0).toUpperCase()}
+              </div>
+            )}
             {isOwnProfile && (
               <button
                 onClick={() => setShowAvatarModal(true)}
@@ -112,33 +136,24 @@ export default function ProfileHeader({
                     @{user.handle}
                   </span>
                   {isOwnProfile && (
-                    <button
-                      onClick={() => {
-                        const existingProfile =
-                          loadUserProfiles()[String(user.id || 'current')];
-                        const lastChange = existingProfile?.lastUsernameChange;
-                        const cooldownMs =
-                          USERNAME_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
-                        if (
-                          lastChange &&
-                          Date.now() - lastChange < cooldownMs
-                        ) {
-                          const daysLeft = Math.ceil(
-                            (cooldownMs - (Date.now() - lastChange)) /
-                              (24 * 60 * 60 * 1000)
-                          );
-                          window.alert(
-                            `Username can only be changed once every 30 days (${daysLeft} days remaining).`
-                          );
-                          return;
-                        }
-                        setIsEditingHandle(true);
-                      }}
-                      aria-label="edit username"
-                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                    <span
+                      tabIndex={usernameChangeLocked ? 0 : undefined}
+                      title={usernameCooldownMessage || undefined}
+                      aria-label={usernameCooldownMessage || 'Edit username'}
                     >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
+                      <button
+                        onClick={() => setIsEditingHandle(true)}
+                        aria-label="edit username"
+                        disabled={usernameChangeLocked}
+                        className="rounded-full p-1 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {usernameChangeLocked ? (
+                          <Lock className="h-3.5 w-3.5" />
+                        ) : (
+                          <Edit2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </span>
                   )}
                 </>
               ) : (
