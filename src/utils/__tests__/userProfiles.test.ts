@@ -6,6 +6,7 @@ import {
   getRouteTargetFromPathname,
   isUsernameChangeAllowed,
   isUsernameTaken,
+  loadUserProfiles,
   sanitizeUsername,
   upsertUserProfile,
   validateProfileIdentity,
@@ -281,5 +282,51 @@ describe('backend profile helpers', () => {
       },
     };
     await expect(listUserProfilesFromBackend(client)).resolves.toEqual([]);
+  });
+
+  it('prefers the backend profile over Cognito-derived local data on login', async () => {
+    const { reconcileUserProfileOnLogin } = await import('../userProfiles');
+    const client: any = {
+      models: {
+        UserProfile: {
+          list: vi.fn().mockResolvedValue({
+            data: [{ ...profile, displayName: 'Backend Name' }],
+            errors: undefined,
+          }),
+        },
+      },
+    };
+
+    await reconcileUserProfileOnLogin(
+      { userId: 'user-1' },
+      { sub: 'user-1', nickname: 'Cognito Name' },
+      client
+    );
+
+    expect(loadUserProfiles()['user-1'].displayName).toBe('Backend Name');
+  });
+
+  it('creates a missing backend profile from Cognito data on login', async () => {
+    const { reconcileUserProfileOnLogin } = await import('../userProfiles');
+    const create = vi.fn().mockResolvedValue({ data: {}, errors: undefined });
+    const client: any = {
+      models: {
+        UserProfile: {
+          list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+          create,
+          update: vi.fn(),
+          delete: vi.fn(),
+        },
+      },
+    };
+
+    await reconcileUserProfileOnLogin(
+      { userId: 'user-2', username: 'new-user' },
+      { sub: 'user-2', preferred_username: 'new-user' },
+      client
+    );
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][0].userId).toBe('user-2');
   });
 });

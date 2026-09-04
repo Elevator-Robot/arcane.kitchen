@@ -612,6 +612,46 @@ export const syncUserProfilesToBackend = async (
   }
 };
 
+/**
+ * Reconcile the signed-in user's local profile with the backend. DynamoDB is
+ * authoritative when a row exists; Cognito is only used to seed a missing row.
+ */
+export const reconcileUserProfileOnLogin = async (
+  currentUser: { userId?: string | null; username?: string | null } | null,
+  userAttributes: Record<string, unknown> | null,
+  client?: any
+) => {
+  const userId = currentUser?.userId || userAttributes?.sub;
+  if (!userId || !client?.models?.UserProfile?.list) return;
+
+  const result = await client.models.UserProfile.list({
+    filter: { userId: { eq: String(userId) } },
+    authMode: DEFAULT_AUTH_MODE,
+  });
+  if (result.errors?.length) return;
+
+  const backendProfile = result.data?.[0];
+  const profiles = loadUserProfiles();
+  if (backendProfile) {
+    saveUserProfiles({
+      ...profiles,
+      [String(userId)]: userProfileFromBackend(backendProfile),
+    });
+    return;
+  }
+
+  const seededProfile = upsertUserProfile(profiles, {
+    userId: String(userId),
+    currentUser,
+    userAttributes,
+  })[String(userId)];
+  if (!seededProfile) return;
+
+  const nextProfiles = { ...profiles, [String(userId)]: seededProfile };
+  saveUserProfiles(nextProfiles);
+  await syncUserProfilesToBackend(nextProfiles, client, String(userId));
+};
+
 export const getRouteTargetFromPathname = (pathname?: string | null) => {
   if (!pathname) return null;
 

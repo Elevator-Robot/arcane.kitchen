@@ -28,6 +28,10 @@ Recipe identity fields:
 - `Recipe.createdBy` is denormalized display metadata and must match the owner's `@username`
 - Recipe creation, edits, username changes, and ownership transfers synchronize `createdBy`
 
+UserProfile login reconciliation:
+- On every successful login, the backend `UserProfile` row is checked first and wins over Cognito/local cache values
+- Cognito attributes seed a `UserProfile` only when the backend row is missing
+
 ## User-Facing Errors
 
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
