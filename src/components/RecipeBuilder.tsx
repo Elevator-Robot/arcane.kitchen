@@ -3972,7 +3972,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             {onSignOut ? (
               <ProfileDropdown
                 profilePath={getProfileRoutePath(activeUsername)}
-                profileLabel={creatorName}
+                profileLabel={activeUsername || creatorName}
                 profileAvatar={effectiveAvatar}
                 isAdmin={isAdmin}
                 onSignOut={onSignOut}

@@ -21,6 +21,7 @@ export default function ProfileDropdown({
   const [open, setOpen] = useState(false);
   const [activeColor] = useState(randomMerlinColor);
   const containerRef = useRef<HTMLDivElement>(null);
+  const displayLabel = profileLabel.replace(/^@+/, '');
   const avatarUrl = useMemo(() => {
     if (!profileAvatar) return undefined;
     const entries = import.meta.glob<{ default: string }>('/src/assets/avatars/*.webp', { eager: true });
@@ -46,10 +47,10 @@ export default function ProfileDropdown({
         className="group flex items-center gap-2 rounded-full px-2 py-1 transition hover:bg-[var(--theme-surface-alt)]"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-sm font-semibold text-white shadow-md">
-          {avatarUrl ? <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full rounded-full object-cover" /> : profileLabel.charAt(0).toUpperCase()}
+          {avatarUrl ? <img src={avatarUrl} alt="" loading="lazy" className="h-full w-full rounded-full object-cover" /> : displayLabel.charAt(0).toUpperCase()}
         </span>
         <span className={`hidden max-w-[120px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 sm:inline ${open ? 'translate-x-1' : ''} group-hover:translate-x-1`} style={open ? { color: activeColor } : undefined}>
-          {profileLabel}
+          {displayLabel}
         </span>
         <svg className={`h-4 w-4 text-[var(--theme-text-muted)] transition ${open ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />

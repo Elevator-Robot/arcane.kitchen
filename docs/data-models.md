@@ -134,6 +134,9 @@ Username uniqueness is enforced server-side by
 `isUsernameTakenServerSide` (backend list check) on create/rename; a small
 race window is accepted because no Lambda is involved.
 
+On login, the backend profile is reconciled first. Cognito attributes are used
+only to seed a missing `UserProfile` row and do not overwrite an existing row.
+
 Auth:
 
 - Owners can create/update their profile through `ownerDefinedIn('userId')`

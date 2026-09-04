@@ -1,5 +1,5 @@
 // Arcane Kitchen Service Worker
-const CACHE_NAME = 'arcane-kitchen-v2';
+const CACHE_NAME = 'arcane-kitchen-v3';
 const urlsToCache = [
   '/manifest.json',
   '/favicon.svg',
@@ -29,6 +29,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Runtime Amplify configuration must always reflect the current deploy.
+  // Caching it can leave a browser pointing at a deleted branch identity pool.
+  if (url.pathname === '/amplify_outputs.json') {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
 
   // Navigations: network-first. Online always gets the fresh HTML (which
   // references the current hashed bundle). Offline falls back to the last
