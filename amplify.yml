@@ -1,5 +1,11 @@
 version: 1
 customRules:
+  - source: '/discover'
+    target: '/index.html'
+    status: '200'
+  - source: '/discover/'
+    target: '/index.html'
+    status: '200'
   - source: '/<*>'
     target: '/index.html'
     status: '200'

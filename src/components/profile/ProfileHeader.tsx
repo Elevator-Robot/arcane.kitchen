@@ -132,8 +132,8 @@ export default function ProfileHeader({
             <div className="flex items-center gap-2 mt-2">
               {!isEditingHandle ? (
                 <>
-                  <span className="text-sm text-gray-600 truncate">
-                    @{user.handle}
+                   <span className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
+                     {user.handle}
                   </span>
                   {isOwnProfile && (
                     <span

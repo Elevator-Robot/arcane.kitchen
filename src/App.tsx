@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Amplify } from 'aws-amplify';
 import { Authenticator, Text } from '@aws-amplify/ui-react';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../amplify/data/resource';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
   confirmSignUp,
@@ -17,7 +19,11 @@ import AdminDashboard from './components/AdminDashboard';
 import SignInForm from './components/SignInForm';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { randomMerlinColor } from './theme/merlinPalette';
-import { getProfileRoutePath, loadUserProfiles } from './utils/userProfiles';
+import {
+  getProfileRoutePath,
+  loadUserProfiles,
+  reconcileUserProfileOnLogin,
+} from './utils/userProfiles';
 import { getUserFacingErrorMessage } from './utils/userFacingErrors';
 
 const authFormFields = {
@@ -33,6 +39,8 @@ const authFormFields = {
     },
   },
 };
+
+const client: any = generateClient<Schema>();
 
 type AuthState = {
   isAuthenticated: boolean;
@@ -100,59 +108,74 @@ const hasAmplifyAuthConfig = () => {
 };
 
 const pendingConfirmations = new Map<string, Promise<any>>();
+const pendingSignIns = new Map<string, Promise<any>>();
 
 export const authServices = {
-  async handleSignIn(input: any) {
+  handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
 
-    if (!hasAmplifyAuthConfig()) {
-      throw new Error('Authentication is not configured yet. Please try again later.');
-    }
+    const key = `${username}:${password}`;
+    const pending = pendingSignIns.get(key);
+    if (pending) return pending;
 
-    try {
-      return await signIn({ username, password });
-    } catch (error: any) {
-      const shouldCreateAccount =
-        error?.name === 'UserNotFoundException' ||
-        error?.name === 'NotAuthorizedException';
+    const request = (async () => {
 
-      if (!shouldCreateAccount) {
-        throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
+      if (!hasAmplifyAuthConfig()) {
+        throw new Error('Authentication is not configured yet. Please try again later.');
       }
 
       try {
-        const defaultNickname = username.split('@')[0] || 'cook';
-        const signUpResult = await signUp({
-          username,
-          password,
-          options: {
-            autoSignIn: true,
-            userAttributes: {
-              email: username,
-              nickname: defaultNickname,
-            },
-          },
-        });
+        return await signIn({ username, password });
+      } catch (error: any) {
+        const shouldCreateAccount =
+          error?.name === 'UserNotFoundException' ||
+          error?.name === 'NotAuthorizedException';
 
-        if (signUpResult.isSignUpComplete) {
-          return await signIn({ username, password });
-        }
-
-        return {
-          isSignedIn: false,
-          nextStep: {
-            signInStep: 'CONFIRM_SIGN_UP',
-          },
-        } as any;
-      } catch (signUpError: any) {
-        if (signUpError?.name === 'UsernameExistsException') {
+        if (!shouldCreateAccount) {
           throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
         }
 
-        throw new Error(getUserFacingErrorMessage(signUpError, 'Account creation failed. Please try again.'));
+        try {
+          const defaultNickname = username.split('@')[0] || 'cook';
+          const signUpResult = await signUp({
+            username,
+            password,
+            options: {
+              autoSignIn: true,
+              userAttributes: {
+                email: username,
+                nickname: defaultNickname,
+              },
+            },
+          });
+
+          if (signUpResult.isSignUpComplete) {
+            return await signIn({ username, password });
+          }
+
+          return {
+            isSignedIn: false,
+            nextStep: {
+              signInStep: 'CONFIRM_SIGN_UP',
+            },
+          } as any;
+        } catch (signUpError: any) {
+          if (signUpError?.name === 'UsernameExistsException') {
+            throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
+          }
+
+          throw new Error(getUserFacingErrorMessage(signUpError, 'Account creation failed. Please try again.'));
+        }
       }
-    }
+    })();
+
+    pendingSignIns.set(key, request);
+    void request.then(
+      () => pendingSignIns.delete(key),
+      () => pendingSignIns.delete(key)
+    );
+    return request;
   },
 
   async handleConfirmSignUp(input: any) {
@@ -385,6 +408,13 @@ function App({ pathname }: AppProps = {}) {
     try {
       const user = await getCurrentUser();
       const attributes = await fetchUserAttributes();
+      try {
+        await reconcileUserProfileOnLogin(user, attributes, client);
+      } catch (profileError) {
+        // Profile reconciliation must not prevent a valid Cognito session from
+        // entering the app when the data API is temporarily unavailable.
+        console.error('Failed to reconcile user profile:', profileError);
+      }
       let isAdmin = false;
       try {
         const session = await fetchAuthSession();

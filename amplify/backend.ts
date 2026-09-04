@@ -56,7 +56,7 @@ const sanitizeDomainPrefix = (value: string) =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-const getDomainPrefixForStack = (stackName: string) => {
+const getDomainPrefixForStack = (stackName: string): string | undefined => {
   const sandboxDomainPrefix = process.env.AK_COGNITO_DOMAIN_PREFIX;
   if (sandboxDomainPrefix) {
     return sanitizeDomainPrefix(sandboxDomainPrefix).slice(
@@ -71,10 +71,9 @@ const getDomainPrefixForStack = (stackName: string) => {
     return COGNITO_DOMAIN_PREFIX;
   }
 
-  const stackSuffix = sanitizeDomainPrefix(stackName).slice(-8);
-  const sandboxPrefix = `${COGNITO_DOMAIN_PREFIX}-${stackSuffix}`;
-
-  return sandboxPrefix.slice(0, MAX_COGNITO_DOMAIN_LENGTH);
+  // Leave non-production branch domains under Amplify's management. Replacing
+  // an existing UserPoolDomain during a branch stack update is not supported.
+  return undefined;
 };
 
 Aspects.of(backend.auth.stack).add({
@@ -83,7 +82,8 @@ Aspects.of(backend.auth.stack).add({
       node instanceof CfnResource &&
       node.cfnResourceType === 'AWS::Cognito::UserPoolDomain'
     ) {
-      node.addPropertyOverride('Domain', getDomainPrefixForStack(backend.auth.stack.stackName));
+      const domainPrefix = getDomainPrefixForStack(backend.auth.stack.stackName);
+      if (domainPrefix) node.addPropertyOverride('Domain', domainPrefix);
     }
   },
 });

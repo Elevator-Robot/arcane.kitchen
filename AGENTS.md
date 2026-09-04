@@ -28,6 +28,14 @@ Recipe identity fields:
 - `Recipe.createdBy` is denormalized display metadata and must match the owner's `@username`
 - Recipe creation, edits, username changes, and ownership transfers synchronize `createdBy`
 
+UserProfile login reconciliation:
+- On every successful login, the backend `UserProfile` row is checked first and wins over Cognito/local cache values
+- Cognito attributes seed a `UserProfile` only when the backend row is missing
+- Missing first-signup profiles receive one random preset avatar and keep it until changed
+
+Authentication submission:
+- Custom sign-in and account creation requests are deduplicated while in flight so one attempt cannot send multiple confirmation codes
+
 ## User-Facing Errors
 
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
@@ -46,7 +54,7 @@ Recipe identity fields:
 ## Cognito Hosted-UI Domains
 
 - The production `main-branch` stack owns the `arcanekitchen` Cognito domain prefix.
-- Other Amplify branch stacks receive a deterministic suffix; do not reuse the production prefix across branch deployments.
+- Other Amplify branch stacks retain Amplify-managed unique domains; do not reuse the production prefix across branch deployments.
 
 ## Recipe Save Counts
 
@@ -108,7 +116,8 @@ Recipe identity fields:
 ## Service Worker (PWA)
 
 - The SW (`public/sw.js`) is registered **only in production** (`import.meta.env.PROD` in `src/main.tsx`). In dev mode any previously registered SW is unregistered and any leftover caches are purged instead.
-- Why: `sw.js` serves every same-origin GET cache-first, including Vite dev modules (`/node_modules/.vite/deps/*`). Caching those across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
+- Why: `sw.js` serves same-origin static GETs cache-first, except runtime `amplify_outputs.json`, which is always fetched from the network. Caching Vite dev modules (`/node_modules/.vite/deps/*`) across optimize passes yields duplicate module instances in the browser ("Invalid hook call: dispatcher is null"). Hashed prod bundles are immutable and safe.
+- `amplify_outputs.json` is never cached because stale branch Identity Pool IDs cause authentication and data requests to fail after an Amplify environment is replaced.
 - Caches left behind by an unregistered dev SW can hold stale/mangled copies of unhashed source modules (e.g. the old pre-router `RecipeBuilder.tsx`), so dev boot also runs `caches.delete()` on every recognized cache name.
 - If the dev console still shows the duplicate-React error after a code fix, unregister the SW + clear site data once (DevTools → Application → Service Workers).
 
