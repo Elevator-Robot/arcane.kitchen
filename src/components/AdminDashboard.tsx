@@ -173,9 +173,10 @@ export default function AdminDashboard({
       const result = await client.models.Recipe.update({
         id: recipe.id,
         ownerId: destination.userId,
+        createdBy: `@${destination.username}`,
       }, { authMode: 'userPool' });
       if (result.errors?.length) throw new Error(result.errors.map((operationError: any) => errorText(operationError)).join(', '));
-      setRecipes((current) => current.map((entry) => entry.id === recipe.id ? { ...entry, ownerId: destination.userId } : entry));
+      setRecipes((current) => current.map((entry) => entry.id === recipe.id ? { ...entry, ownerId: destination.userId, createdBy: `@${destination.username}` } : entry));
       setTransferRecipeId('');
       setTransferOwnerId('');
     } catch (operationError) { setError(errorText(operationError)); }
