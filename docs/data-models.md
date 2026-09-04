@@ -13,7 +13,7 @@ Main fields:
 - `id`
 - `name` (required)
 - `ownerId` (required)
-- `createdBy` (required)
+- `createdBy` (required; synchronized to the owner's `UserProfile.username`, stored as `@username`)
 - `description`
 - `instructions` (array of strings)
 - `prepTime`
@@ -104,6 +104,7 @@ Auth:
 - A recipe can have many linked ingredients through `RecipeIngredient`.
 - An ingredient can be reused across many recipes through `RecipeIngredient`.
 - A user can have many favorite recipes through `Favorite`.
+- `Recipe.ownerId` identifies the owner; `Recipe.createdBy` is denormalized display metadata and must match that owner's username.
 
 ## `UserProfile`
 
