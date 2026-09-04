@@ -3,7 +3,6 @@ import { Amplify } from 'aws-amplify';
 import { Authenticator, Text } from '@aws-amplify/ui-react';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
-  autoSignIn,
   confirmSignUp,
   fetchAuthSession,
   fetchUserAttributes,
@@ -100,12 +99,9 @@ const hasAmplifyAuthConfig = () => {
   }
 };
 
-const isAlreadyConfirmedError = (error: any) =>
-  error?.name === 'UserAlreadyConfirmedException' ||
-  (error?.name === 'NotAuthorizedException' &&
-    /current status is confirmed/i.test(error?.message || ''));
+const pendingConfirmations = new Map<string, Promise<any>>();
 
-const authServices = {
+export const authServices = {
   async handleSignIn(input: any) {
     const username = input.username?.trim().toLowerCase();
     const password = input.password;
@@ -171,27 +167,35 @@ const authServices = {
       throw new Error('Code is required to confirm sign up');
     }
 
-    let result;
-    try {
-      result = await confirmSignUp({
-        username,
-        confirmationCode,
-      });
-    } catch (error: any) {
-      if (!isAlreadyConfirmedError(error)) {
-        throw new Error(getUserFacingErrorMessage(error, 'We could not verify your account. Please try again.'));
+    const key = `${username}:${confirmationCode}`;
+    const pending = pendingConfirmations.get(key);
+    if (pending) return pending;
+
+    const request = (async () => {
+      try {
+        return await confirmSignUp({
+          username,
+          confirmationCode,
+        });
+      } catch (error: any) {
+        console.error('Cognito confirmSignUp failed', {
+          name: error?.name,
+          message: error?.message,
+          httpStatusCode: error?.metadata?.httpStatusCode,
+        });
+        throw new Error(
+          getUserFacingErrorMessage(
+            error,
+            'We could not verify your account. Please try again.'
+          )
+        );
+      } finally {
+        pendingConfirmations.delete(key);
       }
+    })();
 
-      // The Authenticator can submit the confirmation callback twice. The
-      // first request confirms the account; make the duplicate idempotent.
-      return await autoSignIn();
-    }
-
-    if (result.isSignUpComplete) {
-      return await autoSignIn();
-    }
-
-    return result as any;
+    pendingConfirmations.set(key, request);
+    return request;
   },
 };
 
@@ -293,6 +297,7 @@ function ConfirmationCodeHeader() {
           <input
             key={index}
             id={`confirmation-code-${index}`}
+            name={`confirmation-code-${index}`}
             aria-label={`Confirmation code digit ${index + 1}`}
             className="confirmation-code-input"
             inputMode="numeric"

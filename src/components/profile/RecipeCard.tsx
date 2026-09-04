@@ -14,7 +14,13 @@ export default function RecipeCard({ recipe, onOptions, onClick, isFavorited = f
   return (
     <div onClick={() => onClick?.(recipe.id)} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 flex flex-col cursor-pointer">
       <div className="relative h-48 w-full">
-        <img src={recipe.image || '/api/placeholder/400/300'} alt={recipe.title} className="w-full h-full object-cover" />
+        {recipe.image ? (
+          <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-[var(--theme-surface-alt)] text-sm text-[var(--theme-text-muted)]">
+            No photo
+          </div>
+        )}
       </div>
 
       <div className="p-4 flex-1 flex flex-col justify-between">
