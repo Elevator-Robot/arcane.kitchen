@@ -1,5 +1,5 @@
 // Arcane Kitchen Service Worker
-const CACHE_NAME = 'arcane-kitchen-v2';
+const CACHE_NAME = 'arcane-kitchen-v3';
 const urlsToCache = [
   '/manifest.json',
   '/favicon.svg',
