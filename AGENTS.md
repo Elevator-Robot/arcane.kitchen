@@ -31,6 +31,7 @@ Recipe identity fields:
 UserProfile login reconciliation:
 - On every successful login, the backend `UserProfile` row is checked first and wins over Cognito/local cache values
 - Cognito attributes seed a `UserProfile` only when the backend row is missing
+- Missing first-signup profiles receive one random preset avatar and keep it until changed
 
 Authentication submission:
 - Custom sign-in and account creation requests are deduplicated while in flight so one attempt cannot send multiple confirmation codes

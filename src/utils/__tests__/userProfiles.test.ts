@@ -7,6 +7,7 @@ import {
   isUsernameChangeAllowed,
   isUsernameTaken,
   loadUserProfiles,
+  DEFAULT_AVATAR_FILES,
   sanitizeUsername,
   upsertUserProfile,
   validateProfileIdentity,
@@ -69,6 +70,7 @@ describe('userProfiles helpers', () => {
     expect(profiles['user-1'].username).toBe('riddle');
     expect(profiles['user-1'].displayName).toBe('Riddle');
     expect(profiles['user-1'].needsUsernameSetup).toBe(true);
+    expect(DEFAULT_AVATAR_FILES).toContain(profiles['user-1'].avatar);
   });
 
   it('detects an already taken username', () => {

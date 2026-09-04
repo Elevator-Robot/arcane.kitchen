@@ -14,6 +14,25 @@ export type UserProfile = {
 
 const USER_PROFILES_STORAGE_KEY = 'arcaneKitchen.userProfiles';
 
+export const DEFAULT_AVATAR_FILES = [
+  'rukko.webp',
+  'innkeeper.webp',
+  'oswin.webp',
+  'warlock.webp',
+  'juniper.webp',
+  'witch.webp',
+  'muur.webp',
+  'shopkeeper.webp',
+  'ysra.webp',
+  'odo.webp',
+  'wanderer.webp',
+] as const;
+
+export const randomDefaultAvatar = () =>
+  DEFAULT_AVATAR_FILES[
+    Math.floor(Math.random() * DEFAULT_AVATAR_FILES.length)
+  ];
+
 export const sanitizeUsername = (value: string) =>
   value
     .trim()
@@ -330,13 +349,15 @@ export const upsertUserProfile = (
     usernameChanged || !existing?.username
       ? Date.now()
       : existing?.lastUsernameChange;
+  const nextAvatar =
+    input.avatar ?? existing?.avatar ?? (isNewProfile ? randomDefaultAvatar() : null);
 
   const nextProfile: UserProfile = {
     userId: input.userId,
     username: usernameForProfile,
     displayName: nextDisplayName,
     bio: input.bio ?? existing?.bio ?? '',
-    avatar: input.avatar ?? existing?.avatar ?? null,
+    avatar: nextAvatar,
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     needsUsernameSetup: shouldPromptForUsername,
