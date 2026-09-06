@@ -982,20 +982,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setProfileRouteProfile(profile);
       setIsProfileRouteLoading(false);
       if (profile) {
-        setBackendProfilesByUsername((previous) => ({
-          ...previous,
-          [sanitizeUsername(profile.username)]: profile,
-        }));
-        setBackendProfilesByUserId((previous) => ({
-          ...previous,
-          [String(profile.userId)]: profile,
-        }));
+        if (profileModalUsername === null) {
+          setBackendProfilesByUsername((previous) => ({
+            ...previous,
+            [sanitizeUsername(profile.username)]: profile,
+          }));
+          setBackendProfilesByUserId((previous) => ({
+            ...previous,
+            [String(profile.userId)]: profile,
+          }));
+        }
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [viewingProfileUsername, localProfiles, isAuthenticated]);
+  }, [viewingProfileUsername, localProfiles, isAuthenticated, profileModalUsername]);
 
   const isViewingExternalProfile =
     (currentView === 'Profile' || profileModalUsername !== null) &&
