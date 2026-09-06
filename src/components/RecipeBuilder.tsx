@@ -4859,6 +4859,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               ? 'fixed inset-0 z-50 bg-[var(--theme-overlay)] p-4 backdrop-blur-sm'
               : ''
           }`}
+          onClick={(event) => {
+            if (profileModalUsername !== null && event.target === event.currentTarget) {
+              closeProfileModal();
+            }
+          }}
         >
           {profileModalUsername !== null && (
             <button
@@ -4925,7 +4930,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       onClick={() =>
                         void shareProfile(profileRouteProfile.username)
                       }
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-semibold text-[var(--theme-accent)] transition hover:text-[var(--theme-accent-strong)]"
                     >
                       <Share className="h-4 w-4" aria-hidden="true" />
                       {profileShareCopied ? 'Copied!' : 'Share'}
