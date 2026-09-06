@@ -125,7 +125,8 @@ const getInitialFavoriteRecipeIds = (): Set<string> => {
 };
 
 const getCurrentUserId = (currentUser?: any, userAttributes?: any) =>
-  currentUser?.userId || currentUser?.username || userAttributes?.sub || null;
+  // Owner authorization uses the Cognito subject, never the login username.
+  currentUser?.userId || userAttributes?.sub || currentUser?.username || null;
 
 interface RecipeBuilderProps {
   isAuthenticated: boolean;

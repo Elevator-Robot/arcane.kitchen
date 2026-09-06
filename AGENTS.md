@@ -35,6 +35,7 @@ UserProfile login reconciliation:
 
 Authentication submission:
 - Custom sign-in and account creation requests are deduplicated while in flight so one attempt cannot send multiple confirmation codes
+- Recipe ownership uses the Cognito subject (`sub`/`userId`), never the Cognito login username, when publishing or mutating recipes
 
 ## User-Facing Errors
 
