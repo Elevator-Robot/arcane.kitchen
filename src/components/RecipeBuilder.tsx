@@ -852,6 +852,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [viewingProfileUsername, setViewingProfileUsername] = useState<
     string | null
   >(null);
+  const [profileModalUsername, setProfileModalUsername] = useState<
+    string | null
+  >(null);
   const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -979,23 +982,25 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setProfileRouteProfile(profile);
       setIsProfileRouteLoading(false);
       if (profile) {
-        setBackendProfilesByUsername((previous) => ({
-          ...previous,
-          [sanitizeUsername(profile.username)]: profile,
-        }));
-        setBackendProfilesByUserId((previous) => ({
-          ...previous,
-          [String(profile.userId)]: profile,
-        }));
+        if (profileModalUsername === null) {
+          setBackendProfilesByUsername((previous) => ({
+            ...previous,
+            [sanitizeUsername(profile.username)]: profile,
+          }));
+          setBackendProfilesByUserId((previous) => ({
+            ...previous,
+            [String(profile.userId)]: profile,
+          }));
+        }
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [viewingProfileUsername, localProfiles, isAuthenticated]);
+  }, [viewingProfileUsername, localProfiles, isAuthenticated, profileModalUsername]);
 
   const isViewingExternalProfile =
-    currentView === 'Profile' &&
+    (currentView === 'Profile' || profileModalUsername !== null) &&
     viewingProfileUsername !== null &&
     profileRouteUsername === sanitizeUsername(viewingProfileUsername) &&
     profileRouteProfile !== null &&
@@ -1069,6 +1074,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     },
     [navigate]
   );
+
+  const openProfileModal = useCallback((username: string) => {
+    const normalized = sanitizeUsername(username);
+    if (!normalized) return;
+
+    setViewingProfileUsername(normalized);
+    setProfileModalUsername(normalized);
+  }, []);
+
+  const closeProfileModal = useCallback(() => {
+    setProfileModalUsername(null);
+    setViewingProfileUsername(null);
+  }, []);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -1501,7 +1519,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         }
         justClosedRecipeIdRef.current = null;
         setExpandedRecipeMessage('');
-        setViewingProfileUsername(null);
+        if (!profileModalUsername) {
+          setViewingProfileUsername(null);
+        }
         setCurrentView('Discover');
         return;
       }
@@ -1530,6 +1550,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     expandedRecipeId,
     currentView,
     backendProfilesByUserId,
+    profileModalUsername,
   ]);
 
   useEffect(() => {
@@ -4289,7 +4310,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       armedDeleteRecipeIds={armedDeleteRecipeIds}
                       currentUserId={currentUserId}
                       isAuthenticated={isAuthenticated}
-                      onOpenProfile={openProfileRoute}
+                      onOpenProfile={openProfileModal}
                     />
                   ))}
                 </div>
@@ -4832,9 +4853,30 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           id="profile"
           key={currentView === 'Profile' ? 'profile-visible' : 'profile-hidden'}
           className={`min-h-0 overflow-y-auto ${
-            currentView === 'Profile' ? 'flex flex-col' : 'hidden'
+            currentView === 'Profile' || profileModalUsername !== null
+              ? 'flex flex-col'
+              : 'hidden'
+          } ${
+            profileModalUsername !== null
+              ? 'fixed inset-0 z-50 bg-[var(--theme-overlay)] p-4 backdrop-blur-sm'
+              : ''
           }`}
+          onClick={(event) => {
+            if (profileModalUsername !== null && event.target === event.currentTarget) {
+              closeProfileModal();
+            }
+          }}
         >
+          {profileModalUsername !== null && (
+            <button
+              type="button"
+              onClick={closeProfileModal}
+              aria-label="Close profile"
+              className="fixed right-4 top-4 z-10 rounded-full bg-black/70 p-2 text-white transition hover:bg-black"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
           {isProfileRouteLoading ? (
             <div className="mx-auto w-full max-w-4xl p-8 text-center">
               <p className="text-sm text-[var(--theme-text-muted)]">
@@ -4890,7 +4932,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       onClick={() =>
                         void shareProfile(profileRouteProfile.username)
                       }
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
+                      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-semibold text-[var(--theme-accent)] transition hover:text-[var(--theme-accent-strong)]"
                     >
                       <Share className="h-4 w-4" aria-hidden="true" />
                       {profileShareCopied ? 'Copied!' : 'Share'}
