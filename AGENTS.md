@@ -133,6 +133,7 @@ Authentication submission:
 - User deletion, banning, content hiding, restoration, audit logging, and ownership transfers use the admin-only `adminActions` backend mutation; public feed filtering and a fully atomic multi-record ownership transaction remain follow-up work.
 - `Recipe` and `Comment` include moderation visibility metadata; `UserProfile` stores moderation state and `AdminAuditLog` stores admin-action history. Privileged operations and feed filtering must still be backend-enforced before these fields are used in production flows.
 - The admin Users tab reads all Cognito users through the admin-authorized `listAdminUsers` query; `UserProfile` remains the source for app profile and moderation metadata.
+- The `Admins` Cognito group uses a separate identity-pool role, so admin recipe-image uploads require an explicit `Admins` storage rule in addition to the authenticated rule.
 
 ## Agent checklist for every PR
 

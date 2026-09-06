@@ -6,6 +6,7 @@ export const storage = defineStorage({
     'recipe-images/*': [
       allow.guest.to(['get']),
       allow.authenticated.to(['get', 'list', 'write', 'delete']),
+      allow.groups(['Admins']).to(['get', 'list', 'write', 'delete']),
     ],
   }),
 });
