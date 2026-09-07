@@ -10,13 +10,9 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
-  Copy,
   Heart,
-  Mail,
   Maximize2,
-  MessageCircle,
   Plus,
-  Send,
   Share,
   X,
 } from 'lucide-react';
@@ -180,6 +176,7 @@ interface CommentItemProps {
   onReply: (id: string, author: string) => void;
   onEdit: (id: string, content: string) => void;
   onDelete: (id: string) => void;
+  onOpenProfile?: (username: string) => void;
   replyingTo: string | null;
   editingCommentId: string | null;
   setEditingCommentId: (id: string | null) => void;
@@ -193,6 +190,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   onReply,
   onEdit,
   onDelete,
+  onOpenProfile,
   replyingTo,
   editingCommentId,
   setEditingCommentId,
@@ -214,9 +212,14 @@ const CommentItem: React.FC<CommentItemProps> = ({
     const parts = text.split(/(@\w+)/g);
     return parts.map((part, i) =>
       part.startsWith('@') ? (
-        <span key={i} className="font-medium text-[#0891b2]">
+        <button
+          key={i}
+          type="button"
+          onClick={() => onOpenProfile?.(part.slice(1))}
+          className="font-medium text-[#0891b2] hover:underline"
+        >
           {part}
-        </span>
+        </button>
       ) : (
         <span key={i}>{part}</span>
       )
@@ -230,9 +233,19 @@ const CommentItem: React.FC<CommentItemProps> = ({
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <span className="text-sm font-medium text-[var(--theme-text)]">
-              {comment.author}
-            </span>
+            {comment.author.startsWith('@') ? (
+              <button
+                type="button"
+                onClick={() => onOpenProfile?.(comment.author.slice(1))}
+                className="text-sm font-medium text-[var(--theme-text)] hover:text-[var(--theme-accent)] hover:underline"
+              >
+                {comment.author}
+              </button>
+            ) : (
+              <span className="text-sm font-medium text-[var(--theme-text)]">
+                {comment.author}
+              </span>
+            )}
             <span className="ml-2 text-xs text-[var(--theme-text-muted)]">
               {timeAgo(comment.createdAt)}
               {comment.updatedAt && (
@@ -308,6 +321,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
               onReply={onReply}
               onEdit={onEdit}
               onDelete={onDelete}
+              onOpenProfile={onOpenProfile}
               replyingTo={replyingTo}
               editingCommentId={editingCommentId}
               setEditingCommentId={setEditingCommentId}
@@ -787,6 +801,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [publishMessageTone, setPublishMessageTone] = useState<
     'error' | 'success'
   >('error');
+  const [recipeShareCopied, setRecipeShareCopied] = useState(false);
   const [draftRecords, setDraftRecords] = useState<RecipeDraftRecord[]>([]);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<Set<string>>(
     getInitialFavoriteRecipeIds
@@ -832,9 +847,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionCursor, setMentionCursor] = useState(0);
-  const [shareNotice, setShareNotice] = useState('');
   const [profileShareCopied, setProfileShareCopied] = useState(false);
-  const [showShareMenu, setShowShareMenu] = useState(false);
   const [showRecipeImageLightbox, setShowRecipeImageLightbox] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(
@@ -855,9 +868,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [profileModalUsername, setProfileModalUsername] = useState<
     string | null
   >(null);
-  const shareNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
   const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -871,7 +881,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return tagColorsRef.current[key];
   };
 
-  const shareMenuRef = useRef<HTMLDivElement>(null);
   const [newTagValue, setNewTagValue] = useState('');
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [loadingEditRecipeId, setLoadingEditRecipeId] = useState<string | null>(
@@ -1061,19 +1070,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const avatarUrl = effectiveAvatar
     ? avatarEntries.find((e) => e.file === effectiveAvatar)?.url || null
     : null;
-
-  const openProfileRoute = useCallback(
-    (username: string) => {
-      const normalized = sanitizeUsername(username);
-      if (!normalized) return;
-
-      navigate(getProfileRoutePath(normalized));
-
-      setViewingProfileUsername(normalized);
-      setCurrentView('Profile');
-    },
-    [navigate]
-  );
 
   const openProfileModal = useCallback((username: string) => {
     const normalized = sanitizeUsername(username);
@@ -3271,14 +3267,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           url: shareUrl,
         });
         markProfileShareCopied();
-        setShareNotice('Profile link shared');
       } else if (
         typeof navigator !== 'undefined' &&
         navigator.clipboard?.writeText
       ) {
         await navigator.clipboard.writeText(shareUrl);
         markProfileShareCopied();
-        setShareNotice('Profile link copied to clipboard');
       } else {
         const temporaryInput = document.createElement('textarea');
         temporaryInput.value = shareUrl;
@@ -3290,24 +3284,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         const copied = document.execCommand('copy');
         document.body.removeChild(temporaryInput);
         if (copied) markProfileShareCopied();
-        setShareNotice(
-          copied
-            ? 'Profile link copied to clipboard'
-            : 'Profile link ready to share'
-        );
       }
     } catch (error: any) {
       if (error?.name === 'AbortError') return;
-      setShareNotice('Profile sharing is not available right now');
     }
 
-    setShowShareMenu(false);
   };
 
   const copyRecipeLink = async (shareUrl: string) => {
+    let copied = false;
+
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareUrl);
+        copied = true;
       } else if (typeof window !== 'undefined') {
         const temporaryInput = document.createElement('textarea');
         temporaryInput.value = shareUrl;
@@ -3316,99 +3306,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         temporaryInput.style.left = '-9999px';
         document.body.appendChild(temporaryInput);
         temporaryInput.select();
-        document.execCommand('copy');
+        copied = document.execCommand('copy');
         document.body.removeChild(temporaryInput);
       }
-      setShareNotice('Recipe link copied to clipboard');
+      if (!copied) throw new Error('Clipboard copy failed');
+      setRecipeShareCopied(true);
+      window.setTimeout(() => setRecipeShareCopied(false), 2000);
     } catch {
-      setShareNotice('Could not copy the recipe link');
+      setRecipeShareCopied(false);
     }
-
-    setShowShareMenu(false);
-  };
-
-  const openShareLink = (
-    shareUrl: string,
-    platform: 'whatsapp' | 'email' | 'telegram'
-  ) => {
-    const encodedUrl = encodeURIComponent(shareUrl);
-    let shareTarget = '';
-
-    if (platform === 'whatsapp') {
-      shareTarget = `https://wa.me/?text=${encodeURIComponent(`Check out this recipe: ${shareUrl}`)}`;
-    } else if (platform === 'email') {
-      const subject = encodeURIComponent('Check out this recipe');
-      const body = encodeURIComponent(`Check out this recipe\n\n${shareUrl}`);
-      shareTarget = `mailto:?subject=${subject}&body=${body}`;
-    } else if (platform === 'telegram') {
-      shareTarget = `https://t.me/share/url?url=${encodedUrl}`;
-    }
-
-    if (shareTarget) {
-      window.open(shareTarget, '_blank', 'noopener,noreferrer');
-      setShareNotice(
-        `Opened ${platform === 'whatsapp' ? 'WhatsApp' : platform === 'email' ? 'Email' : 'Telegram'}`
-      );
-    }
-
-    setShowShareMenu(false);
   };
 
   const shareRecipe = async (recipe: FeedRecipe) => {
     if (typeof window === 'undefined') return;
 
-    const shareUrl = getRecipeShareUrl(recipe);
-
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({
-          title: recipe.name,
-          text: recipe.description || 'Check out this recipe',
-          url: shareUrl,
-        });
-        setShareNotice('Recipe link shared');
-        setShowShareMenu(false);
-      } else {
-        setShowShareMenu((previous) => !previous);
-        return;
-      }
-    } catch (error: any) {
-      if (error?.name === 'AbortError') return;
-      setShareNotice('Sharing is not available right now');
-      setShowShareMenu(false);
-    }
-
-    if (shareNoticeTimeoutRef.current) {
-      clearTimeout(shareNoticeTimeoutRef.current);
-    }
-
-    shareNoticeTimeoutRef.current = setTimeout(() => {
-      setShareNotice('');
-      shareNoticeTimeoutRef.current = null;
-    }, 2400);
+    await copyRecipeLink(getRecipeShareUrl(recipe));
   };
 
-  useEffect(() => {
-    if (!showShareMenu) return undefined;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      if (
-        shareMenuRef.current &&
-        !shareMenuRef.current.contains(event.target as Node)
-      ) {
-        setShowShareMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      if (shareNoticeTimeoutRef.current) {
-        clearTimeout(shareNoticeTimeoutRef.current);
-      }
-    };
-  }, [showShareMenu]);
 
   const expandedRecipeArticle = expandedRecipe ? (
     <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
@@ -3469,7 +3383,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               type="button"
               onClick={() => {
                 if (expandedRecipe.authorHandle) {
-                  openProfileRoute(expandedRecipe.authorHandle);
+                  openProfileModal(expandedRecipe.authorHandle);
                 }
               }}
               className="mt-1 text-left text-sm text-[var(--theme-text-muted)] transition hover:text-[var(--theme-accent)] hover:underline"
@@ -3478,11 +3392,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {shareNotice && (
-              <div className="w-full rounded border border-[#b7d9c8] bg-[#edf9f2] px-3 py-2 text-sm text-[#1f6b42]">
-                {shareNotice}
-              </div>
-            )}
             <button
               type="button"
               onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
@@ -3509,68 +3418,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               />
               {favoriteRecipeIds.has(expandedRecipe.id) ? 'Saved' : 'Save'}
             </button>
-            <div className="relative" ref={shareMenuRef}>
-              <button
-                type="button"
-                onClick={() => void shareRecipe(expandedRecipe)}
-                aria-label="Share"
-                title="Share recipe"
-                className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
-              >
-                <Share className="h-4 w-4" aria-hidden="true" />
-                Share
-              </button>
-              {showShareMenu && (
-                <div className="absolute right-0 top-full z-20 mt-2 w-48 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow-cozy-lg">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void copyRecipeLink(getRecipeShareUrl(expandedRecipe))
-                    }
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                  >
-                    <Copy className="h-4 w-4" aria-hidden="true" />
-                    Copy Link
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openShareLink(
-                        getRecipeShareUrl(expandedRecipe),
-                        'whatsapp'
-                      )
-                    }
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                  >
-                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
-                    WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openShareLink(getRecipeShareUrl(expandedRecipe), 'email')
-                    }
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                  >
-                    <Mail className="h-4 w-4" aria-hidden="true" />
-                    Email
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openShareLink(
-                        getRecipeShareUrl(expandedRecipe),
-                        'telegram'
-                      )
-                    }
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-bg-soft)]"
-                  >
-                    <Send className="h-4 w-4" aria-hidden="true" />
-                    Telegram
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => void shareRecipe(expandedRecipe)}
+              aria-label="Share"
+              title="Copy recipe link"
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
+            >
+              <Share className="h-4 w-4" aria-hidden="true" />
+              {recipeShareCopied ? 'Copied!' : 'Share'}
+            </button>
             {expandedRecipe.rating !== 'New' && (
               <div className="rounded-md bg-[var(--theme-surface)] px-2.5 py-1 text-sm font-semibold text-[var(--theme-text)] shadow-sm">
                 {expandedRecipe.rating}
@@ -3714,6 +3571,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             )}
                             isReply={false}
                             currentUserId={currentUserId}
+                            onOpenProfile={openProfileModal}
                             onReply={(id, author) => {
                               setReplyingTo(id);
                               setReplyingToAuthor(author || '');
@@ -4740,7 +4598,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     armedDeleteRecipeIds={armedDeleteRecipeIds}
                     currentUserId={currentUserId}
                     isAuthenticated={isAuthenticated}
-                    onOpenProfile={openProfileRoute}
+                    onOpenProfile={openProfileModal}
                   />
                 ))}
               </div>
@@ -4858,7 +4716,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               : 'hidden'
           } ${
             profileModalUsername !== null
-              ? 'fixed inset-0 z-50 bg-[var(--theme-overlay)] p-4 backdrop-blur-sm'
+              ? 'fixed inset-0 z-[55] bg-[var(--theme-overlay)] p-4 backdrop-blur-sm'
               : ''
           }`}
           onClick={(event) => {
@@ -4910,7 +4768,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
                 <div className="min-w-0 flex-1">
                   <h2 className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
-                    @{profileRouteProfile.username}
+                    {profileRouteProfile.username}
                   </h2>
                   {profileRouteProfile.bio && (
                     <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--theme-text-muted)]">
@@ -5003,7 +4861,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           armedDeleteRecipeIds={armedDeleteRecipeIds}
                           currentUserId={currentUserId}
                           isAuthenticated={isAuthenticated}
-                          onOpenProfile={openProfileRoute}
+                          onOpenProfile={openProfileModal}
                         />
                       ))}
                     </div>

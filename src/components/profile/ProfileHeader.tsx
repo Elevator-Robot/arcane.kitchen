@@ -106,12 +106,12 @@ export default function ProfileHeader({
             {user.avatarUrl ? (
               <img
                 src={user.avatarUrl}
-                alt={`@${user.handle}`}
+                alt={user.handle}
                 className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-md"
               />
             ) : (
               <div
-                aria-label={`@${user.handle}`}
+                aria-label={user.handle}
                 className="flex h-40 w-40 items-center justify-center rounded-full border-4 border-white bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md"
               >
                 {(user.handle || user.name || 'C').charAt(0).toUpperCase()}

@@ -70,6 +70,8 @@ Authentication submission:
 - The SPA is wrapped in `BrowserRouter` (in `src/main.tsx`). `react-router-dom` is a dependency.
 - The recipe "modal" opens in-place on top of the current page: opening a recipe calls `navigate('<current-pathname>?recipe=<id>')` so the base page stays in the URL (open-from-Discover, -Saved, -Profile all work; no more `stayInView` hack).
 - Discover recipe-card author links open the public profile in an in-place modal without reloading the underlying feed; clicking its transparent backdrop closes it, and profile URLs from navigation and shared links continue to use `/u/:username`.
+- Usernames render without a leading `@` in profile identity displays; `@username` is reserved for recipe attribution and comment mentions, whose clickable mentions open the same profile modal.
+- Recipe sharing copies the recipe URL directly to the clipboard and shows temporary `Copied!` feedback; it does not open a share menu or render a green status banner.
 - `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
   - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
   - `/u/:username` (`getProfileUsernameFromPath`) → Profile view.
