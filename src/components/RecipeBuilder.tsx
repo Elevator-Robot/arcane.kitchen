@@ -39,7 +39,6 @@ import {
   findProfileByUsername,
   getDisplayNameFromAuth,
   getProfileRoutePath,
-  getProfileShareUrl,
   getProfileUsernameFromPath,
   getRecipeIdFromPath,
   getRecipeRoutePath,
@@ -847,7 +846,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionCursor, setMentionCursor] = useState(0);
-  const [profileShareCopied, setProfileShareCopied] = useState(false);
   const [showRecipeImageLightbox, setShowRecipeImageLightbox] = useState(false);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [draftImageDataUrl, setDraftImageDataUrl] = useState<string | null>(
@@ -1006,7 +1004,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [viewingProfileUsername, localProfiles, isAuthenticated, profileModalUsername]);
+  }, [
+    viewingProfileUsername,
+    localProfiles,
+    isAuthenticated,
+    profileModalUsername,
+  ]);
 
   const isViewingExternalProfile =
     (currentView === 'Profile' || profileModalUsername !== null) &&
@@ -1015,10 +1018,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     profileRouteProfile !== null &&
     String(profileRouteProfile.userId) !== String(currentUserId);
   const isViewingOwnProfile =
-    currentView === 'Profile' &&
+    (currentView === 'Profile' || profileModalUsername !== null) &&
     viewingProfileUsername !== null &&
     sanitizeUsername(viewingProfileUsername) ===
-    sanitizeUsername(activeUsername);
+      sanitizeUsername(activeUsername);
   const creatorName = activeUsername ? `@${activeUsername}` : 'Guest cook';
 
   // Repair legacy records and keep the denormalized author label aligned with
@@ -1904,7 +1907,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return {
       userId: currentUserId,
       id: currentUserId,
-      name: activeUsername ? `@${activeUsername}` : 'Guest cook',
+      name: activeUsername || 'Guest cook',
       handle: activeProfile?.username || activeUsername,
       bio: activeProfile?.bio || profileBio || '',
       avatarUrl: avatarUrl || undefined,
@@ -1928,6 +1931,32 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     favoriteRecipeIds,
     savedRecipes,
   ]);
+
+  const publicProfileViewUser = useMemo(() => {
+    if (!profileRouteProfile) return null;
+
+    return {
+      userId: profileRouteProfile.userId,
+      id: profileRouteProfile.userId,
+      name: profileRouteProfile.username,
+      handle: profileRouteProfile.username,
+      bio: profileRouteProfile.bio || '',
+      avatarUrl: profileRouteProfile.avatar
+        ? avatarEntries.find(
+            (entry) => entry.file === profileRouteProfile.avatar
+          )?.url
+        : undefined,
+      joinDate: profileRouteProfile.createdAt || undefined,
+      stats: {
+        recipes: feedRecipes.filter(
+          (recipe) => recipe.ownerId === profileRouteProfile.userId
+        ).length,
+        drafts: 0,
+        likes: 0,
+        saved: 0,
+      },
+    };
+  }, [profileRouteProfile, avatarEntries, feedRecipes]);
 
   const resumeDraft = (draftRecord: RecipeDraftRecord) => {
     setDraft(draftRecord.draft);
@@ -3250,47 +3279,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return `${window.location.origin}${getRecipeRoutePath(recipe.id)}`;
   };
 
-  const shareProfile = async (username: string) => {
-    if (typeof window === 'undefined') return;
-
-    const shareUrl = getProfileShareUrl(username, window.location.origin);
-    if (!shareUrl) return;
-    const markProfileShareCopied = () => {
-      setProfileShareCopied(true);
-      window.setTimeout(() => setProfileShareCopied(false), 2000);
-    };
-
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({
-          title: `@${username} on Arcane Kitchen`,
-          url: shareUrl,
-        });
-        markProfileShareCopied();
-      } else if (
-        typeof navigator !== 'undefined' &&
-        navigator.clipboard?.writeText
-      ) {
-        await navigator.clipboard.writeText(shareUrl);
-        markProfileShareCopied();
-      } else {
-        const temporaryInput = document.createElement('textarea');
-        temporaryInput.value = shareUrl;
-        temporaryInput.setAttribute('readonly', '');
-        temporaryInput.style.position = 'fixed';
-        temporaryInput.style.left = '-9999px';
-        document.body.appendChild(temporaryInput);
-        temporaryInput.select();
-        const copied = document.execCommand('copy');
-        document.body.removeChild(temporaryInput);
-        if (copied) markProfileShareCopied();
-      }
-    } catch (error: any) {
-      if (error?.name === 'AbortError') return;
-    }
-
-  };
-
   const copyRecipeLink = async (shareUrl: string) => {
     let copied = false;
 
@@ -3322,7 +3310,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
     await copyRecipeLink(getRecipeShareUrl(recipe));
   };
-
 
   const expandedRecipeArticle = expandedRecipe ? (
     <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
@@ -4720,7 +4707,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               : ''
           }`}
           onClick={(event) => {
-            if (profileModalUsername !== null && event.target === event.currentTarget) {
+            if (
+              profileModalUsername !== null &&
+              event.target === event.currentTarget
+            ) {
               closeProfileModal();
             }
           }}
@@ -4741,134 +4731,32 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 Loading profile...
               </p>
             </div>
-          ) : isViewingExternalProfile && profileRouteProfile ? (
-            <div className="mx-auto w-full max-w-4xl p-4 sm:p-6">
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-                <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl bg-[var(--theme-accent)] text-3xl font-bold text-white sm:h-32 sm:w-32">
-                  {profileRouteProfile.avatar ? (
-                    <img
-                      src={
-                        avatarEntries.find(
-                          (e) => e.file === profileRouteProfile.avatar
-                        )?.url
-                      }
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    (
-                      profileRouteProfile.username ||
-                      'C'
-                    )
-                      .charAt(0)
-                      .toUpperCase()
-                  )}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
-                    {profileRouteProfile.username}
-                  </h2>
-                  {profileRouteProfile.bio && (
-                    <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--theme-text-muted)]">
-                      {profileRouteProfile.bio}
-                    </p>
-                  )}
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-[var(--theme-surface-alt)] px-3 py-1 text-xs font-medium text-[var(--theme-text-muted)]">
-                      {
-                        feedRecipes.filter(
-                          (recipe) =>
-                            recipe.ownerId === profileRouteProfile.userId
-                        ).length
-                      }{' '}
-                      published recipes
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void shareProfile(profileRouteProfile.username)
-                      }
-                      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-semibold text-[var(--theme-accent)] transition hover:text-[var(--theme-accent-strong)]"
-                    >
-                      <Share className="h-4 w-4" aria-hidden="true" />
-                      {profileShareCopied ? 'Copied!' : 'Share'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <div className="mb-4 flex items-center justify-start gap-2">
-                  <h3 className="font-heading text-lg font-semibold text-[var(--theme-text)]">
-                    Published recipes
-                  </h3>
-                  <span className="text-sm text-[var(--theme-text-muted)]">
-                    {
-                      feedRecipes.filter(
-                        (recipe) =>
-                          recipe.ownerId === profileRouteProfile.userId
-                      ).length
-                    }
-                  </span>
-                </div>
-
-                {(() => {
-                  const authorRecipes = [...feedRecipes]
-                    .filter(
-                      (recipe) => recipe.ownerId === profileRouteProfile.userId
-                    )
-                    .sort((left, right) => {
-                      const leftTime = left.createdAt
-                        ? dayjs(left.createdAt).valueOf()
-                        : 0;
-                      const rightTime = right.createdAt
-                        ? dayjs(right.createdAt).valueOf()
-                        : 0;
-                      return rightTime - leftTime;
-                    });
-
-                  if (isLoadingFeed) return null;
-
-                  if (!authorRecipes.length) {
-                    return (
-                      <div className="rounded-xl border border-dashed border-[var(--theme-border)] p-8 text-center text-sm text-[var(--theme-text-muted)]">
-                        No published recipes yet.
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                      {authorRecipes.map((recipe) => (
-                        <FeedRecipeCard
-                          key={recipe.id}
-                          recipe={recipe}
-                          isFavorited={favoriteRecipeIds.has(recipe.id)}
-                          isPendingFavorite={pendingFavoriteRecipeIds.has(
-                            recipe.id
-                          )}
-                          saveCount={recipeSaves[recipe.id] ?? 0}
-                          onOpenRecipe={(recipeToOpen) => {
-                            void expandRecipe(recipeToOpen);
-                          }}
-                          onToggleFavorite={toggleFavoriteRecipe}
-                          onEditRecipe={startEditRecipe}
-                          onDeleteRecipe={deleteRecipe}
-                          loadingEditRecipeId={loadingEditRecipeId}
-                          deletingRecipeIds={deletingRecipeIds}
-                          armedDeleteRecipeIds={armedDeleteRecipeIds}
-                          currentUserId={currentUserId}
-                          isAuthenticated={isAuthenticated}
-                          onOpenProfile={openProfileModal}
-                        />
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
+          ) : isViewingExternalProfile && publicProfileViewUser ? (
+            <UserProfileView
+              user={publicProfileViewUser}
+              publishedRecipes={feedRecipes
+                .filter(
+                  (recipe) => recipe.ownerId === publicProfileViewUser.userId
+                )
+                .map((recipe) => ({
+                  id: recipe.id,
+                  title: recipe.name,
+                  time: recipe.time,
+                  image: recipe.image,
+                  likes: 0,
+                  saves: recipeSaves[recipe.id] ?? 0,
+                }))}
+              favoriteRecipeIds={favoriteRecipeIds}
+              pendingFavoriteRecipeIds={pendingFavoriteRecipeIds}
+              onToggleFavorite={toggleFavoriteRecipe}
+              onOpenRecipe={(recipeId: string | number) => {
+                const recipe = feedRecipes.find(
+                  (entry) => entry.id === String(recipeId)
+                );
+                if (recipe) void expandRecipe(recipe);
+              }}
+              isOwnProfile={false}
+            />
           ) : viewingProfileUsername !== null && !isViewingOwnProfile ? (
             <div className="mx-auto w-full max-w-4xl p-8 text-center">
               <p className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
@@ -4926,7 +4814,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               pendingFavoriteRecipeIds={pendingFavoriteRecipeIds}
               onToggleFavorite={toggleFavoriteRecipe}
               onSelectPreset={handleSelectAvatarPreset}
-              onShareProfile={() => void shareProfile(profileViewUser.handle)}
               onNewRecipe={startCreateRecipe}
               onOpenRecipe={(recipeId: string | number) => {
                 const recipe = feedRecipes.find(
