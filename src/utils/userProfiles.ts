@@ -29,9 +29,7 @@ export const DEFAULT_AVATAR_FILES = [
 ] as const;
 
 export const randomDefaultAvatar = () =>
-  DEFAULT_AVATAR_FILES[
-    Math.floor(Math.random() * DEFAULT_AVATAR_FILES.length)
-  ];
+  DEFAULT_AVATAR_FILES[Math.floor(Math.random() * DEFAULT_AVATAR_FILES.length)];
 
 export const sanitizeUsername = (value: string) =>
   value
@@ -350,7 +348,9 @@ export const upsertUserProfile = (
       ? Date.now()
       : existing?.lastUsernameChange;
   const nextAvatar =
-    input.avatar ?? existing?.avatar ?? (isNewProfile ? randomDefaultAvatar() : null);
+    input.avatar ??
+    existing?.avatar ??
+    (isNewProfile ? randomDefaultAvatar() : null);
 
   const nextProfile: UserProfile = {
     userId: input.userId,
@@ -385,22 +385,30 @@ export const getRecipeIdFromPath = (pathname?: string | null) => {
   if (!pathname) return null;
 
   const [pathOnly, queryString = ''] = pathname.split('?');
-  const pathMatch = pathOnly.match(/^\/recipe\/([^/?#]+)$/i);
+  const pathMatch = pathOnly.match(/^\/recipe\/([^/?#]+)\/?$/i);
   if (pathMatch?.[1]) {
-    return decodeURIComponent(pathMatch[1]);
+    try {
+      return decodeURIComponent(pathMatch[1]);
+    } catch {
+      return null;
+    }
   }
 
   const queryValue = new URLSearchParams(queryString).get('recipe');
-  return queryValue ? decodeURIComponent(queryValue) : null;
+  return queryValue || null;
 };
 
 export const getProfileUsernameFromPath = (pathname?: string | null) => {
   if (!pathname) return null;
 
-  const match = pathname.match(/^\/(?:u|profile)\/([^/?#]+)$/i);
+  const match = pathname.match(/^\/(?:u|profile)\/([^/?#]+)\/?$/i);
   if (!match?.[1]) return null;
 
-  return decodeURIComponent(match[1]);
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
 };
 
 export const getProfileShareUrl = (

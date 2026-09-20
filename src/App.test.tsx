@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
-import App, { authServices } from './App';
+import App, { AppRouteAware, authServices } from './App';
+import { BrowserRouter } from 'react-router-dom';
 
 const {
   autoSignInMock,
@@ -20,7 +21,10 @@ const {
 }));
 
 vi.mock('aws-amplify/auth', async () => {
-  const actual = await vi.importActual<typeof import('aws-amplify/auth')>('aws-amplify/auth');
+  const actual =
+    await vi.importActual<typeof import('aws-amplify/auth')>(
+      'aws-amplify/auth'
+    );
 
   return {
     ...actual,
@@ -70,8 +74,31 @@ describe('App auth initialization', () => {
     localStorage.clear();
   });
 
+  it.each(['/admin-nope', '/build-something', '/unknown'])(
+    'provides route recovery for %s',
+    (path) => {
+      window.history.replaceState({}, '', path);
+      render(
+        <BrowserRouter>
+          <AppRouteAware />
+        </BrowserRouter>
+      );
+      expect(
+        screen.getByRole('heading', { name: "This page isn't on the menu." })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'Explore recipes' })
+      ).toHaveAttribute('href', '/discover');
+      expect(document.title).toBe('Page not found · Arcane Kitchen');
+      window.history.replaceState({}, '', '/');
+    }
+  );
+
   it('does not render the unauthenticated experience before auth resolves', async () => {
-    getCurrentUserMock.mockResolvedValue({ userId: 'user-1', username: 'test-user' });
+    getCurrentUserMock.mockResolvedValue({
+      userId: 'user-1',
+      username: 'test-user',
+    });
     fetchUserAttributesMock.mockResolvedValue({
       sub: 'user-1',
       email: 'test@example.com',
@@ -82,11 +109,23 @@ describe('App auth initialization', () => {
     expect(screen.getByText('Preparing your kitchen…')).toBeInTheDocument();
     expect(screen.queryByText('RecipeBuilder')).not.toBeInTheDocument();
 
-    await waitFor(() => expect(screen.getByText('RecipeBuilder')).toBeInTheDocument());
-    expect(screen.queryByText('Preparing your kitchen…')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('RecipeBuilder')).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByText('Preparing your kitchen…')
+    ).not.toBeInTheDocument();
   });
 
-  it('seeds the initial authenticated profile from persisted auth data', () => {
+  it('verifies persisted auth before rendering the authenticated workspace', async () => {
+    getCurrentUserMock.mockResolvedValue({
+      userId: 'user-1',
+      username: 'verified-user',
+    });
+    fetchUserAttributesMock.mockResolvedValue({
+      sub: 'user-1',
+      email: 'verified@example.com',
+    });
     localStorage.setItem(
       'arcaneKitchen.authState',
       JSON.stringify({
@@ -99,13 +138,16 @@ describe('App auth initialization', () => {
 
     render(<App />);
 
+    expect(screen.getByText('Preparing your kitchen…')).toBeInTheDocument();
+    expect(recipeBuilderMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(recipeBuilderMock).toHaveBeenCalled());
     const initialProps = recipeBuilderMock.mock.calls[0]?.[0];
     expect(initialProps?.isAuthenticated).toBe(true);
     expect(initialProps?.currentUser).toEqual(
-      expect.objectContaining({ username: 'persisted-user' })
+      expect.objectContaining({ username: 'verified-user' })
     );
     expect(initialProps?.userAttributes).toEqual(
-      expect.objectContaining({ email: 'persisted@example.com' })
+      expect.objectContaining({ email: 'verified@example.com' })
     );
   });
 
@@ -159,12 +201,17 @@ describe('App auth initialization', () => {
   });
 
   it('keeps Cognito confirmation failures as failures and logs safe diagnostics', async () => {
-    const error = Object.assign(new Error('NotAuthorizedException: confirmed'), {
-      name: 'NotAuthorizedException',
-      metadata: { httpStatusCode: 400 },
-    });
+    const error = Object.assign(
+      new Error('NotAuthorizedException: confirmed'),
+      {
+        name: 'NotAuthorizedException',
+        metadata: { httpStatusCode: 400 },
+      }
+    );
     confirmSignUpMock.mockRejectedValue(error);
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
 
     await expect(
       authServices.handleConfirmSignUp({

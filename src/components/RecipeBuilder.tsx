@@ -59,6 +59,8 @@ import {
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
 import ProfileDropdown from './ProfileDropdown';
+import AccessibleDialog from './AccessibleDialog';
+import ErrorArtwork from './ErrorArtwork';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
@@ -770,6 +772,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     !isAuthenticated && tab === 'Build';
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_RECIPE_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
+  const [feedError, setFeedError] = useState('');
   const [activeTag, setActiveTag] = useState('All');
   const [activeAuthor, setActiveAuthor] = useState<string | null>(null);
   const [activeTagColor, setActiveTagColor] = useState(randomMerlinColor);
@@ -1001,11 +1004,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [
-    viewingProfileUsername,
-    localProfiles,
-    isAuthenticated,
-  ]);
+  }, [viewingProfileUsername, localProfiles, isAuthenticated]);
 
   const isViewingExternalProfile =
     currentView === 'Profile' &&
@@ -1070,18 +1069,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     ? avatarEntries.find((e) => e.file === effectiveAvatar)?.url || null
     : null;
 
-  const selectAuthorFilter = useCallback((username: string) => {
-    const normalized = sanitizeUsername(username);
-    if (!normalized) return;
+  const selectAuthorFilter = useCallback(
+    (username: string) => {
+      const normalized = sanitizeUsername(username);
+      if (!normalized) return;
 
-    setActiveAuthor(normalized);
-    setActiveTag('All');
-    setActiveTagColor(randomMerlinColor());
-    setExpandedRecipeId(null);
-    setExpandedRecipeMessage('');
-    setCurrentView('Discover');
-    navigate('/discover');
-  }, [navigate]);
+      setActiveAuthor(normalized);
+      setActiveTag('All');
+      setActiveTagColor(randomMerlinColor());
+      setExpandedRecipeId(null);
+      setExpandedRecipeMessage('');
+      setCurrentView('Discover');
+      navigate('/discover');
+    },
+    [navigate]
+  );
 
   const openProfilePage = useCallback(
     (username: string) => {
@@ -1214,7 +1216,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       .filter((profile) => profile.userId !== currentUserId)
       .map((profile) => profile.username);
     const suggestedUsername = buildSuggestedUsername(
-      existingProfile?.username || getUsernameFromAuth(currentUser, userAttributes) || 'cook',
+      existingProfile?.username ||
+        getUsernameFromAuth(currentUser, userAttributes) ||
+        'cook',
       existingUsernames
     );
     const nextUsername = sanitizeUsername(usernameDraft) || suggestedUsername;
@@ -1260,8 +1264,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       saveUserProfiles(nextProfiles);
       void syncUserProfilesToBackend(nextProfiles, client, currentUserId);
-      void syncProfileToCognito({
-      });
+      void syncProfileToCognito({});
       setProfileData(nextProfiles[currentUserId]);
       setProfileSetupOpen(false);
       setUsernameDraft(finalUsername);
@@ -1310,6 +1313,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const loadRecipes = useCallback(async () => {
     const requestId = ++feedLoadRequestRef.current;
     setIsLoadingFeed(true);
+    setFeedError('');
 
     try {
       const authModes: Array<'userPool' | 'identityPool'> = isAuthenticated
@@ -1342,10 +1346,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         const errorMessage = errors
           .map((error: any) => error.message)
           .join(', ');
-        if (errorMessage.toLowerCase().includes('not authorized')) {
-          return;
-        }
-
         throw new Error(errorMessage);
       }
 
@@ -1355,8 +1355,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
 
       const profilesByOwnerId = {
-        ...backendProfilesByUserId,
         ...loadUserProfiles(),
+        ...backendProfilesByUserId,
       };
 
       const recipes = await Promise.all(
@@ -1394,6 +1394,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (requestId === feedLoadRequestRef.current) setFeedRecipes(recipes);
     } catch (error) {
       console.error('Failed to load recipes:', error);
+      if (requestId === feedLoadRequestRef.current) {
+        setFeedError(
+          getUserFacingErrorMessage(
+            error,
+            'Recipes are temporarily unavailable. Please try again.'
+          )
+        );
+      }
     } finally {
       if (requestId === feedLoadRequestRef.current) {
         setIsLoadingFeed(false);
@@ -1430,6 +1438,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const profileUsername = getProfileUsernameFromPath(location.pathname);
 
       if (recipeIdFromPath) {
+        setCurrentView(viewForPath(location.pathname));
+        setViewingProfileUsername(profileUsername);
         if (location.pathname === '/') {
           navigate(`/discover?recipe=${encodeURIComponent(recipeIdFromPath)}`, {
             replace: true,
@@ -1509,6 +1519,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
 
       if (profileUsername) {
+        setExpandedRecipeId(null);
+        setExpandedRecipeMessage('');
+        justClosedRecipeIdRef.current = null;
         setViewingProfileUsername(profileUsername);
         setCurrentView('Profile');
         return;
@@ -1713,26 +1726,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [imagePreviewUrl]);
 
   useEffect(() => {
-    if (
-      !draftHydratedRef.current ||
-      !isAuthenticated ||
-      !currentUserId ||
-      currentView !== 'Build'
-    ) {
+    if (!draftHydratedRef.current || !isAuthenticated || !currentUserId) {
       return;
     }
 
     if (isRecipeDraftEmpty(draft) && !draftId && !draftImageDataUrl) {
-      return;
-    }
-
-    const hasMandatoryFields = Boolean(
-      draft.name.trim() &&
-        draft.ingredients.some((ingredient) => ingredient.name.trim()) &&
-        !isPlaceholder(imagePreviewUrl)
-    );
-
-    if (!hasMandatoryFields && !draftId) {
       return;
     }
 
@@ -1782,7 +1780,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     };
   }, [
     currentUserId,
-    currentView,
     draft,
     draftId,
     draftImageDataUrl,
@@ -2055,7 +2052,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const filtered = feedRecipes.filter((recipe) => {
       const matchesTag = matchesTagFilter(recipe);
       const matchesAuthor = activeAuthor
-        ? sanitizeUsername(recipe.authorHandle || recipe.author) === activeAuthor
+        ? sanitizeUsername(recipe.authorHandle || recipe.author) ===
+          activeAuthor
         : true;
       if (!query) return matchesTag && matchesAuthor;
 
@@ -2071,21 +2069,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         .join(' ')
         .toLowerCase();
 
-      const matchesHandle =
-        normalizedQuery &&
-        activeUsername &&
-        activeUsername.toLowerCase().includes(normalizedQuery);
-      const matchesProfileQuery =
-        normalizedQuery &&
-        activeProfile?.username?.toLowerCase().includes(normalizedQuery);
-
       return (
         matchesTag &&
         matchesAuthor &&
         (haystack.includes(query.toLowerCase()) ||
           haystack.includes(normalizedQuery) ||
-          matchesHandle ||
-          matchesProfileQuery ||
           getRecipeSearchScore(recipe, normalizedQuery) > 0)
       );
     });
@@ -2124,8 +2112,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [
     activeTag,
     activeAuthor,
-    activeProfile,
-    activeUsername,
     currentUserId,
     discoverQuery,
     favoriteRecipeIds,
@@ -3813,9 +3799,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {onSignOut ? (
-                <ProfileDropdown
-                  profilePath={getProfileRoutePath(activeUsername)}
-                  profileLabel={activeUsername || 'Guest cook'}
+              <ProfileDropdown
+                profilePath={getProfileRoutePath(activeUsername)}
+                profileLabel={activeUsername || 'Guest cook'}
                 profileAvatar={effectiveAvatar}
                 isAdmin={isAdmin}
                 onSignOut={onSignOut}
@@ -3847,7 +3833,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           {!expandedRecipeId && (
             <>
-              <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+              <div className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-5 py-6 sm:px-8 sm:py-8">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                  A little everyday magic
+                </p>
+                <h1 className="mt-2 font-heading text-3xl text-[var(--theme-text)] sm:text-4xl">
+                  Find your next kitchen favorite.
+                </h1>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--theme-text-muted)]">
+                  Recipes worth making. Cooks worth discovering. Save what you
+                  love, and share a little of your own magic.
+                </p>
+              </div>
+              <h2 className="mt-6 font-heading text-xl font-semibold text-[var(--theme-text)]">
                 Search recipes
               </h2>
               <div className="mx-1 mt-3 flex items-stretch gap-2">
@@ -3865,7 +3863,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       value={discoverQuery}
                       onChange={(event) => setDiscoverQuery(event.target.value)}
                       aria-label="Search recipes"
-                      placeholder="Search recipes, ingredients, or cooks"
+                      placeholder="Search recipes, tags, or cooks"
                       className="h-12 w-full bg-transparent px-3 pr-10 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-text-muted)]"
                     />
                     {discoverQuery && (
@@ -3889,7 +3887,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       )
                     }
                     aria-label={`Sort recipes: ${sortOrder === 'desc' ? 'newest first' : 'oldest first'}. Activate to reverse.`}
-                    title={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
+                    title={
+                      sortOrder === 'desc' ? 'Newest first' : 'Oldest first'
+                    }
                     className="inline-flex shrink-0 items-center gap-2 self-stretch rounded-r-2xl px-3 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] sm:px-4"
                   >
                     <ArrowDownUp className="h-4 w-4" aria-hidden="true" />
@@ -3899,17 +3899,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </button>
                 </div>
                 <button
-                    type="button"
-                    onClick={startCreateRecipe}
-                    aria-label="Create a recipe"
-                    title="Create a recipe"
-                    className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0891b2] via-[#0e7490] to-[#155e75] px-3 text-white shadow-lg shadow-cyan-900/40 transition hover:-translate-y-0.5 hover:from-[#06b6d4] hover:via-[#0891b2] hover:to-[#0e7490] hover:shadow-xl active:scale-95 sm:px-4"
-                  >
-                    <Plus className="h-5 w-5" aria-hidden="true" />
-                    <span className="hidden text-sm font-semibold sm:inline">
-                      Create recipe
-                    </span>
-                  </button>
+                  type="button"
+                  onClick={startCreateRecipe}
+                  aria-label="Create a recipe"
+                  title="Create a recipe"
+                  className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0891b2] via-[#0e7490] to-[#155e75] px-3 text-white shadow-lg shadow-cyan-900/40 transition hover:-translate-y-0.5 hover:from-[#06b6d4] hover:via-[#0891b2] hover:to-[#0e7490] hover:shadow-xl active:scale-95 sm:px-4"
+                >
+                  <Plus className="h-5 w-5" aria-hidden="true" />
+                  <span className="hidden text-sm font-semibold sm:inline">
+                    Create recipe
+                  </span>
+                </button>
               </div>
 
               <div className="mt-4 space-y-3">
@@ -3917,7 +3917,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   {['All', 'Favorites', 'New', 'My recipes'].map((tag) => (
                     <button
                       key={tag}
+                      aria-pressed={
+                        activeTag === tag && !(tag === 'All' && activeAuthor)
+                      }
                       onClick={() => {
+                        if (
+                          !isAuthenticated &&
+                          (tag === 'Favorites' || tag === 'My recipes')
+                        ) {
+                          onRequestAuth?.();
+                          return;
+                        }
                         if (tag === 'All') setActiveAuthor(null);
                         handleFilterClick(tag);
                       }}
@@ -4126,7 +4136,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )}
 
           {isLoadingFeed && (
-            <p className="text-[var(--theme-text-muted)] mt-4 text-sm">
+            <p
+              role="status"
+              className="text-[var(--theme-text-muted)] mt-4 text-sm"
+            >
               Loading shared recipes...
             </p>
           )}
@@ -4148,8 +4161,27 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
                 ))}
               </div>
+            ) : feedError ? (
+              <div
+                role="alert"
+                className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-8 text-center"
+              >
+                <ErrorArtwork />
+                <h2 className="text-xl">The kitchen is taking a moment</h2>
+                <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                  {feedError}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void loadRecipes()}
+                  className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
+                >
+                  Try again
+                </button>
+              </div>
             ) : expandedRecipeMessage && !expandedRecipe ? (
               <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+                <ErrorArtwork />
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   {expandedRecipeMessage}
                 </p>
@@ -4157,12 +4189,23 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   The shared recipe may have been removed or the link may be
                   invalid.
                 </p>
+                <Link
+                  to="/discover"
+                  className="ak-button-primary mt-5 inline-flex rounded-xl px-5 py-3 text-sm font-semibold"
+                >
+                  Browse recipes
+                </Link>
               </div>
             ) : visibleFeedRecipes.length ? (
               <>
                 {discoverQuery.trim() && (
-                  <div className="mb-4 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-4 py-3 text-sm text-[var(--theme-text-muted)]">
-                    We couldn't find exactly what you're looking for.
+                  <div
+                    role="status"
+                    className="mb-4 text-sm text-[var(--theme-text-muted)]"
+                  >
+                    {visibleFeedRecipes.length}{' '}
+                    {visibleFeedRecipes.length === 1 ? 'recipe' : 'recipes'}{' '}
+                    found for “{discoverQuery.trim()}”
                   </div>
                 )}
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -4192,13 +4235,36 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : (
               <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  We couldn't find exactly what you're looking for.
+                  {discoverQuery || activeTag !== 'All' || activeAuthor
+                    ? 'No recipes match just yet'
+                    : 'Every collection starts with one recipe'}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                  {isAuthenticated
-                    ? 'Try another ingredient, tag, recipe title, or author.'
-                    : 'Sign in and create the first recipe.'}
+                  {discoverQuery || activeTag !== 'All' || activeAuthor
+                    ? 'Try a different title, tag, or cook — or clear your filters to explore.'
+                    : 'Share something you love to cook and help this kitchen grow.'}
                 </p>
+                {discoverQuery || activeTag !== 'All' || activeAuthor ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscoverQuery('');
+                      setActiveTag('All');
+                      setActiveAuthor(null);
+                    }}
+                    className="ak-button-secondary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
+                  >
+                    Clear all filters
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={startCreateRecipe}
+                    className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
+                  >
+                    Share your first recipe
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -4260,7 +4326,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </div>
           </div>
 
-          <div
+          <fieldset
+            disabled={!isAuthenticated}
             className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
           >
             {publishMessage && (
@@ -4564,7 +4631,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 ))}
               </div>
             </div>
-          </div>
+          </fieldset>
 
           {!isAuthenticated && (
             <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface)_96%,transparent)] p-5 text-center shadow-2xl backdrop-blur">
@@ -4620,7 +4687,21 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </button>
             </div>
 
-            {savedRecipes.length ? (
+            {!isAuthenticated ? (
+              <div className="ak-card mt-8 rounded-2xl p-8 text-center">
+                <h2 className="text-2xl">Keep your next favorite close</h2>
+                <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
+                  Sign in to save recipes and build your personal collection.
+                </p>
+                <button
+                  type="button"
+                  onClick={onRequestAuth}
+                  className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
+                >
+                  Sign in to save recipes
+                </button>
+              </div>
+            ) : savedRecipes.length ? (
               <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {savedRecipes.map((recipe) => (
                   <FeedRecipeCard
@@ -4652,6 +4733,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                   Save recipes from Discover to keep them close at hand here.
                 </p>
+                <Link
+                  to="/discover"
+                  className="ak-button-primary mt-5 inline-flex rounded-xl px-5 py-3 text-sm font-semibold"
+                >
+                  Find recipes to save
+                </Link>
               </div>
             )}
           </div>
@@ -4685,7 +4772,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </button>
             </div>
 
-            {draftRecords.length ? (
+            {!isAuthenticated ? (
+              <div className="ak-card mt-8 rounded-2xl p-8 text-center">
+                <h2 className="text-2xl">A home for recipes in the making</h2>
+                <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
+                  Sign in to work on a recipe and return when inspiration
+                  strikes.
+                </p>
+                <button
+                  type="button"
+                  onClick={onRequestAuth}
+                  className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
+                >
+                  Sign in to view drafts
+                </button>
+              </div>
+            ) : draftRecords.length ? (
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {draftRecords.map((draftRecord) => (
                   <article
@@ -4790,13 +4892,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             />
           ) : viewingProfileUsername !== null && !isViewingOwnProfile ? (
             <div className="mx-auto w-full max-w-4xl p-8 text-center">
-              <p className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
+              <ErrorArtwork />
+              <h1 className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
                 Profile not found
-              </p>
+              </h1>
               <p className="mt-3 text-sm leading-6 text-[var(--theme-text-muted)]">
                 We couldn’t locate that creator profile. Try checking a
                 different profile link.
               </p>
+              <Link
+                to="/discover"
+                className="ak-button-primary mt-5 inline-flex rounded-xl px-5 py-3 text-sm font-semibold"
+              >
+                Discover recipes
+              </Link>
             </div>
           ) : (
             <UserProfileView
@@ -4889,6 +4998,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
                 // update local UI pieces
                 setProfileData(updated[uid]);
+                if (handle && handle !== activeUsername) {
+                  setViewingProfileUsername(handle);
+                  navigate(getProfileRoutePath(handle), { replace: true });
+                }
                 // update profileViewUser via state dependencies by touching profileData
                 onProfileSaved?.();
               }}
@@ -5120,10 +5233,40 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         </a>
       </footer>
 
+      {!expandedRecipe &&
+        expandedRecipeMessage &&
+        currentView !== 'Discover' &&
+        getRecipeIdFromPath(location.pathname + location.search) && (
+          <AccessibleDialog
+            label="Recipe unavailable"
+            onClose={collapseExpandedRecipe}
+          >
+            <section className="ak-card mx-auto my-8 w-full max-w-lg rounded-3xl p-6 text-center">
+              <ErrorArtwork />
+              <h1 className="text-2xl">{expandedRecipeMessage}</h1>
+              <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
+                The recipe may have been removed, or the kitchen is temporarily
+                unavailable.
+              </p>
+              <button
+                type="button"
+                onClick={collapseExpandedRecipe}
+                className="ak-button-primary mt-5 rounded-xl px-5 py-3 font-semibold"
+              >
+                Back to collection
+              </button>
+            </section>
+          </AccessibleDialog>
+        )}
       {expandedRecipe && (
-        <div
+        <AccessibleDialog
+          label={expandedRecipe.name}
+          onClose={() => {
+            if (showRecipeImageLightbox) setShowRecipeImageLightbox(false);
+            else collapseExpandedRecipe();
+          }}
+          dismissOnBackdrop
           className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] backdrop-blur-sm"
-          onClick={collapseExpandedRecipe}
         >
           <button
             type="button"
@@ -5139,14 +5282,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           >
             {expandedRecipeArticle}
           </div>
-        </div>
+        </AccessibleDialog>
       )}
       {showRecipeImageLightbox &&
         expandedRecipe &&
         !isPlaceholder(expandedRecipe.image) && (
-          <div
+          <AccessibleDialog
+            label={`Full-size image of ${expandedRecipe.name}`}
+            onClose={() => setShowRecipeImageLightbox(false)}
+            dismissOnBackdrop
             className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
-            onClick={() => setShowRecipeImageLightbox(false)}
           >
             <button
               type="button"
@@ -5162,7 +5307,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               className="max-h-[calc(100vh-2rem)] max-w-[calc(100vw-2rem)] object-contain"
               onClick={(event) => event.stopPropagation()}
             />
-          </div>
+          </AccessibleDialog>
         )}
     </main>
   );

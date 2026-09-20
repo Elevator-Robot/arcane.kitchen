@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#faf0e6" />
+    <title>Kitchen unavailable · Arcane Kitchen</title>
+    <style>
+      body {
+        margin: 0;
+        background: #faf0e6;
+        color: #2c1810;
+        font:
+          16px/1.6 system-ui,
+          sans-serif;
+      }
+      main {
+        max-width: 440px;
+        margin: 32px auto;
+        padding: 24px;
+        text-align: center;
+      }
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 20px;
+      }
+      h1 {
+        font:
+          600 28px/1.2 Georgia,
+          serif;
+      }
+      p {
+        color: #756047;
+      }
+      button {
+        border: 0;
+        border-radius: 12px;
+        background: #6d28d9;
+        color: white;
+        padding: 12px 20px;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:focus-visible {
+        outline: 3px solid #6d28d9;
+        outline-offset: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img
+        src="/images/catwitch.webp"
+        width="960"
+        height="889"
+        alt="Two cats in witch hats and glasses. Caption: Don't be fooled by our glasses, we dumb as hell."
+      />
+      <h1>The kitchen is temporarily out of reach.</h1>
+      <p>
+        Your connection or our server may be taking a moment. Try again when
+        you're ready.
+      </p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

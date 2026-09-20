@@ -15,7 +15,10 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#d97706" />
@@ -39,6 +42,82 @@
   </head>
   <body class="m-0 font-sans">
     <div id="root"></div>
+    <section
+      id="startup-error"
+      hidden
+      style="
+        max-width: 480px;
+        margin: 40px auto;
+        padding: 24px;
+        text-align: center;
+        font-family: system-ui, sans-serif;
+        color: #2c1810;
+      "
+    >
+      <img
+        src="/images/catwitch.webp"
+        width="960"
+        height="889"
+        alt="Two cats in witch hats and glasses. Caption: Don't be fooled by our glasses, we dumb as hell."
+        style="width: 100%; height: auto; border-radius: 20px"
+      />
+      <h1>Our kitchen magic went a little sideways.</h1>
+      <p>We couldn't load the website. Check your connection and try again.</p>
+      <button
+        type="button"
+        onclick="location.reload()"
+        style="
+          padding: 12px 20px;
+          border: 0;
+          border-radius: 12px;
+          background: #6d28d9;
+          color: white;
+          font: inherit;
+          cursor: pointer;
+        "
+      >
+        Reload kitchen
+      </button>
+    </section>
+    <script>
+      function showStartupError() {
+        if (!document.getElementById('root').hasChildNodes()) {
+          document.getElementById('startup-error').hidden = false;
+        }
+      }
+      window.addEventListener(
+        'error',
+        function (event) {
+          if (event.target instanceof HTMLScriptElement || event.error)
+            showStartupError();
+        },
+        true
+      );
+      window.addEventListener('unhandledrejection', showStartupError);
+    </script>
+    <noscript>
+      <section
+        style="
+          max-width: 480px;
+          margin: 40px auto;
+          padding: 24px;
+          text-align: center;
+          font-family: system-ui, sans-serif;
+        "
+      >
+        <img
+          src="/images/catwitch.webp"
+          width="960"
+          height="889"
+          alt="Two cats wearing witch hats and glasses"
+          style="width: 100%; height: auto; border-radius: 20px"
+        />
+        <h1>The kitchen needs JavaScript</h1>
+        <p>
+          Enable JavaScript in your browser, then reload to discover recipes.
+        </p>
+      </section>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

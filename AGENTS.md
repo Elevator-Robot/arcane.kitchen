@@ -39,6 +39,8 @@ Authentication submission:
 
 ## User-Facing Errors
 
+- `ErrorArtwork` uses the supplied catwitch image at `/images/catwitch.webp` on unavailable-content and recovery screens. Keep the complete image and caption visible; do not crop it.
+- `AppErrorBoundary` and startup/configuration fallbacks show catwitch artwork and reload recovery instead of a blank application. The production service worker precaches the artwork and `offline.html` for unavailable navigations.
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
 - Use `getUserFacingErrorMessage()` for UI messages and keep raw errors in `console.error` diagnostics only; do not render raw `error.message` or serialized error objects.
 
@@ -66,6 +68,16 @@ Authentication submission:
 - Card previews, the expanded view, and the Profile page (published + saved card counts) all read from `recipeSaves`; clicking the heart toggles the save (the heart was removed from the image overlay). The legacy `FeedRecipe.saves` string field (`'New'`) is NOT a count and must not be used for display.
 
 ## Routing (React Router)
+
+- Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
+- Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
+- Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
+- Account menus link directly to Saved recipes and Recipe drafts. Guests receive contextual sign-in invitations on those routes and on personal Discover filters.
+- Auth, recipe, and full-size image overlays use `AccessibleDialog` for keyboard containment, Escape dismissal, and focus restoration.
+- Discover distinguishes request failures (with Retry), empty collections, empty filters (with Clear all filters), and successful search counts. Search covers recipe text, tags, and authors; it does not claim to index ingredient records.
+- Nonempty drafts autosave without requiring a photo or ingredients, and the debounce survives navigation between workspace views. Browser refresh/unmount during the debounce is still a follow-up.
+- Authentication initialization waits for the live session check before showing the workspace, including when cached auth exists.
+- Shared styles provide visible keyboard focus, higher-contrast muted text, and reduced-motion support.
 
 - The SPA is wrapped in `BrowserRouter` (in `src/main.tsx`). `react-router-dom` is a dependency.
 - The recipe "modal" opens in-place on top of the current page: opening a recipe calls `navigate('<current-pathname>?recipe=<id>')` so the base page stays in the URL (open-from-Discover, -Saved, -Profile all work; no more `stayInView` hack).
@@ -144,6 +156,8 @@ Authentication submission:
 - The `Admins` Cognito group uses a separate identity-pool role, so admin recipe-image uploads require an explicit `Admins` storage rule in addition to the authenticated rule.
 
 ## Agent checklist for every PR
+
+- Vitest runs `src/**/*.{test,spec}.{ts,tsx}`; run the Node CLI test separately with `node --test scripts/resolve-ampx-entry.test.cjs`.
 
 1. Check whether any change made AGNET.md inaccurate.
 2. If yes, update AGNET.md before opening or merging the PR.

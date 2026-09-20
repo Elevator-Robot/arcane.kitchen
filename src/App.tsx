@@ -13,7 +13,9 @@ import {
   signOut as amplifySignOut,
   signUp,
 } from 'aws-amplify/auth';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import AccessibleDialog from './components/AccessibleDialog';
+import ErrorArtwork from './components/ErrorArtwork';
 import RecipeBuilder from './components/RecipeBuilder';
 import AdminDashboard from './components/AdminDashboard';
 import SignInForm from './components/SignInForm';
@@ -120,9 +122,10 @@ export const authServices = {
     if (pending) return pending;
 
     const request = (async () => {
-
       if (!hasAmplifyAuthConfig()) {
-        throw new Error('Authentication is not configured yet. Please try again later.');
+        throw new Error(
+          'Authentication is not configured yet. Please try again later.'
+        );
       }
 
       try {
@@ -133,7 +136,12 @@ export const authServices = {
           error?.name === 'NotAuthorizedException';
 
         if (!shouldCreateAccount) {
-          throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
+          throw new Error(
+            getUserFacingErrorMessage(
+              error,
+              'Sign-in failed. Please try again.'
+            )
+          );
         }
 
         try {
@@ -162,10 +170,20 @@ export const authServices = {
           } as any;
         } catch (signUpError: any) {
           if (signUpError?.name === 'UsernameExistsException') {
-            throw new Error(getUserFacingErrorMessage(error, 'Sign-in failed. Please try again.'));
+            throw new Error(
+              getUserFacingErrorMessage(
+                error,
+                'Sign-in failed. Please try again.'
+              )
+            );
           }
 
-          throw new Error(getUserFacingErrorMessage(signUpError, 'Account creation failed. Please try again.'));
+          throw new Error(
+            getUserFacingErrorMessage(
+              signUpError,
+              'Account creation failed. Please try again.'
+            )
+          );
         }
       }
     })();
@@ -344,7 +362,9 @@ function AuthSuccess({ onComplete }: { onComplete: () => Promise<void> }) {
   return null;
 }
 
-function AdminDashboardRoute(props: Omit<React.ComponentProps<typeof AdminDashboard>, 'onBack'>) {
+function AdminDashboardRoute(
+  props: Omit<React.ComponentProps<typeof AdminDashboard>, 'onBack'>
+) {
   const navigate = useNavigate();
   return <AdminDashboard {...props} onBack={() => navigate('/discover')} />;
 }
@@ -355,7 +375,50 @@ type AppProps = {
 
 export function AppRouteAware() {
   const { pathname } = useLocation();
-  return <App pathname={pathname} />;
+  const normalized = pathname.replace(/\/+$/, '') || '/';
+  const knownRoute =
+    /^\/(?:discover|build|saved|drafts|admin)?$/.test(normalized) ||
+    /^\/(?:u|profile|recipe)\/[^/]+$/.test(normalized);
+  useEffect(() => {
+    const title =
+      normalized === '/build'
+        ? 'Create a recipe'
+        : normalized === '/saved'
+          ? 'Saved recipes'
+          : normalized === '/drafts'
+            ? 'Your drafts'
+            : normalized === '/admin'
+              ? 'Admin dashboard'
+              : /^\/(u|profile)\//.test(normalized)
+                ? 'Cook profile'
+                : knownRoute
+                  ? 'Discover recipes'
+                  : 'Page not found';
+    document.title = `${title} · Arcane Kitchen`;
+  }, [normalized, knownRoute]);
+  if (!knownRoute)
+    return (
+      <main className="flex min-h-dvh items-center justify-center bg-[var(--theme-bg)] p-6 text-center">
+        <div className="ak-card max-w-lg rounded-3xl p-8 sm:p-12">
+          <ErrorArtwork />
+          <p className="text-sm font-semibold text-[var(--theme-accent)]">
+            404 · A wrong turn in the kitchen
+          </p>
+          <h1 className="mt-3 text-3xl">This page isn't on the menu.</h1>
+          <p className="mt-4 text-[var(--theme-text-muted)]">
+            The address may have changed. Let's find something delicious
+            instead.
+          </p>
+          <Link
+            to="/discover"
+            className="ak-button-primary mt-6 inline-flex rounded-xl px-5 py-3 font-semibold"
+          >
+            Explore recipes
+          </Link>
+        </div>
+      </main>
+    );
+  return <App pathname={normalized} />;
 }
 
 function App({ pathname }: AppProps = {}) {
@@ -379,13 +442,25 @@ function App({ pathname }: AppProps = {}) {
       isAuthenticated: persisted?.isAuthenticated ?? false,
       currentUser,
       userAttributes,
-      isInitialized: persisted === null,
+      isInitialized: false,
       isAdmin: false,
     };
   });
-  const { isAuthenticated, currentUser, userAttributes, isInitialized: isAuthInitialized, isAdmin } = authState;
-  const profileIds = [currentUser?.userId, userAttributes?.sub, currentUser?.username].filter(Boolean);
-  const profileCache = Object.values(loadUserProfiles()).find((profile) => profileIds.includes(profile.userId));
+  const {
+    isAuthenticated,
+    currentUser,
+    userAttributes,
+    isInitialized: isAuthInitialized,
+    isAdmin,
+  } = authState;
+  const profileIds = [
+    currentUser?.userId,
+    userAttributes?.sub,
+    currentUser?.username,
+  ].filter(Boolean);
+  const profileCache = Object.values(loadUserProfiles()).find((profile) =>
+    profileIds.includes(profile.userId)
+  );
   const [showAuth, setShowAuth] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
@@ -393,7 +468,9 @@ function App({ pathname }: AppProps = {}) {
     setAuthNotice(null);
 
     if (!hasAmplifyAuthConfig()) {
-      setAuthNotice('Authentication is not configured yet. Please try again later.');
+      setAuthNotice(
+        'Authentication is not configured yet. Please try again later.'
+      );
       setAuthState({
         isAuthenticated: false,
         currentUser: null,
@@ -505,17 +582,30 @@ function App({ pathname }: AppProps = {}) {
     );
   }
 
-  const currentPathname = pathname ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
+  const currentPathname =
+    pathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/');
 
-  if (currentPathname.startsWith('/admin')) {
+  if (currentPathname === '/admin') {
     return (
       <AdminDashboardRoute
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
-        profilePath={getProfileRoutePath(profileCache?.username || userAttributes?.nickname || currentUser?.username)}
-        profileLabel={profileCache?.username || currentUser?.username || userAttributes?.email?.split('@')[0] || 'Admin'}
-        profileAvatar={profileCache?.avatar || userAttributes?.['custom:avatar'] || null}
+        profilePath={getProfileRoutePath(
+          profileCache?.username ||
+            userAttributes?.nickname ||
+            currentUser?.username
+        )}
+        profileLabel={
+          profileCache?.username ||
+          currentUser?.username ||
+          userAttributes?.email?.split('@')[0] ||
+          'Admin'
+        }
+        profileAvatar={
+          profileCache?.avatar || userAttributes?.['custom:avatar'] || null
+        }
       />
     );
   }
@@ -535,7 +625,10 @@ function App({ pathname }: AppProps = {}) {
       <PWAInstallPrompt />
 
       {showAuth && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] px-4 py-6 backdrop-blur-md sm:py-10">
+        <AccessibleDialog
+          label="Sign in to Arcane Kitchen"
+          onClose={() => setShowAuth(false)}
+        >
           <div className="mx-auto flex min-h-full w-full max-w-7xl items-center justify-center">
             <div className="relative grid w-full overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-[0_30px_90px_rgba(34,18,36,0.35)] md:grid-cols-[1.15fr_1fr]">
               <section className="relative hidden min-h-[540px] p-8 text-white md:block">
@@ -592,7 +685,10 @@ function App({ pathname }: AppProps = {}) {
                   Close
                 </button>
 
-                <div className="auth-panel relative mx-auto w-full max-w-md" onKeyDown={submitAuthFormOnEnter}>
+                <div
+                  className="auth-panel relative mx-auto w-full max-w-md"
+                  onKeyDown={submitAuthFormOnEnter}
+                >
                   {authNotice && (
                     <div className="mb-4 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-200">
                       {authNotice}
@@ -615,7 +711,7 @@ function App({ pathname }: AppProps = {}) {
               </section>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
     </div>
   );

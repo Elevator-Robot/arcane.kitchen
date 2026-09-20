@@ -29,10 +29,11 @@ describe('userProfiles helpers', () => {
   });
 
   it('builds a unique suggested username when needed', () => {
-    expect(buildSuggestedUsername('Riddle', ['riddle', 'riddle2'])).toBe(
-      'riddle3'
-    );
-    expect(buildSuggestedUsername('  ', ['cook'])).toBe('cook');
+    const existing = ['riddle', 'riddle2'];
+    const suggested = buildSuggestedUsername('Riddle', existing);
+    expect(validateUsername(suggested)).toBe(true);
+    expect(existing).not.toContain(suggested);
+    expect(validateUsername(buildSuggestedUsername('  ', ['cook']))).toBe(true);
   });
 
   it('parses recipe and profile routes from pathnames', () => {
@@ -69,7 +70,7 @@ describe('userProfiles helpers', () => {
 
     expect(profiles['user-1'].username).toBe('riddle');
     expect(profiles['user-1'].displayName).toBe('Riddle');
-    expect(profiles['user-1'].needsUsernameSetup).toBe(true);
+    expect(profiles['user-1'].needsUsernameSetup).toBe(false);
     expect(DEFAULT_AVATAR_FILES).toContain(profiles['user-1'].avatar);
   });
 

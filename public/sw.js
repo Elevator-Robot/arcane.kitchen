@@ -1,5 +1,5 @@
 // Arcane Kitchen Service Worker
-const CACHE_NAME = 'arcane-kitchen-v3';
+const CACHE_NAME = 'arcane-kitchen-v4';
 const urlsToCache = [
   '/manifest.json',
   '/favicon.svg',
@@ -7,6 +7,8 @@ const urlsToCache = [
   '/mobile-icon-192.png',
   '/mobile-icon-512.png',
   '/apple-touch-icon.png',
+  '/offline.html',
+  '/images/catwitch.webp',
 ];
 
 // Install event - cache immutable shell assets. The app HTML is intentionally
@@ -45,12 +47,17 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         try {
           const response = await fetch(event.request);
+          if (response.status >= 500) {
+            return (await caches.match('/offline.html')) || response;
+          }
           const cache = await caches.open(CACHE_NAME);
-          await cache.put('/index.html', response.clone());
+          if (response.ok) await cache.put('/index.html', response.clone());
           return response;
         } catch (error) {
           const cached = await caches.match('/index.html');
           if (cached) return cached;
+          const offline = await caches.match('/offline.html');
+          if (offline) return offline;
           throw error;
         }
       })()
@@ -69,7 +76,9 @@ self.addEventListener('fetch', (event) => {
         fetch(event.request).then((response) => {
           if (response && (response.ok || response.type === 'opaque')) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put(event.request, clone));
           }
           return response;
         })

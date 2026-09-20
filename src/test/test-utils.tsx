@@ -4,6 +4,7 @@ import { render, RenderOptions } from '@testing-library/react';
 
 // Mock user objects for testing
 export const mockAuthenticatedUser = {
+  userId: 'testuser',
   username: 'testuser',
   attributes: {
     email: 'test@example.com',

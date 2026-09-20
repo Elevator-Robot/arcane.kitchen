@@ -9,7 +9,7 @@
     --theme-surface: #fffaf5;
     --theme-surface-alt: #f5e6d3;
     --theme-text: #2c1810;
-    --theme-text-muted: #8b7355;
+    --theme-text-muted: #756047;
     --theme-border: #d4c4a8;
     --theme-border-strong: #b8a48a;
     --theme-accent: #6d28d9;
@@ -58,11 +58,7 @@
   h4,
   h5,
   h6 {
-    font-family:
-      Fraunces,
-      Georgia,
-      ui-serif,
-      serif;
+    font-family: Fraunces, Georgia, ui-serif, serif;
     font-weight: 600;
     letter-spacing: 0;
   }
@@ -80,6 +76,22 @@
   button:disabled {
     cursor: not-allowed;
   }
+
+  :where(button, a, input, textarea, select, [tabindex]):focus-visible {
+    outline: 3px solid var(--theme-accent);
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @layer components {
@@ -90,9 +102,21 @@
 
   .ak-page-glow {
     background:
-      radial-gradient(circle at 18% 8%, rgba(217, 119, 6, 0.10), transparent 34%),
-      radial-gradient(circle at 82% 14%, rgba(90, 122, 74, 0.08), transparent 36%),
-      linear-gradient(180deg, rgba(255, 250, 245, 0.9), rgba(250, 240, 230, 0.95));
+      radial-gradient(
+        circle at 18% 8%,
+        rgba(217, 119, 6, 0.1),
+        transparent 34%
+      ),
+      radial-gradient(
+        circle at 82% 14%,
+        rgba(90, 122, 74, 0.08),
+        transparent 36%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(255, 250, 245, 0.9),
+        rgba(250, 240, 230, 0.95)
+      );
   }
 
   .ak-surface {
@@ -144,7 +168,11 @@
   }
 
   .ak-button-primary:hover {
-    background: linear-gradient(135deg, var(--theme-accent-strong), var(--theme-sage));
+    background: linear-gradient(
+      135deg,
+      var(--theme-accent-strong),
+      var(--theme-sage)
+    );
   }
 
   .ak-button-danger {
@@ -289,13 +317,11 @@
     display: none;
   }
 
-  form[data-amplify-authenticator-confirmsignup]
-    .amplify-fieldset__legend {
+  form[data-amplify-authenticator-confirmsignup] .amplify-fieldset__legend {
     display: none;
   }
 
-  form[data-amplify-authenticator-confirmsignup]
-    .amplify-label {
+  form[data-amplify-authenticator-confirmsignup] .amplify-label {
     display: none;
   }
 }

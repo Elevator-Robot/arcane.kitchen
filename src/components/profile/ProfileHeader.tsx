@@ -19,10 +19,7 @@ type Props = {
   onShareProfile?: () => void;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
-  onProfileUpdated?: (next: {
-    handle?: string;
-    bio?: string;
-  }) => void;
+  onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
 };
 
 export default function ProfileHeader({
@@ -67,7 +64,10 @@ export default function ProfileHeader({
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: `@${user.handle} on Arcane Kitchen`, url });
+        await navigator.share({
+          title: `@${user.handle} on Arcane Kitchen`,
+          url,
+        });
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
@@ -132,9 +132,9 @@ export default function ProfileHeader({
             <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
               {!isEditingHandle ? (
                 <>
-                   <span className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
-                     {user.handle}
-                  </span>
+                  <h1 className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
+                    {user.handle}
+                  </h1>
                   {isOwnProfile && (
                     <span
                       tabIndex={usernameChangeLocked ? 0 : undefined}
@@ -142,7 +142,10 @@ export default function ProfileHeader({
                       aria-label={usernameCooldownMessage || 'Edit username'}
                     >
                       <button
-                        onClick={() => setIsEditingHandle(true)}
+                        onClick={() => {
+                          setDraftHandle(user.handle || '');
+                          setIsEditingHandle(true);
+                        }}
                         aria-label="edit username"
                         disabled={usernameChangeLocked}
                         className="rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] disabled:cursor-not-allowed disabled:opacity-50"
@@ -159,6 +162,7 @@ export default function ProfileHeader({
               ) : (
                 <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
                   <input
+                    aria-label="Username"
                     value={draftHandle}
                     onChange={(e) => setDraftHandle(e.target.value)}
                     className="ak-input min-w-0 w-full rounded px-3 py-2 sm:w-auto"
@@ -262,7 +266,7 @@ export default function ProfileHeader({
                         setIsEditingBio(false);
                         setDraftBio(user.bio || '');
                       }}
-                     className="rounded border border-[var(--theme-border)] px-3 py-2"
+                      className="rounded border border-[var(--theme-border)] px-3 py-2"
                     >
                       Cancel
                     </button>
