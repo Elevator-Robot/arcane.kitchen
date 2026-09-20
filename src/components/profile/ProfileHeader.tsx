@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Edit2, Share, MapPin, Calendar, Camera, X, Lock } from 'lucide-react';
+import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
+import AccessibleDialog from '../AccessibleDialog';
+import {
+  kitchenCalling,
+  kitchenTheme,
+  normalizeKitchenIdentity,
+} from '../../utils/kitchenIdentity';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import {
@@ -37,6 +43,8 @@ export default function ProfileHeader({
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [copied, setCopied] = useState(false);
+  const identity = normalizeKitchenIdentity(user.kitchenIdentity);
+  const calling = kitchenCalling(identity.calling);
   const existingProfile = isOwnProfile
     ? loadUserProfiles()[String(user.id || 'current')]
     : null;
@@ -107,6 +115,7 @@ export default function ProfileHeader({
               <img
                 src={user.avatarUrl}
                 alt={user.handle}
+                loading="lazy"
                 className="h-32 w-32 rounded-full border-4 border-[var(--theme-surface)] object-cover shadow-md sm:h-40 sm:w-40"
               />
             ) : (
@@ -119,7 +128,10 @@ export default function ProfileHeader({
             )}
             {isOwnProfile && (
               <button
-                onClick={() => setShowAvatarModal(true)}
+                onClick={() => {
+                  setSelectedPreset(null);
+                  setShowAvatarModal(true);
+                }}
                 className="absolute bottom-2 right-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow transition hover:bg-[var(--theme-surface-alt)]"
                 aria-label="update avatar"
               >
@@ -130,7 +142,7 @@ export default function ProfileHeader({
 
           <div className="min-w-0 w-full text-center sm:text-left">
             <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
-              {!isEditingHandle ? (
+              {!isEditingHandle || !isOwnProfile ? (
                 <>
                   <h1 className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
                     {user.handle}
@@ -220,16 +232,30 @@ export default function ProfileHeader({
                 </div>
               )}
             </div>
-
+            <div className="mt-3 flex flex-col items-center gap-2 sm:items-start">
+              <p
+                className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+                style={{ backgroundColor: kitchenTheme(identity.theme).accent }}
+              >
+                <span aria-hidden="true">{calling.icon}</span>
+                {calling.name}
+              </p>
+              <p className="max-w-md text-xs leading-6 text-[var(--theme-text-muted)]">
+                {calling.description}
+              </p>
+            </div>
             <div className="mt-4">
-              {!isEditingBio ? (
+              {!isEditingBio || !isOwnProfile ? (
                 <div>
                   {user.bio ? (
                     <div className="flex items-start justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
                       <p className="whitespace-pre-wrap">{user.bio}</p>
                       {isOwnProfile && (
                         <button
-                          onClick={() => setIsEditingBio(true)}
+                          onClick={() => {
+                            setDraftBio(user.bio || '');
+                            setIsEditingBio(true);
+                          }}
                           aria-label="edit bio"
                           className="-ml-1 rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
                         >
@@ -239,10 +265,17 @@ export default function ProfileHeader({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-                      <span>No bio added yet. Click to add one.</span>
+                      <span>
+                        {isOwnProfile
+                          ? 'Add a little lore about your kitchen.'
+                          : 'Letting the recipes tell the story.'}
+                      </span>
                       {isOwnProfile && (
                         <button
-                          onClick={() => setIsEditingBio(true)}
+                          onClick={() => {
+                            setDraftBio(user.bio || '');
+                            setIsEditingBio(true);
+                          }}
                           aria-label="edit bio"
                           className="rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
                         >
@@ -258,6 +291,8 @@ export default function ProfileHeader({
                     value={draftBio}
                     onChange={(e) => setDraftBio(e.target.value)}
                     aria-label="bio"
+                    maxLength={500}
+                    placeholder="Tell a little kitchen lore: what you cook, what inspires you, and what you’re experimenting with."
                     className="ak-input w-full rounded px-3 py-2 text-left text-sm"
                   />
                   <div className="flex gap-2 justify-end">
@@ -293,12 +328,6 @@ export default function ProfileHeader({
               )}
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-              {user.location && (
-                <div className="inline-flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-[var(--theme-text-muted)]" />
-                  <span className="truncate">{user.location}</span>
-                </div>
-              )}
               {user.joinDate && (
                 <div className="inline-flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
@@ -324,13 +353,18 @@ export default function ProfileHeader({
           </div>
         </div>
       </div>
-      {showAvatarModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+      {showAvatarModal && isOwnProfile && (
+        <AccessibleDialog
+          label="Update Profile Picture"
+          onClose={() => setShowAvatarModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Update Profile Picture</h3>
               <button
                 onClick={() => setShowAvatarModal(false)}
+                aria-label="Close avatar picker"
                 className="p-1 rounded-md text-gray-600 hover:bg-[var(--theme-surface-alt)]"
               >
                 <X size={16} />
@@ -354,6 +388,7 @@ export default function ProfileHeader({
                   Cancel
                 </button>
                 <button
+                  disabled={!selectedPreset}
                   onClick={() => {
                     if (selectedPreset && onSelectPreset) {
                       onSelectPreset(selectedPreset);
@@ -361,14 +396,14 @@ export default function ProfileHeader({
                     }
                   }}
                   style={{ backgroundColor: actionColor }}
-                  className="rounded px-3 py-1 text-white"
+                  className="rounded px-3 py-1 text-white disabled:opacity-50"
                 >
                   Save Picture
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
     </div>
   );

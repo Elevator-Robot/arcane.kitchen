@@ -51,6 +51,7 @@ import {
   listUserProfilesFromBackend,
   loadUserProfiles,
   saveUserProfiles,
+  saveKitchenIdentityToBackend,
   sanitizeUsername,
   syncUserProfilesToBackend,
   upsertUserProfile,
@@ -61,6 +62,7 @@ import UserProfileView from './UserProfileView';
 import ProfileDropdown from './ProfileDropdown';
 import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
+import type { KitchenIdentity } from '../utils/kitchenIdentity';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
@@ -1913,6 +1915,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       bio: activeProfile?.bio || profileBio || '',
       avatarUrl: avatarUrl || undefined,
       joinDate: activeProfile?.createdAt || undefined,
+      kitchenIdentity:
+        (currentUserId
+          ? backendProfilesByUserId[currentUserId]?.kitchenIdentity
+          : undefined) ?? activeProfile?.kitchenIdentity,
       stats: {
         recipes: feedRecipes.filter((r) => r.ownerId === currentUserId).length,
         drafts: draftRecords.filter((d) => d.ownerId === currentUserId).length,
@@ -1931,6 +1937,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     draftRecords,
     favoriteRecipeIds,
     savedRecipes,
+    backendProfilesByUserId,
   ]);
 
   const publicProfileViewUser = useMemo(() => {
@@ -1942,6 +1949,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       name: profileRouteProfile.username,
       handle: profileRouteProfile.username,
       bio: profileRouteProfile.bio || '',
+      kitchenIdentity: profileRouteProfile.kitchenIdentity,
       avatarUrl: profileRouteProfile.avatar
         ? avatarEntries.find(
             (entry) => entry.file === profileRouteProfile.avatar
@@ -1974,6 +1982,41 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     setPublishMessageTone('success');
     setCurrentView('Build');
     navigate('/build');
+  };
+
+  const saveKitchenIdentity = async (identity: KitchenIdentity) => {
+    if (!isAuthenticated || !currentUserId)
+      throw new Error('Sign in to personalize your kitchen.');
+    const profile =
+      backendProfilesByUserId[currentUserId] ||
+      loadUserProfiles()[currentUserId];
+    if (!profile)
+      throw new Error('Your profile is still loading. Please try again.');
+    if (
+      identity.signatureRecipeId &&
+      !feedRecipes.some(
+        (recipe) =>
+          recipe.id === identity.signatureRecipeId &&
+          recipe.ownerId === currentUserId
+      )
+    ) {
+      throw new Error('Choose one of your published recipes.');
+    }
+    const savedProfile = await saveKitchenIdentityToBackend(
+      profile,
+      identity,
+      client
+    );
+    saveUserProfiles({ ...loadUserProfiles(), [currentUserId]: savedProfile });
+    setProfileData(savedProfile);
+    setBackendProfilesByUserId((previous) => ({
+      ...previous,
+      [currentUserId]: savedProfile,
+    }));
+    setBackendProfilesByUsername((previous) => ({
+      ...previous,
+      [savedProfile.username]: savedProfile,
+    }));
   };
 
   const removeDraftRecord = async (draftRecord: RecipeDraftRecord) => {
@@ -4910,6 +4953,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           ) : (
             <UserProfileView
               user={profileViewUser}
+              onSaveKitchenIdentity={saveKitchenIdentity}
               publishedRecipes={feedRecipes
                 .filter((r) => r.ownerId === currentUserId)
                 .map((r) => ({

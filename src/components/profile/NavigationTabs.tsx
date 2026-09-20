@@ -26,11 +26,15 @@ export default function NavigationTabs({
     `flex items-center gap-2 py-4 px-3 text-sm font-semibold transition ${active === key ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'}`;
 
   return (
-    <div className="border-t border-[var(--theme-border)] px-2 py-2 sm:px-4">
+    <nav
+      aria-label="Your recipe collections"
+      className="border-t border-[var(--theme-border)] px-2 py-2 sm:px-4"
+    >
       <div className="flex items-center justify-center gap-2 sm:gap-8">
         <button
           type="button"
           onClick={() => onChange('recipes')}
+          aria-pressed={active === 'recipes'}
           className={tabClass('recipes')}
           style={
             active === 'recipes'
@@ -46,6 +50,7 @@ export default function NavigationTabs({
             <button
               type="button"
               onClick={() => onChange('drafts')}
+              aria-pressed={active === 'drafts'}
               className={tabClass('drafts')}
               style={
                 active === 'drafts'
@@ -62,6 +67,7 @@ export default function NavigationTabs({
             <button
               type="button"
               onClick={() => onChange('saved')}
+              aria-pressed={active === 'saved'}
               className={tabClass('saved')}
               style={
                 active === 'saved'
@@ -77,6 +83,6 @@ export default function NavigationTabs({
           </>
         )}
       </div>
-    </div>
+    </nav>
   );
 }

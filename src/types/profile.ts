@@ -1,3 +1,5 @@
+import type { KitchenIdentity } from '../utils/kitchenIdentity';
+
 export interface User {
   id?: string;
   name: string;
@@ -6,6 +8,7 @@ export interface User {
   location?: string;
   joinDate?: string;
   avatarUrl?: string;
+  kitchenIdentity?: KitchenIdentity;
   usernameAvailableDate?: string;
   stats?: {
     recipes: number;

@@ -1,9 +1,15 @@
+import {
+  normalizeKitchenIdentity,
+  type KitchenIdentity,
+} from './kitchenIdentity';
+
 export type UserProfile = {
   userId: string;
   username: string;
   displayName: string;
   bio: string;
   avatar: string | null;
+  kitchenIdentity?: KitchenIdentity;
   createdAt: string;
   updatedAt: string;
   needsUsernameSetup: boolean;
@@ -292,6 +298,7 @@ export const upsertUserProfile = (
     username?: string;
     bio?: string;
     avatar?: string | null;
+    kitchenIdentity?: KitchenIdentity;
     needsUsernameSetup?: boolean;
     currentUser?: { username?: string | null } | null;
     userAttributes?: Record<string, unknown> | null;
@@ -358,6 +365,13 @@ export const upsertUserProfile = (
     displayName: nextDisplayName,
     bio: input.bio ?? existing?.bio ?? '',
     avatar: nextAvatar,
+    ...(input.kitchenIdentity || existing?.kitchenIdentity
+      ? {
+          kitchenIdentity: normalizeKitchenIdentity(
+            input.kitchenIdentity ?? existing?.kitchenIdentity
+          ),
+        }
+      : {}),
     createdAt: existing?.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     needsUsernameSetup: shouldPromptForUsername,
@@ -429,6 +443,7 @@ export type BackendUserProfileRecord = {
   displayName: string;
   bio?: string | null;
   avatar?: string | null;
+  kitchenIdentity?: unknown;
   needsUsernameSetup?: boolean | null;
   createdAt?: string;
   updatedAt?: string;
@@ -447,6 +462,9 @@ export const userProfileFromBackend = (
   displayName: record.displayName,
   bio: record.bio ?? '',
   avatar: record.avatar ?? null,
+  ...(record.kitchenIdentity != null
+    ? { kitchenIdentity: normalizeKitchenIdentity(record.kitchenIdentity) }
+    : {}),
   createdAt: record.createdAt ?? new Date(0).toISOString(),
   updatedAt: record.updatedAt ?? new Date(0).toISOString(),
   needsUsernameSetup: Boolean(record.needsUsernameSetup),
@@ -483,10 +501,69 @@ const toBackendProfileRecord = (profile: UserProfile) => ({
   displayName: profile.displayName,
   bio: profile.bio || undefined,
   avatar: profile.avatar || undefined,
+  ...(profile.kitchenIdentity
+    ? {
+        kitchenIdentity: JSON.stringify(
+          normalizeKitchenIdentity(profile.kitchenIdentity)
+        ),
+      }
+    : {}),
   needsUsernameSetup: profile.needsUsernameSetup,
 });
 
 const DEFAULT_AUTH_MODE = 'userPool';
+
+/** Persist customization before updating the UI; never claim a failed save succeeded. */
+export async function saveKitchenIdentityToBackend(
+  profile: UserProfile,
+  identity: KitchenIdentity,
+  client: any
+): Promise<UserProfile> {
+  const model = client?.models?.UserProfile;
+  if (!profile.userId || !model?.list)
+    throw new Error('Profile storage is unavailable.');
+  let nextToken: string | null | undefined;
+  let existing: BackendUserProfileRecord | undefined;
+  do {
+    const result = await model.list({
+      filter: { userId: { eq: profile.userId } },
+      authMode: DEFAULT_AUTH_MODE,
+      nextToken,
+    });
+    if (result.errors?.length) throw new Error('Profile could not be loaded.');
+    existing = result.data?.find(
+      (entry: BackendUserProfileRecord) => entry.userId === profile.userId
+    );
+    nextToken = result.nextToken;
+  } while (!existing && nextToken);
+
+  const kitchenIdentity = normalizeKitchenIdentity(identity);
+  const updated = {
+    ...profile,
+    ...(existing ? userProfileFromBackend(existing) : {}),
+    kitchenIdentity,
+  };
+  if (
+    !existing &&
+    (await isUsernameTakenServerSide(profile.username, profile.userId, client))
+  ) {
+    throw new Error('Username is already in use.');
+  }
+  const result = existing?.id
+    ? await model.update(
+        { id: existing.id, kitchenIdentity: JSON.stringify(kitchenIdentity) },
+        { authMode: DEFAULT_AUTH_MODE }
+      )
+    : await model.create(toBackendProfileRecord(updated), {
+        authMode: DEFAULT_AUTH_MODE,
+      });
+  if (result.errors?.length || !result.data)
+    throw new Error('Profile customization could not be saved.');
+  return {
+    ...updated,
+    updatedAt: result.data.updatedAt || new Date().toISOString(),
+  };
+}
 
 /**
  * Server-side availability check for a username. Uses the backend username
