@@ -3876,21 +3876,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           {!expandedRecipeId && (
             <>
-              <div className="rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-5 py-6 sm:px-8 sm:py-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                  A little everyday magic
-                </p>
-                <h1 className="mt-2 font-heading text-3xl text-[var(--theme-text)] sm:text-4xl">
-                  Find your next kitchen favorite.
-                </h1>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--theme-text-muted)]">
-                  Recipes worth making. Cooks worth discovering. Save what you
-                  love, and share a little of your own magic.
-                </p>
-              </div>
-              <h2 className="mt-6 font-heading text-xl font-semibold text-[var(--theme-text)]">
+              <h1 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                 Search recipes
-              </h2>
+              </h1>
               <div className="mx-1 mt-3 flex items-stretch gap-2">
                 <div
                   role="search"

@@ -3,7 +3,7 @@
 ## Improvements
 
 - Supplied catwitch artwork appears on feed failures, missing recipes/profiles, unknown routes, rendering crashes, configuration failures, script-load failures, and the service worker's offline/server-error fallback. The original caption is preserved in the responsive image.
-- Discover has a clearer welcome, truthful search counts, distinct empty/error states, filter reset, and retry recovery.
+- Discover opens directly with search, Create recipe, filters, and the feed. Search counts are truthful, with distinct empty/error states, filter reset, and retry recovery.
 - Search no longer matches unrelated recipes against the viewer's own username. The placeholder accurately describes indexed content.
 - Saved recipes and recipe drafts are reachable through the shared account dropdown. Guest routes explain the benefit and offer sign-in in context.
 - Shared recipe and profile links accept trailing slashes. Invalid URI escapes are handled safely and query-string recipe IDs are decoded once.
