@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Edit2, Share, MapPin, Calendar, Camera, X, Lock } from 'lucide-react';
+import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
+import AccessibleDialog from '../AccessibleDialog';
+import {
+  kitchenCalling,
+  kitchenTheme,
+  normalizeKitchenIdentity,
+} from '../../utils/kitchenIdentity';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import {
@@ -19,10 +25,7 @@ type Props = {
   onShareProfile?: () => void;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
-  onProfileUpdated?: (next: {
-    handle?: string;
-    bio?: string;
-  }) => void;
+  onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
 };
 
 export default function ProfileHeader({
@@ -40,6 +43,8 @@ export default function ProfileHeader({
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [copied, setCopied] = useState(false);
+  const identity = normalizeKitchenIdentity(user.kitchenIdentity);
+  const calling = kitchenCalling(identity.calling);
   const existingProfile = isOwnProfile
     ? loadUserProfiles()[String(user.id || 'current')]
     : null;
@@ -67,7 +72,10 @@ export default function ProfileHeader({
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: `@${user.handle} on Arcane Kitchen`, url });
+        await navigator.share({
+          title: `@${user.handle} on Arcane Kitchen`,
+          url,
+        });
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
         return;
@@ -99,28 +107,32 @@ export default function ProfileHeader({
   };
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex flex-col md:flex-row gap-6 items-start justify-between">
-        <div className="flex items-start gap-6 w-full md:w-auto">
-          <div className="relative">
+    <div className="p-4 sm:p-6 md:p-8">
+      <div className="flex flex-col items-stretch gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="flex w-full flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6 md:w-auto">
+          <div className="relative shrink-0">
             {user.avatarUrl ? (
               <img
                 src={user.avatarUrl}
-                alt={`@${user.handle}`}
-                className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-md"
+                alt={user.handle}
+                loading="lazy"
+                className="h-32 w-32 rounded-full border-4 border-[var(--theme-surface)] object-cover shadow-md sm:h-40 sm:w-40"
               />
             ) : (
               <div
-                aria-label={`@${user.handle}`}
-                className="flex h-40 w-40 items-center justify-center rounded-full border-4 border-white bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md"
+                aria-label={user.handle}
+                className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-[var(--theme-surface)] bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md sm:h-40 sm:w-40"
               >
                 {(user.handle || user.name || 'C').charAt(0).toUpperCase()}
               </div>
             )}
             {isOwnProfile && (
               <button
-                onClick={() => setShowAvatarModal(true)}
-                className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow border border-gray-200"
+                onClick={() => {
+                  setSelectedPreset(null);
+                  setShowAvatarModal(true);
+                }}
+                className="absolute bottom-2 right-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow transition hover:bg-[var(--theme-surface-alt)]"
                 aria-label="update avatar"
               >
                 <Camera className="w-4 h-4" style={{ color: actionColor }} />
@@ -128,13 +140,13 @@ export default function ProfileHeader({
             )}
           </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 mt-2">
-              {!isEditingHandle ? (
+          <div className="min-w-0 w-full text-center sm:text-left">
+            <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
+              {!isEditingHandle || !isOwnProfile ? (
                 <>
-                   <span className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
-                     {user.handle}
-                  </span>
+                  <h1 className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
+                    {user.handle}
+                  </h1>
                   {isOwnProfile && (
                     <span
                       tabIndex={usernameChangeLocked ? 0 : undefined}
@@ -142,10 +154,13 @@ export default function ProfileHeader({
                       aria-label={usernameCooldownMessage || 'Edit username'}
                     >
                       <button
-                        onClick={() => setIsEditingHandle(true)}
+                        onClick={() => {
+                          setDraftHandle(user.handle || '');
+                          setIsEditingHandle(true);
+                        }}
                         aria-label="edit username"
                         disabled={usernameChangeLocked}
-                        className="rounded-full p-1 text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {usernameChangeLocked ? (
                           <Lock className="h-3.5 w-3.5" />
@@ -157,11 +172,12 @@ export default function ProfileHeader({
                   )}
                 </>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
                   <input
+                    aria-label="Username"
                     value={draftHandle}
                     onChange={(e) => setDraftHandle(e.target.value)}
-                    className="px-2 py-1 border rounded"
+                    className="ak-input min-w-0 w-full rounded px-3 py-2 sm:w-auto"
                   />
                   <button
                     onClick={() => {
@@ -200,7 +216,7 @@ export default function ProfileHeader({
                         onProfileUpdated({ handle: desired });
                     }}
                     style={{ backgroundColor: actionColor }}
-                    className="px-3 py-1 text-white rounded"
+                    className="rounded px-3 py-2 text-white"
                   >
                     Save
                   </button>
@@ -209,38 +225,59 @@ export default function ProfileHeader({
                       setIsEditingHandle(false);
                       setDraftHandle(user.handle || '');
                     }}
-                    className="px-3 py-1 border rounded"
+                    className="rounded border border-[var(--theme-border)] px-3 py-2"
                   >
                     Cancel
                   </button>
                 </div>
               )}
             </div>
-
+            <div className="mt-3 flex flex-col items-center gap-2 sm:items-start">
+              <p
+                className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
+                style={{ backgroundColor: kitchenTheme(identity.theme).accent }}
+              >
+                <span aria-hidden="true">{calling.icon}</span>
+                {calling.name}
+              </p>
+              <p className="max-w-md text-xs leading-6 text-[var(--theme-text-muted)]">
+                {calling.description}
+              </p>
+            </div>
             <div className="mt-4">
-              {!isEditingBio ? (
+              {!isEditingBio || !isOwnProfile ? (
                 <div>
                   {user.bio ? (
-                    <div className="flex items-start gap-2 text-sm text-gray-700">
+                    <div className="flex items-start justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
                       <p className="whitespace-pre-wrap">{user.bio}</p>
                       {isOwnProfile && (
                         <button
-                          onClick={() => setIsEditingBio(true)}
+                          onClick={() => {
+                            setDraftBio(user.bio || '');
+                            setIsEditingBio(true);
+                          }}
                           aria-label="edit bio"
-                          className="p-1 -ml-1 rounded-full hover:bg-gray-100 text-gray-500"
+                          className="-ml-1 rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <span>No bio added yet. Click to add one.</span>
+                    <div className="flex items-center justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
+                      <span>
+                        {isOwnProfile
+                          ? 'Add a little lore about your kitchen.'
+                          : 'Letting the recipes tell the story.'}
+                      </span>
                       {isOwnProfile && (
                         <button
-                          onClick={() => setIsEditingBio(true)}
+                          onClick={() => {
+                            setDraftBio(user.bio || '');
+                            setIsEditingBio(true);
+                          }}
                           aria-label="edit bio"
-                          className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                          className="rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -254,7 +291,9 @@ export default function ProfileHeader({
                     value={draftBio}
                     onChange={(e) => setDraftBio(e.target.value)}
                     aria-label="bio"
-                    className="w-full rounded border px-3 py-2 text-sm"
+                    maxLength={500}
+                    placeholder="Tell a little kitchen lore: what you cook, what inspires you, and what you’re experimenting with."
+                    className="ak-input w-full rounded px-3 py-2 text-left text-sm"
                   />
                   <div className="flex gap-2 justify-end">
                     <button
@@ -262,7 +301,7 @@ export default function ProfileHeader({
                         setIsEditingBio(false);
                         setDraftBio(user.bio || '');
                       }}
-                      className="px-3 py-1 border rounded"
+                      className="rounded border border-[var(--theme-border)] px-3 py-2"
                     >
                       Cancel
                     </button>
@@ -280,7 +319,7 @@ export default function ProfileHeader({
                           onProfileUpdated({ bio: draftBio });
                       }}
                       style={{ backgroundColor: actionColor }}
-                      className="px-3 py-1 text-white rounded"
+                      className="rounded px-3 py-2 text-white"
                     >
                       Save
                     </button>
@@ -288,16 +327,10 @@ export default function ProfileHeader({
                 </div>
               )}
             </div>
-            <div className="mt-3 flex items-center gap-4 text-sm text-gray-500">
-              {user.location && (
-                <div className="inline-flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-gray-400" />
-                  <span className="truncate">{user.location}</span>
-                </div>
-              )}
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
               {user.joinDate && (
                 <div className="inline-flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-400" />
+                  <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
                   <span>{formatJoinDate(user.joinDate)}</span>
                 </div>
               )}
@@ -305,8 +338,8 @@ export default function ProfileHeader({
           </div>
         </div>
 
-        <div className="w-full md:w-auto mt-2 md:mt-0">
-          <div className="flex md:flex-col items-center md:items-end gap-3">
+        <div className="mt-2 flex w-full justify-center md:mt-0 md:w-auto md:justify-end">
+          <div className="flex items-center gap-3 md:flex-col md:items-end">
             <button
               type="button"
               onClick={handleShareProfile}
@@ -320,13 +353,18 @@ export default function ProfileHeader({
           </div>
         </div>
       </div>
-      {showAvatarModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
+      {showAvatarModal && isOwnProfile && (
+        <AccessibleDialog
+          label="Update Profile Picture"
+          onClose={() => setShowAvatarModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+        >
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Update Profile Picture</h3>
               <button
                 onClick={() => setShowAvatarModal(false)}
+                aria-label="Close avatar picker"
                 className="p-1 rounded-md text-gray-600 hover:bg-[var(--theme-surface-alt)]"
               >
                 <X size={16} />
@@ -350,6 +388,7 @@ export default function ProfileHeader({
                   Cancel
                 </button>
                 <button
+                  disabled={!selectedPreset}
                   onClick={() => {
                     if (selectedPreset && onSelectPreset) {
                       onSelectPreset(selectedPreset);
@@ -357,14 +396,14 @@ export default function ProfileHeader({
                     }
                   }}
                   style={{ backgroundColor: actionColor }}
-                  className="rounded px-3 py-1 text-white"
+                  className="rounded px-3 py-1 text-white disabled:opacity-50"
                 >
                   Save Picture
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
     </div>
   );

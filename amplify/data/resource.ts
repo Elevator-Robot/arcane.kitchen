@@ -96,6 +96,7 @@ const schema = a.schema({
       displayName: a.string().required(),
       bio: a.string(),
       avatar: a.string(),
+      kitchenIdentity: a.json(),
       needsUsernameSetup: a.boolean(),
       isBanned: a.boolean().default(false),
       isDeleted: a.boolean().default(false),

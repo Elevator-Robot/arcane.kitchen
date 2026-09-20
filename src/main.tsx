@@ -6,7 +6,9 @@ import './index.css';
 import { Amplify } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
 import { setCloudFrontDomain } from './amplifyConfig';
-
+import AppErrorBoundary, {
+  AppErrorFallback,
+} from './components/AppErrorBoundary';
 
 const loadAmplifyOutputs = async () => {
   try {
@@ -22,7 +24,7 @@ const loadAmplifyOutputs = async () => {
       return null;
     }
 
-    return response.json();
+    return await response.json();
   } catch (error) {
     console.warn('Amplify outputs are not available yet.', error);
     return null;
@@ -63,18 +65,30 @@ if ('serviceWorker' in navigator) {
 const bootstrap = async () => {
   const outputs = await loadAmplifyOutputs();
 
-  if (outputs) {
-    Amplify.configure(outputs);
-    setCloudFrontDomain(outputs?.custom?.CloudFrontDomain);
+  let configurationFailed = !outputs;
+  try {
+    if (outputs) {
+      Amplify.configure(outputs);
+      setCloudFrontDomain(outputs?.custom?.CloudFrontDomain);
+    }
+  } catch (error) {
+    console.error('Application configuration failed:', error);
+    configurationFailed = true;
   }
 
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <BrowserRouter>
-        <div className="min-h-screen overflow-x-hidden">
-          <AppRouteAware />
-        </div>
-      </BrowserRouter>
+      <AppErrorBoundary>
+        {configurationFailed ? (
+          <AppErrorFallback />
+        ) : (
+          <BrowserRouter>
+            <div className="min-h-screen overflow-x-hidden">
+              <AppRouteAware />
+            </div>
+          </BrowserRouter>
+        )}
+      </AppErrorBoundary>
     </React.StrictMode>
   );
 };

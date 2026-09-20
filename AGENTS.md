@@ -39,6 +39,8 @@ Authentication submission:
 
 ## User-Facing Errors
 
+- `ErrorArtwork` uses the supplied catwitch image at `/images/catwitch.webp` on unavailable-content and recovery screens. Keep the complete image and caption visible; do not crop it.
+- `AppErrorBoundary` and startup/configuration fallbacks show catwitch artwork and reload recovery instead of a blank application. The production service worker precaches the artwork and `offline.html` for unavailable navigations.
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
 - Use `getUserFacingErrorMessage()` for UI messages and keep raw errors in `console.error` diagnostics only; do not render raw `error.message` or serialized error objects.
 
@@ -67,21 +69,44 @@ Authentication submission:
 
 ## Routing (React Router)
 
+- Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
+- Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
+- Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
+- Account menus link directly to Saved recipes and Recipe drafts. Guests receive contextual sign-in invitations on those routes and on personal Discover filters.
+- Auth, recipe, and full-size image overlays use `AccessibleDialog` for keyboard containment, Escape dismissal, and focus restoration.
+- Discover distinguishes request failures (with Retry), empty collections, empty filters (with Clear all filters), and successful search counts. Search covers recipe text, tags, and authors; it does not claim to index ingredient records.
+- Nonempty drafts autosave without requiring a photo or ingredients, and the debounce survives navigation between workspace views. Browser refresh/unmount during the debounce is still a follow-up.
+- Authentication initialization waits for the live session check before showing the workspace, including when cached auth exists.
+- Shared styles provide visible keyboard focus, higher-contrast muted text, and reduced-motion support.
+
 - The SPA is wrapped in `BrowserRouter` (in `src/main.tsx`). `react-router-dom` is a dependency.
 - The recipe "modal" opens in-place on top of the current page: opening a recipe calls `navigate('<current-pathname>?recipe=<id>')` so the base page stays in the URL (open-from-Discover, -Saved, -Profile all work; no more `stayInView` hack).
-- Discover recipe-card author links open the public profile in an in-place modal without reloading the underlying feed; clicking its transparent backdrop closes it, and profile URLs from navigation and shared links continue to use `/u/:username`.
+- Recipe attribution links (`by @username`) activate an exact author filter in Discover from every recipe view; the selected author appears only in the dismissible Author Collection banner, which includes a `View author profile` action to `/u/:username`.
+- Author profiles are full pages only, never popups. Comment authors and mentions navigate directly to `/u/:username`.
+- Usernames render without a leading `@` in profile/account identity and editor-preview displays; `@username` is reserved for clickable published recipe attribution and comment mentions.
+- Recipe sharing copies the recipe URL directly to the clipboard and shows temporary `Copied!` feedback; it does not open a share menu or render a green status banner.
 - `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
   - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
   - `/u/:username` (`getProfileUsernameFromPath`) → Profile view.
   - `/discover` `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` redirects to `/discover`.
 - Closing the modal navigates back to the bare base path (legacy `/recipe/:id` deep links fall back to Home on close).
 - A `/u/:username` route matching the signed-in user's normalized username renders the editable private profile view, including published recipes, drafts, and saved recipes; other matching profiles render the read-only public view.
+- Public profiles show published recipes only; Drafts and Saved tabs are private and must not render for another user's profile.
 - `UserProfileView`'s `RecipeCard` click must only fall back to `window.location.assign('/recipe/<id>')` when there is NO `onOpenRecipe` handler — never use `onOpenRecipe?.(id) ?? window.location.assign(...)`, because `onOpenRecipe` returns `undefined` (void) and `??` would then always hard-navigate to the legacy deep-link route, forcing a `Recipe.get` load instead of the in-place modal.
 - The route-sync `useEffect` (`syncRecipeRoute`) must NOT re-open a recipe that was just dismissed: the effect depends on `expandedRecipeId`, so `collapseExpandedRecipe` sets `justClosedRecipeIdRef` to the id being closed and the effect skips re-expanding that id while the URL's `?recipe=` param is still pending a `navigate` flush. Without this guard, closing would reset `expandedRecipeId` → the effect re-runs → finds the recipe still in the URL → reopens the modal.
 - Keep all URL writes on `navigate()`/`useNavigate()` — do NOT mix raw `history.pushState`/`replaceState` with the router.
+- Discover and Build are not global navigation tabs. The recipe explorer is the home surface, its search row owns the responsive `Create recipe` action, and the editor header owns the contextual `Back to recipes` action.
+- The Discover search bar groups standard search, clear, and newest/oldest sort controls in one responsive surface; sorting is a labeled icon toggle rather than a separate select.
+- Discover opens directly with search, Create recipe, filters, and the feed; there is no promotional welcome card above the search controls.
+- Primary content uses centered `max-w-6xl` rails where practical; profile cards use shared theme tokens, profile identity stacks on narrow screens, and forms/body copy remain left-aligned for readability.
 
 ## Profile & Avatars
 
+- Profiles are Kitchen Sanctuaries: four atmosphere presets, six culinary callings, six familiars, an 80-character motto, a 140-character cooking quest, up to three curated pantry ingredients, and one optional pinned published recipe. These are creative public details, not personal-information fields or earned ranks.
+- `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
+- Public profiles have no collection tab bar and no edit/customization controls. Owners retain Recipes/Drafts/Saved navigation. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
+- Profile customization and avatar selection use `AccessibleDialog`; the customization form previews choices before save and Cancel discards them. Community save totals derive from published-recipe favorites, with no placeholder follower, level, or achievement counts.
+- Deploy the updated Amplify data schema and regenerate outputs before using Kitchen Sanctuary persistence in a live environment.
 - **The DynamoDB `UserProfile` model is the backend source of truth** for public profiles (`/u/:username` pages + recipe author attribution). One row per user: `userId` (owner), `username` (required, GSI key), `displayName` (required), `bio`, `avatar`, `needsUsernameSetup`. Auth is `ownerDefinedIn('userId')` for writes + authenticated/guest read, with `secondaryIndexes([index('username'), index('userId')])`. See `docs/data-models.md`.
 - `RecipeBuilder` loads all public profiles once via `listUserProfilesFromBackend` into `backendProfilesByUserId`/`backendProfilesByUsername`; `/u/:username` (`profileRouteProfile`) and recipe author hydration read from these backend maps first, falling back to localStorage.
 - Username uniqueness is enforced server-side by `isUsernameTakenServerSide` (backend list check) on create/rename — no Lambda; a tiny race window is accepted. Because `username` is a GSI key, renames delete + recreate the row (can't UpdateItem a GSI key).
@@ -129,7 +154,7 @@ Authentication submission:
 - Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
 - Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.
 - The initial protected admin UI is available at `/admin` and reads the live Cognito session group claim; group membership is not persisted in localStorage.
-- Primary navigation routes are consistent: Discover is `/discover`, Build is `/build`, and the admin dashboard is `/admin` from the profile dropdown.
+- Primary routes remain consistent: Discover is `/discover`, Build is `/build`, and the admin dashboard is `/admin` from the profile dropdown.
 - The authenticated profile dropdown is shared by the main app and admin dashboard through `src/components/ProfileDropdown.tsx`; keep its identity data, menu items, icons, and styling consistent across routes.
 - User deletion, banning, content hiding, restoration, audit logging, and ownership transfers use the admin-only `adminActions` backend mutation; public feed filtering and a fully atomic multi-record ownership transaction remain follow-up work.
 - `Recipe` and `Comment` include moderation visibility metadata; `UserProfile` stores moderation state and `AdminAuditLog` stores admin-action history. Privileged operations and feed filtering must still be backend-enforced before these fields are used in production flows.
@@ -137,6 +162,8 @@ Authentication submission:
 - The `Admins` Cognito group uses a separate identity-pool role, so admin recipe-image uploads require an explicit `Admins` storage rule in addition to the authenticated rule.
 
 ## Agent checklist for every PR
+
+- Vitest runs `src/**/*.{test,spec}.{ts,tsx}`; run the Node CLI test separately with `node --test scripts/resolve-ampx-entry.test.cjs`.
 
 1. Check whether any change made AGNET.md inaccurate.
 2. If yes, update AGNET.md before opening or merging the PR.

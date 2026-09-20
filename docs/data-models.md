@@ -119,6 +119,7 @@ Main fields:
 - `displayName` (required)
 - `bio`
 - `avatar` (preset filename)
+- `kitchenIdentity` (optional JSON): `theme`, `calling`, `familiar`, `motto`, `quest`, `pantry`, `signatureRecipeId`. Defaults and limits live in `src/utils/kitchenIdentity.ts`; presets represent creative choices rather than earned achievements.
 - `needsUsernameSetup`
 - `isBanned`
 - `isDeleted`
@@ -136,6 +137,13 @@ race window is accepted because no Lambda is involved.
 
 On login, the backend profile is reconciled first. Cognito attributes are used
 only to seed a missing `UserProfile` row and do not overwrite an existing row.
+
+Kitchen Sanctuary customization uses the existing owner-write/public-read authorization.
+The save path updates only `kitchenIdentity` on an existing profile and surfaces failed
+mutations instead of caching an unsaved choice. Other profile edits preserve this field.
+No new Cognito attributes are needed. Deploy the data schema and regenerate Amplify
+outputs before validating live saves across accounts. A signature recipe is displayed
+only if it belongs to the profile's currently published recipe collection.
 
 Auth:
 

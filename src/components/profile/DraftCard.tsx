@@ -13,25 +13,25 @@ export default function DraftCard({ draft, onContinue, onOptions }: Props) {
   const [actionColor] = useState(randomMerlinColor);
 
   return (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition">
-      <div className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-md overflow-hidden bg-gray-50 flex-shrink-0">
+    <div className="flex flex-col gap-4 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-4">
+        <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md bg-[var(--theme-surface-alt)]">
           {draft.image ? (
             <img src={draft.image} alt={draft.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">No image</div>
+            <div className="flex h-full w-full items-center justify-center text-xs text-[var(--theme-text-muted)]">No image</div>
           )}
         </div>
 
-        <div>
-          <h3 className="font-semibold text-[#1c1917]">{draft.title}</h3>
-          <p className="text-xs text-gray-500">Last edited {draft.lastEdited}</p>
+        <div className="min-w-0">
+          <h3 className="truncate font-semibold text-[var(--theme-text)]">{draft.title}</h3>
+          <p className="text-xs text-[var(--theme-text-muted)]">Last edited {draft.lastEdited}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-end gap-3">
         <button onClick={() => onContinue?.(draft.id)} style={{ color: actionColor, borderColor: actionColor }} className="px-4 py-2 bg-[var(--theme-surface-alt)] border rounded-lg text-sm font-medium">Continue editing</button>
-        <button onClick={() => onOptions?.(draft.id)} className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50"><MoreHorizontal className="w-5 h-5" /></button>
+        <button onClick={() => onOptions?.(draft.id)} className="rounded-lg border border-[var(--theme-border)] p-2 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"><MoreHorizontal className="w-5 h-5" /></button>
       </div>
     </div>
   );
