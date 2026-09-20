@@ -69,9 +69,9 @@ Authentication submission:
 
 - The SPA is wrapped in `BrowserRouter` (in `src/main.tsx`). `react-router-dom` is a dependency.
 - The recipe "modal" opens in-place on top of the current page: opening a recipe calls `navigate('<current-pathname>?recipe=<id>')` so the base page stays in the URL (open-from-Discover, -Saved, -Profile all work; no more `stayInView` hack).
-- Discover recipe-card author links open the public profile in an in-place modal without reloading the underlying feed; clicking its transparent backdrop closes it, and profile URLs from navigation and shared links continue to use `/u/:username`.
-- An open author-profile modal takes precedence over the underlying route, so recipe attribution always resolves to that recipe's author even from authenticated views such as Saved or Profile.
-- Usernames render without a leading `@` in profile identity displays; `@username` is reserved for recipe attribution and comment mentions, whose clickable mentions open the same profile modal.
+- Recipe attribution links (`by @username`) activate an exact author filter in Discover from every recipe view; the selected author appears with the other removable filters and includes a `View author profile` action to `/u/:username`.
+- Author profiles are full pages only, never popups. Comment authors and mentions navigate directly to `/u/:username`.
+- Usernames render without a leading `@` in profile identity displays; `@username` is reserved for recipe attribution and comment mentions.
 - Recipe sharing copies the recipe URL directly to the clipboard and shows temporary `Copied!` feedback; it does not open a share menu or render a green status banner.
 - `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
   - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
@@ -79,6 +79,7 @@ Authentication submission:
   - `/discover` `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` redirects to `/discover`.
 - Closing the modal navigates back to the bare base path (legacy `/recipe/:id` deep links fall back to Home on close).
 - A `/u/:username` route matching the signed-in user's normalized username renders the editable private profile view, including published recipes, drafts, and saved recipes; other matching profiles render the read-only public view.
+- Public profiles show published recipes only; Drafts and Saved tabs are private and must not render for another user's profile.
 - `UserProfileView`'s `RecipeCard` click must only fall back to `window.location.assign('/recipe/<id>')` when there is NO `onOpenRecipe` handler — never use `onOpenRecipe?.(id) ?? window.location.assign(...)`, because `onOpenRecipe` returns `undefined` (void) and `??` would then always hard-navigate to the legacy deep-link route, forcing a `Recipe.get` load instead of the in-place modal.
 - The route-sync `useEffect` (`syncRecipeRoute`) must NOT re-open a recipe that was just dismissed: the effect depends on `expandedRecipeId`, so `collapseExpandedRecipe` sets `justClosedRecipeIdRef` to the id being closed and the effect skips re-expanding that id while the URL's `?recipe=` param is still pending a `navigate` flush. Without this guard, closing would reset `expandedRecipeId` → the effect re-runs → finds the recipe still in the URL → reopens the modal.
 - Keep all URL writes on `navigate()`/`useNavigate()` — do NOT mix raw `history.pushState`/`replaceState` with the router.

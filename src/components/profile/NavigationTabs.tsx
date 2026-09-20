@@ -6,10 +6,17 @@ type Props = {
   active: TabKey;
   draftsCount?: number;
   savedCount?: number;
+  showPrivateTabs?: boolean;
   onChange: (t: TabKey) => void;
 };
 
-export default function NavigationTabs({ active, draftsCount = 0, savedCount = 0, onChange }: Props) {
+export default function NavigationTabs({
+  active,
+  draftsCount = 0,
+  savedCount = 0,
+  showPrivateTabs = true,
+  onChange,
+}: Props) {
   const tabColors: Record<TabKey, string> = {
     recipes: MERLIN_PALETTE[7],
     drafts: MERLIN_PALETTE[1],
@@ -21,19 +28,54 @@ export default function NavigationTabs({ active, draftsCount = 0, savedCount = 0
   return (
     <div className="border-t border-gray-100 px-4 py-2">
       <div className="flex items-center justify-center gap-8">
-        <button type="button" onClick={() => onChange('recipes')} className={tabClass('recipes')} style={active === 'recipes' ? { color: tabColors.recipes, borderColor: tabColors.recipes } : undefined}>
+        <button
+          type="button"
+          onClick={() => onChange('recipes')}
+          className={tabClass('recipes')}
+          style={
+            active === 'recipes'
+              ? { color: tabColors.recipes, borderColor: tabColors.recipes }
+              : undefined
+          }
+        >
           <span className="">Recipes</span>
         </button>
 
-        <button type="button" onClick={() => onChange('drafts')} className={tabClass('drafts')} style={active === 'drafts' ? { color: tabColors.drafts, borderColor: tabColors.drafts } : undefined}>
-          <span>Drafts</span>
-          <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{draftsCount}</span>
-        </button>
+        {showPrivateTabs && (
+          <>
+            <button
+              type="button"
+              onClick={() => onChange('drafts')}
+              className={tabClass('drafts')}
+              style={
+                active === 'drafts'
+                  ? { color: tabColors.drafts, borderColor: tabColors.drafts }
+                  : undefined
+              }
+            >
+              <span>Drafts</span>
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                {draftsCount}
+              </span>
+            </button>
 
-        <button type="button" onClick={() => onChange('saved')} className={tabClass('saved')} style={active === 'saved' ? { color: tabColors.saved, borderColor: tabColors.saved } : undefined}>
-          <span>Saved</span>
-          <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{savedCount}</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => onChange('saved')}
+              className={tabClass('saved')}
+              style={
+                active === 'saved'
+                  ? { color: tabColors.saved, borderColor: tabColors.saved }
+                  : undefined
+              }
+            >
+              <span>Saved</span>
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                {savedCount}
+              </span>
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

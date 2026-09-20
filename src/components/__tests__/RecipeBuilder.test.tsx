@@ -235,7 +235,7 @@ describe('RecipeBuilder Component', () => {
     );
   });
 
-  it('opens the recipe author profile from the signed-in saved view', async () => {
+  it('filters by recipe author before opening the public profile page', async () => {
     const authorProfile = {
       userId: 'author-user',
       username: 'recipe_author',
@@ -251,6 +251,12 @@ describe('RecipeBuilder Component', () => {
         createMockRecipe({
           ownerId: authorProfile.userId,
           createdBy: '@recipe_author',
+        }),
+        createMockRecipe({
+          id: 'recipe-2',
+          ownerId: 'another-user',
+          name: 'Another Recipe',
+          createdBy: '@another_author',
         }),
       ],
       errors: undefined,
@@ -288,8 +294,42 @@ describe('RecipeBuilder Component', () => {
       })
     );
 
+    expect(window.location.pathname).toBe('/discover');
+    expect(
+      await screen.findByRole('button', {
+        name: 'Remove author filter @recipe_author',
+      })
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Another Recipe')).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Remove author filter @recipe_author',
+      })
+    );
+    expect(await screen.findByText('Another Recipe')).toBeInTheDocument();
+
+    const discoverSection = document.getElementById('discover');
+    expect(discoverSection).not.toBeNull();
+    await user.click(
+      within(discoverSection!).getByRole('button', {
+        name: 'by @recipe_author',
+      })
+    );
+    await user.click(
+      await screen.findByRole('link', { name: 'View author profile' })
+    );
+
+    expect(window.location.pathname).toBe('/u/recipe_author');
     expect(await screen.findByLabelText('recipe_author')).toBeInTheDocument();
-    expect(screen.queryByLabelText('test')).not.toBeInTheDocument();
+    const profileSection = document.getElementById('profile');
+    expect(profileSection).not.toBeNull();
+    expect(
+      within(profileSection!).queryByRole('button', { name: 'Drafts' })
+    ).not.toBeInTheDocument();
+    expect(
+      within(profileSection!).queryByRole('button', { name: 'Saved' })
+    ).not.toBeInTheDocument();
   });
 
   it('keeps an invalid shared recipe on its route instead of redirecting home', async () => {

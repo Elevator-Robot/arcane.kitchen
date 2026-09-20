@@ -49,6 +49,10 @@ export default function UserProfileView({
     'recipes' | 'drafts' | 'saved'
   >('recipes');
 
+  React.useEffect(() => {
+    if (!isOwnProfile) setActiveTab('recipes');
+  }, [isOwnProfile]);
+
   return (
     <div className="w-full max-w-5xl mx-auto px-4">
       <div className="w-full">
@@ -64,6 +68,7 @@ export default function UserProfileView({
             active={activeTab}
             draftsCount={draftRecipes.length}
             savedCount={savedRecipes.length}
+            showPrivateTabs={isOwnProfile}
             onChange={setActiveTab}
           />
         </div>
