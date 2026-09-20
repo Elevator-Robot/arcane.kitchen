@@ -1502,7 +1502,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
 
       if (profileUsername) {
-        setViewingProfileUsername(profileUsername);
+        if (!profileModalUsername) {
+          setViewingProfileUsername(profileUsername);
+        }
         setCurrentView('Profile');
         return;
       }
@@ -1530,7 +1532,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
       justClosedRecipeIdRef.current = null;
       setExpandedRecipeMessage('');
-      setViewingProfileUsername(null);
+      if (!profileModalUsername) {
+        setViewingProfileUsername(null);
+      }
       if (location.pathname !== '/discover') {
         const pathView = viewForPath(location.pathname);
         if (pathView !== currentView) {

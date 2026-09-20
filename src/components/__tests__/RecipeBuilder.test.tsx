@@ -30,11 +30,17 @@ const createMockRecipe = (overrides: Record<string, unknown> = {}) => ({
 const {
   mockRecipeList,
   mockRecipeGet,
+  mockFavoriteList,
+  mockUserProfileList,
   mockRecipeGetUrl,
   mockRecipeUploadData,
 } = vi.hoisted(() => ({
   mockRecipeList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
   mockRecipeGet: vi.fn().mockResolvedValue({ data: null, errors: undefined }),
+  mockFavoriteList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+  mockUserProfileList: vi
+    .fn()
+    .mockResolvedValue({ data: [], errors: undefined }),
   mockRecipeGetUrl: vi
     .fn()
     .mockResolvedValue({ url: new URL('https://example.com/image.jpg') }),
@@ -86,12 +92,12 @@ vi.mock('aws-amplify/data', () => ({
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
       },
       Favorite: {
-        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+        list: mockFavoriteList,
         create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
       },
       UserProfile: {
-        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+        list: mockUserProfileList,
         create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
         update: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
@@ -139,6 +145,8 @@ describe('RecipeBuilder Component', () => {
     window.history.replaceState({}, '', '/');
     mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
     mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
+    mockFavoriteList.mockResolvedValue({ data: [], errors: undefined });
+    mockUserProfileList.mockResolvedValue({ data: [], errors: undefined });
     mockUpdateUserAttributes.mockClear();
     if (typeof indexedDB !== 'undefined') {
       indexedDB.deleteDatabase('arcaneKitchenDraft');
@@ -225,6 +233,63 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.pathname + window.location.search).toBe(
       '/u/test?recipe=recipe-1'
     );
+  });
+
+  it('opens the recipe author profile from the signed-in saved view', async () => {
+    const authorProfile = {
+      userId: 'author-user',
+      username: 'recipe_author',
+      displayName: 'Recipe Author',
+      bio: 'Author bio',
+      avatar: null,
+      needsUsernameSetup: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockRecipeList.mockResolvedValue({
+      data: [
+        createMockRecipe({
+          ownerId: authorProfile.userId,
+          createdBy: '@recipe_author',
+        }),
+      ],
+      errors: undefined,
+    });
+    mockFavoriteList.mockResolvedValue({
+      data: [
+        {
+          id: 'favorite-1',
+          recipeId: 'recipe-1',
+          userId: 'testuser',
+        },
+      ],
+      errors: undefined,
+    });
+    mockUserProfileList.mockImplementation(async (options = {}) => {
+      const username = (options as any).filter?.username?.eq;
+      return {
+        data:
+          !username || username === authorProfile.username
+            ? [authorProfile]
+            : [],
+        errors: undefined,
+      };
+    });
+    window.history.replaceState({}, '', '/saved');
+
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+
+    const savedSection = document.getElementById('saved-recipes');
+    expect(savedSection).not.toBeNull();
+    await user.click(
+      await within(savedSection!).findByRole('button', {
+        name: 'by @recipe_author',
+      })
+    );
+
+    expect(await screen.findByLabelText('recipe_author')).toBeInTheDocument();
+    expect(screen.queryByLabelText('test')).not.toBeInTheDocument();
   });
 
   it('keeps an invalid shared recipe on its route instead of redirecting home', async () => {
