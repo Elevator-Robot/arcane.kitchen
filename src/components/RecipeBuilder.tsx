@@ -3813,9 +3813,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {onSignOut ? (
-              <ProfileDropdown
-                profilePath={getProfileRoutePath(activeUsername)}
-                profileLabel={activeUsername || creatorName}
+                <ProfileDropdown
+                  profilePath={getProfileRoutePath(activeUsername)}
+                  profileLabel={activeUsername || 'Guest cook'}
                 profileAvatar={effectiveAvatar}
                 isAdmin={isAdmin}
                 onSignOut={onSignOut}
@@ -3935,18 +3935,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       {tag}
                     </button>
                   ))}
-                  {activeAuthor && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveAuthor(null)}
-                      aria-label={`Remove author filter @${activeAuthor}`}
-                      className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:brightness-110"
-                      style={{ backgroundColor: activeTagColor }}
-                    >
-                      @{activeAuthor}
-                      <X className="h-3.5 w-3.5" aria-hidden="true" />
-                    </button>
-                  )}
                 </div>
 
                 {activeAuthor && (
@@ -3959,23 +3947,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         Recipes by @{activeAuthor}
                       </p>
                     </div>
-                    <Link
-                      to={getProfileRoutePath(activeAuthor)}
-                      onClick={() => setActiveAuthor(null)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--theme-text)] px-4 py-2 text-sm font-semibold text-[var(--theme-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                    >
-                      View author profile
-                      <svg
-                        className="h-4 w-4"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        aria-hidden="true"
+                    <div className="flex items-center gap-2">
+                      <Link
+                        to={getProfileRoutePath(activeAuthor)}
+                        onClick={() => setActiveAuthor(null)}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--theme-text)] px-4 py-2 text-sm font-semibold text-[var(--theme-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:flex-none"
                       >
-                        <path d="M7 17 17 7M7 7h10v10" />
-                      </svg>
-                    </Link>
+                        View author profile
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
+                        >
+                          <path d="M7 17 17 7M7 7h10v10" />
+                        </svg>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAuthor(null)}
+                        aria-label={`Clear author collection @${activeAuthor}`}
+                        title="Clear author collection"
+                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -5027,7 +5026,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         {draft.name || 'Untitled recipe'}
                       </h3>
                       <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
-                        by {creatorName}
+                        by {activeUsername || 'Guest cook'}
                       </p>
                     </div>
                   </div>

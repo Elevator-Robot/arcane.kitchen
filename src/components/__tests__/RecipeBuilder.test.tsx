@@ -193,6 +193,8 @@ describe('RecipeBuilder Component', () => {
     expect(
       screen.getByRole('heading', { name: 'New recipe' })
     ).toBeInTheDocument();
+    expect(screen.getByText('by test')).toBeInTheDocument();
+    expect(screen.queryByText('by @test')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
 
@@ -333,14 +335,14 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.pathname).toBe('/discover');
     expect(
       await screen.findByRole('button', {
-        name: 'Remove author filter @recipe_author',
+        name: 'Clear author collection @recipe_author',
       })
     ).toBeInTheDocument();
     expect(screen.queryByText('Another Recipe')).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole('button', {
-        name: 'Remove author filter @recipe_author',
+        name: 'Clear author collection @recipe_author',
       })
     );
     expect(await screen.findByText('Another Recipe')).toBeInTheDocument();
