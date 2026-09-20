@@ -54,9 +54,9 @@ export default function UserProfileView({
   }, [isOwnProfile]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4">
+    <div className="mx-auto w-full max-w-6xl">
       <div className="w-full">
-        <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm">
           <ProfileHeader
             user={user}
             isOwnProfile={isOwnProfile}

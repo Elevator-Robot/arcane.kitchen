@@ -12,7 +12,7 @@ type Props = {
 
 export default function RecipeCard({ recipe, onOptions, onClick, isFavorited = false, isPendingFavorite = false, onToggleFavorite }: Props) {
   return (
-    <div onClick={() => onClick?.(recipe.id)} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 flex flex-col cursor-pointer">
+    <div onClick={() => onClick?.(recipe.id)} className="flex cursor-pointer flex-col overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative h-48 w-full">
         {recipe.image ? (
           <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover" />
@@ -25,11 +25,11 @@ export default function RecipeCard({ recipe, onOptions, onClick, isFavorited = f
 
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="font-semibold text-[#1c1917] line-clamp-2 mb-1">{recipe.title}</h3>
-          <p className="text-xs text-gray-500 mb-4">{recipe.time}</p>
+          <h3 className="mb-1 line-clamp-2 font-semibold text-[var(--theme-text)]">{recipe.title}</h3>
+          <p className="mb-4 text-xs text-[var(--theme-text-muted)]">{recipe.time}</p>
         </div>
 
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs text-gray-600">
+        <div className="flex items-center justify-between border-t border-[var(--theme-border)] pt-3 text-xs text-[var(--theme-text-muted)]">
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1"><MessageCircle className="w-4 h-4" /> {recipe.comments ?? 0}</span>
             <button
@@ -51,7 +51,7 @@ export default function RecipeCard({ recipe, onOptions, onClick, isFavorited = f
             </button>
           </div>
 
-          <button onClick={(e) => { e.stopPropagation(); onOptions?.(recipe.id); }} className="p-1 hover:bg-gray-50 rounded text-gray-500"><MoreVertical className="w-4 h-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onOptions?.(recipe.id); }} className="rounded p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"><MoreVertical className="w-4 h-4" /></button>
         </div>
       </div>
     </div>

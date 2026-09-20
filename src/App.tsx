@@ -497,7 +497,7 @@ function App({ pathname }: AppProps = {}) {
 
   if (!isAuthInitialized) {
     return (
-      <div className="flex h-screen items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+      <div className="flex h-screen h-dvh items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
         <span className="text-sm font-medium" style={{ color: loadingColor }}>
           Preparing your kitchen…
         </span>
@@ -521,7 +521,7 @@ function App({ pathname }: AppProps = {}) {
   }
 
   return (
-    <div className="h-screen overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+    <div className="h-screen h-dvh overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
@@ -592,7 +592,7 @@ function App({ pathname }: AppProps = {}) {
                   Close
                 </button>
 
-                <div className="relative auth-panel" onKeyDown={submitAuthFormOnEnter}>
+                <div className="auth-panel relative mx-auto w-full max-w-md" onKeyDown={submitAuthFormOnEnter}>
                   {authNotice && (
                     <div className="mb-4 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-200">
                       {authNotice}

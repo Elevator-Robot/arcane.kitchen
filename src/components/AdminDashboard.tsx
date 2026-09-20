@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
 import { randomMerlinColor } from '../theme/merlinPalette';
@@ -44,7 +43,6 @@ export default function AdminDashboard({
   profileLabel = 'Admin',
   profileAvatar = null,
 }: Props) {
-  const navigate = useNavigate();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -209,7 +207,7 @@ export default function AdminDashboard({
   if (!isAuthenticated || !isAdmin) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--theme-bg)] p-6 text-[var(--theme-text)]">
-        <section className="max-w-lg rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-8 text-center shadow-xl">
+        <section className="w-full max-w-lg rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-8 text-center shadow-xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-300">Restricted area</p>
           <h1 className="mt-3 text-3xl font-semibold">Administrator access required</h1>
           <p className="mt-3 text-sm text-[var(--theme-text-muted)]">{!isAuthenticated ? 'Sign in with an administrator account to continue.' : 'This account is not a member of the Admins group.'}</p>
@@ -222,15 +220,14 @@ export default function AdminDashboard({
   return (
     <main className="min-h-screen bg-[var(--theme-bg)] text-[var(--theme-text)]">
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
-          <button onClick={onBack} aria-label="Go to Discover" className="mt-2 flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-1 sm:px-8">
+          <button onClick={onBack} aria-label="Go to Discover" className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]">
             <img src="/logo-no-background.svg" alt="" draggable={false} className="h-14 w-14 object-contain brightness-[0.3]" />
             <span className="font-heading text-base font-semibold">Arcane Kitchen</span>
           </button>
-          <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-2 md:flex">
-            <button onClick={onBack} className="rounded-md border-b-2 border-transparent px-4 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]">Discover</button>
-            <button onClick={() => navigate('/build')} className="rounded-md border-b-2 border-transparent px-4 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]">Build</button>
-          </nav>
+          <span className="absolute left-1/2 hidden -translate-x-1/2 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--theme-text-muted)] md:block">
+            Admin dashboard
+          </span>
           <ProfileDropdown profilePath={profilePath} profileLabel={profileLabel} profileAvatar={profileAvatar} isAdmin={isAdmin} onSignOut={onSignOut || (() => undefined)} />
         </div>
       </header>

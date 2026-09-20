@@ -160,9 +160,45 @@ describe('RecipeBuilder Component', () => {
     expect(screen.getByText('Search recipes')).toBeInTheDocument();
     expect(screen.getByTitle('Create a recipe')).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText('Search recipes...')
+      screen.getByRole('textbox', { name: 'Search recipes' })
     ).toBeInTheDocument();
   }, 40000);
+
+  it('clears search and reverses recipe sorting from the search control', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+
+    const searchInput = screen.getByRole('textbox', { name: 'Search recipes' });
+    await user.type(searchInput, 'soup');
+    expect(searchInput).toHaveValue('soup');
+
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(searchInput).toHaveValue('');
+
+    await user.click(
+      screen.getByRole('button', { name: /Sort recipes: newest first/i })
+    );
+    expect(
+      screen.getByRole('button', { name: /Sort recipes: oldest first/i })
+    ).toBeInTheDocument();
+  });
+
+  it('opens the editor from search and returns contextually', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+
+    await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
+
+    expect(window.location.pathname).toBe('/build');
+    expect(
+      screen.getByRole('heading', { name: 'New recipe' })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+
+    expect(window.location.pathname).toBe('/discover');
+    expect(screen.getByText('Search recipes')).toBeInTheDocument();
+  });
 
   it('updates the post preview as recipe fields change', async () => {
     const user = userEvent.setup();
@@ -452,7 +488,7 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: 'Build' }));
+    await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     const titleInput = screen.getAllByPlaceholderText(
       "e.g., Grandma's Apple Pie"
@@ -501,7 +537,7 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: 'Build' }));
+    await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     const titleInput = screen.getAllByPlaceholderText(
       "e.g., Grandma's Apple Pie"
@@ -542,7 +578,7 @@ describe('RecipeBuilder Component', () => {
       within(draftsSection as HTMLElement).getByText('Published Draft')
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Build' }));
+    await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
     await user.click(screen.getByRole('button', { name: 'Publish' }));
 
     await user.click(screen.getByRole('button', { name: /test/i }));

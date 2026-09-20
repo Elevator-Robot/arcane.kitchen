@@ -10,9 +10,11 @@ import { Amplify } from 'aws-amplify';
 import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
+  ArrowDownUp,
   Heart,
   Maximize2,
   Plus,
+  Search,
   Share,
   X,
 } from 'lucide-react';
@@ -771,7 +773,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [activeTag, setActiveTag] = useState('All');
   const [activeAuthor, setActiveAuthor] = useState<string | null>(null);
   const [activeTagColor, setActiveTagColor] = useState(randomMerlinColor);
-  const [activeNavColor, setActiveNavColor] = useState(randomMerlinColor);
   const handleFilterClick = useCallback((tag: string) => {
     setActiveTag((prev) => {
       const next = prev === tag ? 'All' : tag;
@@ -3615,7 +3616,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               )}
 
               <div className="relative">
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     ref={commentInputRef}
                     value={commentInput}
@@ -3626,7 +3627,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         ? `Replying to ${replyingToAuthor}...`
                         : 'Add a comment...'
                     }
-                    className="flex-1 rounded border border-[#0891b2]/40 bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[#0891b2] focus:ring-2 focus:ring-[#0891b2]/20"
+                    className="min-w-0 flex-1 rounded border border-[#0891b2]/40 bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[#0891b2] focus:ring-2 focus:ring-[#0891b2]/20"
                   />
                   <button
                     onClick={() =>
@@ -3731,7 +3732,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   ) : null;
 
   return (
-    <main className="flex h-screen flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
+    <main className="flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
       {profileSetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-cozy-lg">
@@ -3786,7 +3787,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       <div className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[var(--theme-accent)]/[0.02] to-transparent" />
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl overflow-visible">
         <div className="relative mx-auto flex w-full max-w-[1800px] items-center justify-between px-4 py-1 lg:px-6">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
@@ -3795,7 +3796,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   setCurrentView('Discover');
                   navigate('/discover');
                 }}
-                className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 mt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+                className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
                 aria-label="Go to Home"
               >
                 <img
@@ -3809,45 +3810,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </span>
               </button>
             </div>
-            <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-2 md:flex">
-              <button
-                onClick={() => {
-                  setActiveNavColor(randomMerlinColor());
-                  setCurrentView('Discover');
-                  navigate('/discover');
-                }}
-                style={
-                  currentView === 'Discover'
-                    ? { color: activeNavColor }
-                    : undefined
-                }
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
-                  currentView === 'Discover'
-                    ? 'border-b-2'
-                    : 'border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text)]'
-                }`}
-              >
-                Discover
-              </button>
-              <button
-                onClick={() => {
-                  setActiveNavColor(randomMerlinColor());
-                  startCreateRecipe();
-                }}
-                style={
-                  currentView === 'Build'
-                    ? { color: activeNavColor }
-                    : undefined
-                }
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
-                  currentView === 'Build'
-                    ? 'border-b-2'
-                    : 'border-b-2 border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text)]'
-                }`}
-              >
-                Build
-              </button>
-            </nav>
           </div>
           <div className="flex items-center gap-2">
             {onSignOut ? (
@@ -3879,7 +3841,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       >
         <section
           id="discover"
-          className={`min-h-0 overflow-y-auto ${
+          className={`mx-auto min-h-0 w-full max-w-6xl overflow-y-auto ${
             currentView === 'Discover' ? 'flex flex-col' : 'hidden'
           }`}
         >
@@ -3888,57 +3850,66 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                 Search recipes
               </h2>
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex flex-1 gap-2">
-                  <div className="relative flex-1">
+              <div className="mx-1 mt-3 flex items-stretch gap-2">
+                <div
+                  role="search"
+                  aria-label="Search and sort recipes"
+                  className="group flex min-w-0 flex-1 items-center rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition focus-within:border-[var(--theme-accent)] focus-within:shadow-md focus-within:ring-4 focus-within:ring-[var(--theme-focus)]"
+                >
+                  <Search
+                    className="ml-4 h-5 w-5 shrink-0 text-[var(--theme-text-muted)] transition group-focus-within:text-[var(--theme-accent)]"
+                    aria-hidden="true"
+                  />
+                  <div className="relative min-w-0 flex-1">
                     <input
                       value={discoverQuery}
                       onChange={(event) => setDiscoverQuery(event.target.value)}
-                      placeholder="Search recipes..."
-                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 pl-10 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
+                      aria-label="Search recipes"
+                      placeholder="Search recipes, ingredients, or cooks"
+                      className="h-12 w-full bg-transparent px-3 pr-10 text-sm text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-text-muted)]"
                     />
-                    <svg
-                      className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--theme-text-muted)]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
+                    {discoverQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setDiscoverQuery('')}
+                        aria-label="Clear search"
+                        title="Clear search"
+                        className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    )}
                   </div>
+                  <div className="h-7 w-px shrink-0 bg-[var(--theme-border)]" />
                   <button
+                    type="button"
+                    onClick={() =>
+                      setSortOrder((current) =>
+                        current === 'desc' ? 'asc' : 'desc'
+                      )
+                    }
+                    aria-label={`Sort recipes: ${sortOrder === 'desc' ? 'newest first' : 'oldest first'}. Activate to reverse.`}
+                    title={sortOrder === 'desc' ? 'Newest first' : 'Oldest first'}
+                    className="inline-flex shrink-0 items-center gap-2 self-stretch rounded-r-2xl px-3 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] sm:px-4"
+                  >
+                    <ArrowDownUp className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden text-xs font-semibold sm:inline">
+                      {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+                    </span>
+                  </button>
+                </div>
+                <button
                     type="button"
                     onClick={startCreateRecipe}
                     aria-label="Create a recipe"
                     title="Create a recipe"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-[#0891b2] via-[#0e7490] to-[#155e75] text-white shadow-lg shadow-cyan-900/40 transition hover:from-[#06b6d4] hover:via-[#0891b2] hover:to-[#0e7490] active:scale-95 sm:hidden"
+                    className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0891b2] via-[#0e7490] to-[#155e75] px-3 text-white shadow-lg shadow-cyan-900/40 transition hover:-translate-y-0.5 hover:from-[#06b6d4] hover:via-[#0891b2] hover:to-[#0e7490] hover:shadow-xl active:scale-95 sm:px-4"
                   >
                     <Plus className="h-5 w-5" aria-hidden="true" />
+                    <span className="hidden text-sm font-semibold sm:inline">
+                      Create recipe
+                    </span>
                   </button>
-                </div>
-                <div className="flex gap-3">
-                  <div className="relative flex-1 sm:flex-none sm:min-w-[140px]">
-                    <label className="sr-only" htmlFor="discover-sort-order">
-                      Sort recipes
-                    </label>
-                    <select
-                      id="discover-sort-order"
-                      value={sortOrder}
-                      onChange={(event) =>
-                        setSortOrder(event.target.value as 'asc' | 'desc')
-                      }
-                      className="w-full rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2.5 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--theme-accent)] focus:ring-2 focus:ring-[var(--theme-focus)]"
-                    >
-                      <option value="desc">Newest first</option>
-                      <option value="asc">Oldest first</option>
-                    </select>
-                  </div>
-                </div>
               </div>
 
               <div className="mt-4 space-y-3">
@@ -4242,25 +4213,51 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               : 'hidden'
           }`}
         >
-          <div className="flex items-center justify-between border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-5 py-4">
-            <div>
-              <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                {isEditingRecipe ? 'Edit recipe' : 'New recipe'}
-              </h2>
-              {!isEditingRecipe && (
-                <button
-                  type="button"
-                  onClick={loadExampleRecipe}
-                  className="mt-0.5 text-xs text-[var(--theme-text-muted)] underline decoration-dotted transition hover:text-[var(--theme-accent-strong)]"
+          <div className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-4 py-4 sm:px-5">
+            <div className="flex min-w-0 items-start gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('Discover');
+                  navigate('/discover');
+                }}
+                aria-label="Back to recipes"
+                title="Back to recipes"
+                className="mt-0.5 inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-2.5 text-[var(--theme-text-muted)] shadow-sm transition hover:-translate-x-0.5 hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] sm:px-3"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
                 >
-                  Need inspiration? Load an example
-                </button>
-              )}
-              {!isAuthenticated && (
-                <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                  Sign in to publish recipes.
-                </p>
-              )}
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+                <span className="hidden text-xs font-semibold sm:inline">
+                  Recipes
+                </span>
+              </button>
+              <div className="min-w-0">
+                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+                  {isEditingRecipe ? 'Edit recipe' : 'New recipe'}
+                </h2>
+                {!isEditingRecipe && (
+                  <button
+                    type="button"
+                    onClick={loadExampleRecipe}
+                    className="mt-0.5 text-xs text-[var(--theme-text-muted)] underline decoration-dotted transition hover:text-[var(--theme-accent-strong)]"
+                  >
+                    Need inspiration? Load an example
+                  </button>
+                )}
+                {!isAuthenticated && (
+                  <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                    Sign in to publish recipes.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
