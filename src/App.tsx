@@ -16,7 +16,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AccessibleDialog from './components/AccessibleDialog';
 import ErrorArtwork from './components/ErrorArtwork';
-import SanctuaryHeading from './components/ui/SanctuaryHeading';
+import { sanctuaryThemeStyle } from './theme/sanctuaryTheme';
 import RecipeBuilder from './components/RecipeBuilder';
 import AdminDashboard from './components/AdminDashboard';
 import SignInForm from './components/SignInForm';
@@ -592,6 +592,7 @@ function App({ pathname }: AppProps = {}) {
       <AdminDashboardRoute
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
+        profileTheme={profileCache?.kitchenIdentity?.theme}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
         profilePath={getProfileRoutePath(
           profileCache?.username ||
@@ -612,7 +613,12 @@ function App({ pathname }: AppProps = {}) {
   }
 
   return (
-    <div className="h-screen h-dvh overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
+    <div
+      style={sanctuaryThemeStyle(
+        isAuthenticated ? profileCache?.kitchenIdentity?.theme : undefined
+      )}
+      className="h-screen h-dvh overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]"
+    >
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
@@ -630,26 +636,40 @@ function App({ pathname }: AppProps = {}) {
           label="Sign in to Arcane Kitchen"
           onClose={() => setShowAuth(false)}
         >
-          <div className="mx-auto flex min-h-full w-full max-w-lg items-center justify-center">
-            <div className="ak-panel w-full overflow-hidden shadow-2xl">
-              <div className="[&>header]:rounded-none">
-                <SanctuaryHeading
-                  level={2}
-                  eyebrow="Arcane Kitchen"
-                  title="Your member kitchen"
-                  description="Sign in to save recipes, share your creations, and personalize your sanctuary."
-                  actions={
-                    <button
-                      type="button"
-                      onClick={() => setShowAuth(false)}
-                      className="ak-banner-action"
-                    >
-                      Close
-                    </button>
-                  }
+          <div className="mx-auto flex min-h-full w-full max-w-4xl items-center justify-center">
+            <div className="ak-panel relative grid w-full overflow-hidden shadow-2xl md:grid-cols-2">
+              <section className="relative flex min-h-52 flex-col justify-end p-6 text-white md:min-h-[540px] md:p-8">
+                <img
+                  src="/images/member-kitchen-hero.webp"
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
-              </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                <div className="relative max-w-sm pr-12 md:pr-0">
+                  <p className="ak-eyebrow text-white/80">Member kitchen</p>
+                  <h2 className="mt-3 text-2xl md:text-4xl">
+                    Share recipes people want to save
+                  </h2>
+                  <p className="mt-3 hidden text-sm leading-7 text-white/85 md:block">
+                    Publish your creations, save favorites, and make your
+                    kitchen sanctuary your own.
+                  </p>
+                </div>
+              </section>
+              <button
+                type="button"
+                onClick={() => setShowAuth(false)}
+                className="ak-button-secondary absolute right-4 top-4 z-10 rounded-full px-4 py-2 text-sm font-semibold"
+              >
+                Close
+              </button>
               <section className="p-5 sm:p-8">
+                <div className="mb-5 md:mt-10">
+                  <h2 className="text-2xl">Your member kitchen</h2>
+                  <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                    Sign in to save recipes and share your own.
+                  </p>
+                </div>
                 <div
                   className="auth-panel relative mx-auto w-full max-w-md"
                   onKeyDown={submitAuthFormOnEnter}

@@ -14,6 +14,9 @@ borders, and quiet constellation details now extend to the rest of the app.
   atmosphere presets, not a second competing palette.
 - Shared CSS classes provide panels, recipe cards, empty states, eyebrow labels,
   and readable controls on dark headers.
+- Shared page backgrounds, recipe placeholders, and accents now follow the viewer's
+  saved profile atmosphere. Guests use Moonlit; another cook's profile banner keeps
+  that cook's own choice. The theme changes immediately after a successful profile save.
 - Button, Input, Card, and Badge use the shared palette; animated button particles
   and unrelated dark/green input styling are removed.
 
@@ -24,22 +27,23 @@ borders, and quiet constellation details now extend to the rest of the app.
 - **Expanded recipe:** a cookbook-style title, metadata strip, ingredient/instruction
   panels, and a clearly separated conversation section. Missing photos are illustrated
   placeholders rather than nonfunctional “Add Photo” prompts.
-- **Build:** moonlit workshop header, grouped form fields, a clearer publish action,
+- **Build:** personalized workshop header, grouped form fields, a clearer publish action,
   and a preview styled like a recipe card. Mobile uses one scrolling column; desktop
   keeps two work panes. Guests receive a normal sign-in panel instead of a floating
   panel obscuring disabled fields.
-- **Saved / Drafts:** grove and moonlit collection headers, consistent empty states,
+- **Saved / Drafts:** collection headers using the viewer's saved atmosphere, consistent empty states,
   and matching recipe/draft cards.
-- **Authentication:** compact sanctuary-framed dialog and parchment form controls,
+- **Authentication:** the original member-kitchen image beside the form on desktop
+  and above it on mobile, with parchment form controls,
   including the default Amplify screens. Shared inputs have associated labels and
   error descriptions; existing sign-in, Google, and password-recovery flows remain.
-- **Admin:** celestial moderation header, matching panels, labeled transfer selectors,
+- **Admin:** moderation header using the viewer's saved atmosphere, matching panels, labeled transfer selectors,
   and readable danger/warning text on light surfaces.
 - **Recovery / install:** shared parchment panels; catwitch remains uncropped.
 
 ## Verification
 
-- All 62 Vitest tests passed; the separate Node CLI test and production build passed.
+- All 67 Vitest tests passed, including saved-theme propagation, immediate theme changes after saving, and isolation from another cook's profile atmosphere; the production build passed.
 - Changed frontend files lint with zero errors and eight existing hook/fast-refresh warnings.
 - Existing automated tests cover recipe navigation, search/sort, author collections,
   saving, draft autosave, publishing, profiles, and error recovery.

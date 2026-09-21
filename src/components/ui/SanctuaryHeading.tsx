@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
-import { kitchenTheme, type KITCHEN_THEMES } from '../../utils/kitchenIdentity';
+import { sanctuaryBackground } from '../../theme/sanctuaryTheme';
 import SanctuaryMotif from './SanctuaryMotif';
 
 type Props = {
   eyebrow: string;
   title: string;
   description?: string;
-  tone?: (typeof KITCHEN_THEMES)[number]['id'];
   actions?: ReactNode;
   level?: 1 | 2;
 };
@@ -15,7 +14,6 @@ export default function SanctuaryHeading({
   eyebrow,
   title,
   description,
-  tone = 'moonlit',
   actions,
   level = 1,
 }: Props) {
@@ -23,7 +21,7 @@ export default function SanctuaryHeading({
   return (
     <header
       className="ak-sanctuary-heading relative isolate overflow-hidden rounded-3xl px-5 py-6 text-white sm:px-8 sm:py-7"
-      style={{ background: kitchenTheme(tone).background }}
+      style={{ background: sanctuaryBackground }}
     >
       <SanctuaryMotif />
       <div className="relative flex flex-wrap items-center justify-between gap-5">

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { screen, within, waitFor } from '@testing-library/react';
+import { kitchenTheme } from '../../utils/kitchenIdentity';
 import userEvent from '@testing-library/user-event';
 import {
   render,
@@ -32,12 +33,16 @@ const {
   mockRecipeGet,
   mockFavoriteList,
   mockUserProfileList,
+  mockUserProfileUpdate,
   mockRecipeGetUrl,
   mockRecipeUploadData,
 } = vi.hoisted(() => ({
   mockRecipeList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
   mockRecipeGet: vi.fn().mockResolvedValue({ data: null, errors: undefined }),
   mockFavoriteList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+  mockUserProfileUpdate: vi
+    .fn()
+    .mockResolvedValue({ data: {}, errors: undefined }),
   mockUserProfileList: vi
     .fn()
     .mockResolvedValue({ data: [], errors: undefined }),
@@ -99,7 +104,7 @@ vi.mock('aws-amplify/data', () => ({
       UserProfile: {
         list: mockUserProfileList,
         create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
-        update: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        update: mockUserProfileUpdate,
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
       },
     },
@@ -147,6 +152,9 @@ describe('RecipeBuilder Component', () => {
     mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
     mockFavoriteList.mockResolvedValue({ data: [], errors: undefined });
     mockUserProfileList.mockResolvedValue({ data: [], errors: undefined });
+    mockUserProfileUpdate
+      .mockReset()
+      .mockResolvedValue({ data: {}, errors: undefined });
     mockUpdateUserAttributes.mockClear();
     if (typeof indexedDB !== 'undefined') {
       indexedDB.deleteDatabase('arcaneKitchenDraft');
@@ -163,6 +171,102 @@ describe('RecipeBuilder Component', () => {
       screen.getByRole('textbox', { name: 'Search recipes' })
     ).toBeInTheDocument();
   }, 40000);
+
+  it.each(['/saved', '/drafts', '/build', '/u/other_chef'])(
+    'uses the viewer’s saved atmosphere on %s',
+    async (path) => {
+      window.history.replaceState({}, '', path);
+      const profiles = {
+        data: [
+          {
+            id: 'own-profile',
+            userId: 'testuser',
+            username: 'test',
+            displayName: 'Test cook',
+            kitchenIdentity: JSON.stringify({ theme: 'grove' }),
+          },
+          {
+            id: 'other-profile',
+            userId: 'other-user',
+            username: 'other_chef',
+            displayName: 'Other cook',
+            kitchenIdentity: JSON.stringify({ theme: 'ember' }),
+          },
+        ],
+      };
+      mockUserProfileList.mockImplementation(async (options) => ({
+        data: profiles.data.filter(
+          (profile) =>
+            !options?.filter?.username?.eq ||
+            profile.username === options.filter.username.eq
+        ),
+      }));
+      await renderRecipeBuilder(defaultRecipeBuilderProps);
+      await waitFor(() =>
+        expect(
+          screen
+            .getByRole('main')
+            .style.getPropertyValue('--sanctuary-background')
+        ).toBe(kitchenTheme('grove').background)
+      );
+      expect(
+        screen.getByRole('main').style.getPropertyValue('--theme-accent')
+      ).toBe(kitchenTheme('grove').accent);
+      if (path === '/u/other_chef') {
+        expect(
+          await screen.findByRole('heading', { name: 'other_chef' })
+        ).toBeInTheDocument();
+        const banner = screen
+          .getByText(/Dragon’s hearth/)
+          .closest('[style]') as HTMLElement;
+        expect(banner).toHaveStyle({
+          background: kitchenTheme('ember').background,
+        });
+      }
+    }
+  );
+
+  it('applies a successfully saved atmosphere immediately', async () => {
+    window.history.replaceState({}, '', '/u/test');
+    mockUserProfileList.mockResolvedValue({
+      data: [
+        {
+          id: 'own-profile',
+          userId: 'testuser',
+          username: 'test',
+          displayName: 'Test cook',
+          kitchenIdentity: JSON.stringify({ theme: 'grove' }),
+        },
+      ],
+    });
+    mockUserProfileUpdate.mockImplementation(async (input) => {
+      const profile = {
+        id: 'own-profile',
+        userId: 'testuser',
+        username: 'test',
+        displayName: 'Test cook',
+        kitchenIdentity:
+          input.kitchenIdentity || JSON.stringify({ theme: 'grove' }),
+      };
+      mockUserProfileList.mockResolvedValue({ data: [profile] });
+      return { data: profile };
+    });
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    await user.click(
+      await screen.findByRole('button', { name: 'Customize sanctuary' })
+    );
+    await user.click(screen.getByRole('button', { name: 'Dragon’s hearth' }));
+    await user.click(screen.getByRole('button', { name: 'Save sanctuary' }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('main')
+          .style.getPropertyValue('--sanctuary-background')
+      ).toBe(kitchenTheme('ember').background)
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 
   it('clears search and reverses recipe sorting from the search control', async () => {
     const user = userEvent.setup();

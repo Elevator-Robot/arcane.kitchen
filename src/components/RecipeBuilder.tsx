@@ -65,7 +65,10 @@ import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
 import SanctuaryHeading from './ui/SanctuaryHeading';
 import SanctuaryMotif from './ui/SanctuaryMotif';
-import { kitchenTheme } from '../utils/kitchenIdentity';
+import {
+  sanctuaryBackground,
+  sanctuaryThemeStyle,
+} from '../theme/sanctuaryTheme';
 import type { KitchenIdentity } from '../utils/kitchenIdentity';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
@@ -385,7 +388,7 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
       {isPlaceholder(recipe.image) ? (
         <div
           className="relative flex h-full w-full flex-col items-center justify-center text-white"
-          style={{ background: kitchenTheme('grove').background }}
+          style={{ background: sanctuaryBackground }}
         >
           <SanctuaryMotif />
           <svg
@@ -3383,7 +3386,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         {isPlaceholder(expandedRecipe.image) ? (
           <div
             className="relative flex h-40 w-full flex-col items-center justify-center text-white sm:h-52"
-            style={{ background: kitchenTheme('grove').background }}
+            style={{ background: sanctuaryBackground }}
           >
             <SanctuaryMotif />
             <svg
@@ -3804,7 +3807,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   ) : null;
 
   return (
-    <main className="flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
+    <main
+      style={sanctuaryThemeStyle(
+        isAuthenticated ? profileViewUser.kitchenIdentity?.theme : undefined
+      )}
+      className="flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]"
+    >
       {profileSetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-cozy-lg">
@@ -4735,7 +4743,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               eyebrow="Your personal collection"
               title="Saved recipes"
               description="Recipes you want to come back to, gathered from the community."
-              tone="grove"
               actions={
                 <button
                   type="button"
@@ -4819,7 +4826,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               eyebrow="Notes from your workshop"
               title="Drafts"
               description="Unfinished ideas, experiments, and recipes in the making. Only visible to you."
-              tone="moonlit"
               actions={
                 <button
                   type="button"
