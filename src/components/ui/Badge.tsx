@@ -8,8 +8,7 @@ interface BadgeProps {
 }
 
 /**
- * Badge component based on Meraki UI patterns
- * Adapted for Arcane Kitchen mystical theme
+ * Compact metadata and status labels using the shared sanctuary palette.
  */
 const Badge: React.FC<BadgeProps> = ({
   children,
@@ -21,11 +20,13 @@ const Badge: React.FC<BadgeProps> = ({
     'inline-flex items-center font-medium rounded-full transition-all duration-200';
 
   const variantClasses = {
-    primary: 'bg-[#3A5A40]/10 text-[#3A5A40] border border-[#3A5A40]/30',
-    secondary: 'bg-[#6C4AB6]/10 text-[#6C4AB6] border border-[#6C4AB6]/30',
-    success: 'bg-[#3A5A40]/10 text-[#3A5A40] border border-[#3A5A40]/30',
-    warning: 'bg-[#D4A017]/10 text-[#D4A017] border border-[#D4A017]/30',
-    danger: 'bg-[#B33939]/10 text-[#B33939] border border-[#B33939]/30',
+    primary:
+      'bg-[var(--theme-focus)] text-[var(--theme-accent-strong)] border border-[var(--theme-accent)]/20',
+    secondary:
+      'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)] border border-[var(--theme-border)]',
+    success: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+    warning: 'bg-amber-50 text-amber-900 border border-amber-200',
+    danger: 'bg-red-50 text-red-800 border border-red-200',
   };
 
   const sizeClasses = {

@@ -23,6 +23,7 @@ import {
 } from '../../utils/kitchenIdentity';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 import AccessibleDialog from '../AccessibleDialog';
+import SanctuaryMotif from '../ui/SanctuaryMotif';
 
 export function SanctuaryBanner({
   identity,
@@ -39,35 +40,7 @@ export function SanctuaryBanner({
       className={`relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
       style={{ background: theme.background }}
     >
-      <div
-        className="pointer-events-none absolute -right-12 -top-20 h-80 w-80 rounded-full border border-white/15"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute -right-4 -top-12 h-64 w-64 rounded-full border border-white/15"
-        aria-hidden="true"
-      />
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 240 200"
-        className="pointer-events-none absolute right-0 top-0 h-full w-60 opacity-30"
-      >
-        <path
-          d="M30 155 70 65 128 120 188 34 215 143"
-          fill="none"
-          stroke="white"
-          strokeWidth="0.7"
-        />
-        {[
-          [30, 155],
-          [70, 65],
-          [128, 120],
-          [188, 34],
-          [215, 143],
-        ].map(([cx, cy]) => (
-          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3" fill="white" />
-        ))}
-      </svg>
+      <SanctuaryMotif />
       <div className="relative flex flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Kitchen

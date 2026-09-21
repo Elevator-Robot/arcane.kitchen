@@ -16,6 +16,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AccessibleDialog from './components/AccessibleDialog';
 import ErrorArtwork from './components/ErrorArtwork';
+import SanctuaryHeading from './components/ui/SanctuaryHeading';
 import RecipeBuilder from './components/RecipeBuilder';
 import AdminDashboard from './components/AdminDashboard';
 import SignInForm from './components/SignInForm';
@@ -399,7 +400,7 @@ export function AppRouteAware() {
   if (!knownRoute)
     return (
       <main className="flex min-h-dvh items-center justify-center bg-[var(--theme-bg)] p-6 text-center">
-        <div className="ak-card max-w-lg rounded-3xl p-8 sm:p-12">
+        <div className="ak-panel max-w-lg p-8 sm:p-12">
           <ErrorArtwork />
           <p className="text-sm font-semibold text-[var(--theme-accent)]">
             404 · A wrong turn in the kitchen
@@ -629,68 +630,35 @@ function App({ pathname }: AppProps = {}) {
           label="Sign in to Arcane Kitchen"
           onClose={() => setShowAuth(false)}
         >
-          <div className="mx-auto flex min-h-full w-full max-w-7xl items-center justify-center">
-            <div className="relative grid w-full overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-[0_30px_90px_rgba(34,18,36,0.35)] md:grid-cols-[1.15fr_1fr]">
-              <section className="relative hidden min-h-[540px] p-8 text-white md:block">
-                <img
-                  src="/images/member-kitchen-hero.webp"
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
+          <div className="mx-auto flex min-h-full w-full max-w-lg items-center justify-center">
+            <div className="ak-panel w-full overflow-hidden shadow-2xl">
+              <div className="[&>header]:rounded-none">
+                <SanctuaryHeading
+                  level={2}
+                  eyebrow="Arcane Kitchen"
+                  title="Your member kitchen"
+                  description="Sign in to save recipes, share your creations, and personalize your sanctuary."
+                  actions={
+                    <button
+                      type="button"
+                      onClick={() => setShowAuth(false)}
+                      className="ak-banner-action"
+                    >
+                      Close
+                    </button>
+                  }
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/25 to-transparent" />
-                <div className="relative flex h-full flex-col justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase text-[color-mix(in_srgb,var(--theme-accent)_45%,white_55%)]">
-                      Member Kitchen
-                    </p>
-                    <h2 className="mt-4 text-4xl font-semibold tracking-normal">
-                      Share recipes people want to save
-                    </h2>
-                    <p className="mt-4 max-w-sm text-sm leading-7 text-white/72">
-                      Sign in to publish recipes, save favorites, and build a
-                      collection that other cooks can discover.
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/12 bg-white/10 p-4 backdrop-blur">
-                    <p className="text-sm font-semibold">After signing in</p>
-                    <div className="mt-4 grid gap-3 text-sm text-white/72">
-                      <span>Publish recipes into the shared feed</span>
-                      <span>Save drafts and build your collection</span>
-                      <span>Show your creator profile on every post</span>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="relative max-h-[calc(100vh-3rem)] overflow-y-auto bg-[var(--theme-surface)] p-5 sm:p-7 md:max-h-[calc(100vh-5rem)]">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_15%,var(--theme-accent)/10,transparent_45%),linear-gradient(160deg,var(--theme-surface-alt)/45,transparent_55%)]" />
-                <div className="relative mb-5 pr-14 md:hidden">
-                  <p className="text-xs font-semibold uppercase text-[var(--theme-accent)]">
-                    Member Kitchen
-                  </p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-normal">
-                    Share recipes people want to save
-                  </h2>
-                  <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                    Sign in to publish recipes, save favorites, and build your
-                    collection.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowAuth(false)}
-                  className="absolute right-4 top-4 z-10 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] shadow-sm transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-                >
-                  Close
-                </button>
-
+              </div>
+              <section className="p-5 sm:p-8">
                 <div
                   className="auth-panel relative mx-auto w-full max-w-md"
                   onKeyDown={submitAuthFormOnEnter}
                 >
                   {authNotice && (
-                    <div className="mb-4 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+                    <div
+                      role="alert"
+                      className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                    >
                       {authNotice}
                     </div>
                   )}

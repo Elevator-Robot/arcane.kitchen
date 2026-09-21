@@ -8,8 +8,7 @@ interface CardProps {
 }
 
 /**
- * Card component based on Meraki UI patterns
- * Adapted for Arcane Kitchen mystical theme
+ * Shared parchment surface for the sanctuary design language.
  */
 const Card: React.FC<CardProps> = ({
   children,
@@ -17,11 +16,10 @@ const Card: React.FC<CardProps> = ({
   hover = false,
   padding = 'md',
 }) => {
-  const baseClasses =
-    'bg-white dark:bg-[#5C4033]/80 backdrop-blur-sm rounded-xl border border-[#B8B8B8]/30 dark:border-[#3A5A40]/30 shadow-lg transition-all duration-300';
+  const baseClasses = 'ak-panel transition-shadow duration-200';
 
   const hoverClasses = hover
-    ? 'hover:shadow-xl hover:border-[#3A5A40]/50 hover:-translate-y-1 cursor-pointer'
+    ? 'hover:shadow-lg hover:border-[var(--theme-border-strong)]'
     : '';
 
   const paddingClasses = {
