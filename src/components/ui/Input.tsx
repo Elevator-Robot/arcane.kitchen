@@ -11,25 +11,40 @@ const Input: React.FC<InputProps> = ({
   error,
   icon,
   className = '',
+  id,
+  'aria-describedby': describedBy,
   ...props
 }) => {
+  const generatedId = React.useId();
+  const inputId = id || generatedId;
+  const errorId = `${inputId}-error`;
   const baseClasses =
-    'w-full text-base font-serif bg-gradient-to-r from-stone-800/80 via-green-900/20 to-stone-800/80 backdrop-blur-lg border border-green-400/40 rounded-xl px-6 py-4 text-emerald-200 placeholder-stone-500/60 focus:outline-none focus:border-green-400/80 focus:shadow-lg focus:shadow-green-500/20 focus:text-emerald-100 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed';
+    'ak-input w-full min-h-12 rounded-xl px-4 py-3 text-base placeholder:text-[var(--theme-text-muted)] disabled:opacity-50 disabled:cursor-not-allowed';
 
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-medium text-green-300 flex items-center">
+        <label
+          htmlFor={inputId}
+          className="flex items-center text-sm font-semibold text-[var(--theme-text)]"
+        >
           {icon && <span className="mr-2">{icon}</span>}
           {label}
         </label>
       )}
       <input
-        className={`${baseClasses} ${error ? 'border-red-400/60 focus:border-red-400/80' : ''} ${className}`}
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={
+          [describedBy, error ? errorId : undefined]
+            .filter(Boolean)
+            .join(' ') || undefined
+        }
+        className={`${baseClasses} ${error ? 'border-red-600' : ''} ${className}`}
         {...props}
       />
       {error && (
-        <p className="text-red-300 text-sm flex items-center">
+        <p id={errorId} className="text-red-700 text-sm flex items-center">
           <svg
             className="w-4 h-4 mr-1"
             fill="none"

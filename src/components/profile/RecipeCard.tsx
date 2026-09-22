@@ -21,7 +21,7 @@ export default function RecipeCard({
   return (
     <div
       onClick={() => onClick?.(recipe.id)}
-      className="flex cursor-pointer flex-col overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="ak-recipe-card flex cursor-pointer flex-col overflow-hidden"
     >
       <div className="relative h-48 w-full">
         {recipe.image ? (

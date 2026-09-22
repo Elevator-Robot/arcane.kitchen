@@ -4,10 +4,7 @@ import ErrorArtwork from './ErrorArtwork';
 export function AppErrorFallback() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[var(--theme-bg)] p-6 text-center text-[var(--theme-text)]">
-      <section
-        role="alert"
-        className="ak-card w-full max-w-lg rounded-3xl p-6 sm:p-8"
-      >
+      <section role="alert" className="ak-panel w-full max-w-lg p-6 sm:p-8">
         <ErrorArtwork />
         <h1 className="text-2xl">Our kitchen magic went a little sideways.</h1>
         <p className="mt-3 text-sm leading-6 text-[var(--theme-text-muted)]">

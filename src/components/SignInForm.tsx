@@ -9,9 +9,7 @@ interface SignInFormProps {
 }
 
 export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
-  const { submitForm } = useAuthenticator((context) => [
-    context.submitForm,
-  ]);
+  const { submitForm } = useAuthenticator((context) => [context.submitForm]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +34,9 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
       });
     } catch (err: any) {
       setIsLoading(false);
-      setError(getUserFacingErrorMessage(err, 'Sign in failed. Please try again.'));
+      setError(
+        getUserFacingErrorMessage(err, 'Sign in failed. Please try again.')
+      );
     }
   };
 
@@ -48,6 +48,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
             type="email"
             id="email"
             name="email"
+            autoComplete="email"
             label="Email"
             placeholder="you@example.com"
             value={email}
@@ -61,6 +62,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
             type="password"
             id="password"
             name="password"
+            autoComplete="current-password"
             label="Password"
             placeholder="••••••••"
             value={password}
@@ -70,8 +72,11 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onSignInStart }) => {
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-500/10 border border-red-400/30 p-3">
-            <p className="text-red-300 text-sm flex items-start">
+          <div
+            role="alert"
+            className="rounded-xl bg-red-50 border border-red-200 p-3"
+          >
+            <p className="text-red-700 text-sm flex items-start">
               <svg
                 className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0"
                 fill="none"

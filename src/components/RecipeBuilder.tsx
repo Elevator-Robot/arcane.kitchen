@@ -11,6 +11,7 @@ import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
   ArrowDownUp,
+  BookOpen,
   Heart,
   Maximize2,
   Plus,
@@ -62,6 +63,12 @@ import UserProfileView from './UserProfileView';
 import ProfileDropdown from './ProfileDropdown';
 import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
+import SanctuaryHeading from './ui/SanctuaryHeading';
+import SanctuaryMotif from './ui/SanctuaryMotif';
+import {
+  sanctuaryBackground,
+  sanctuaryThemeStyle,
+} from '../theme/sanctuaryTheme';
 import type { KitchenIdentity } from '../utils/kitchenIdentity';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
@@ -221,7 +228,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           key={i}
           type="button"
           onClick={() => onOpenProfile?.(part.slice(1))}
-          className="font-medium text-[#0891b2] hover:underline"
+          className="font-semibold text-[var(--theme-accent)] hover:underline"
         >
           {part}
         </button>
@@ -234,7 +241,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
   return (
     <div>
       <div
-        className={`rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 ${isReply ? 'ml-4 border-l-2 border-l-[var(--theme-border)] border-t-0 border-r-0 border-b-0 rounded-none' : ''}`}
+        className={`rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 ${isReply ? 'ml-4 border-l-2 border-l-[var(--theme-border)] border-t-0 border-r-0 border-b-0 rounded-none' : ''}`}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -286,20 +293,21 @@ const CommentItem: React.FC<CommentItemProps> = ({
         {editingCommentId === comment.id ? (
           <div className="mt-2 flex gap-2">
             <input
+              aria-label="Edit comment"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 rounded border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-2 py-1 text-sm text-[var(--theme-text)] outline-none focus:border-[#0891b2]"
+              className="ak-input min-w-0 flex-1 rounded-xl px-3 py-2 text-sm"
             />
             <button
               onClick={() => onEdit(comment.id, editValue)}
               disabled={!editValue.trim()}
-              className="rounded bg-[#0891b2] px-2 py-1 text-xs font-medium text-white transition hover:bg-[#0e7490] disabled:opacity-40"
+              className="ak-button-primary rounded-xl px-3 py-2 text-xs font-semibold disabled:opacity-40"
             >
               Save
             </button>
           </div>
         ) : (
-          <p className="mt-1 text-sm text-[var(--theme-text)] whitespace-pre-wrap">
+          <p className="mt-2 break-words text-sm leading-6 text-[var(--theme-text)] whitespace-pre-wrap">
             {renderContent(comment.content)}
           </p>
         )}
@@ -307,7 +315,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           <div className="mt-1.5 flex gap-2">
             <button
               onClick={() => onReply(comment.id, comment.author)}
-              className="text-xs text-[var(--theme-text-muted)] hover:text-[#0891b2] transition"
+              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)] transition"
             >
               Reply
             </button>
@@ -373,14 +381,18 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
 }) => (
   <article
     key={recipe.id}
-    className="group cursor-pointer overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition-all hover:-translate-y-1 hover:shadow-cozy-lg"
+    className="ak-recipe-card group cursor-pointer overflow-hidden"
     onClick={() => void onOpenRecipe(recipe)}
   >
     <div className="relative aspect-[4/3] overflow-hidden">
       {isPlaceholder(recipe.image) ? (
-        <div className="flex h-full w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)]">
+        <div
+          className="relative flex h-full w-full flex-col items-center justify-center text-white"
+          style={{ background: sanctuaryBackground }}
+        >
+          <SanctuaryMotif />
           <svg
-            className="mb-2 h-10 w-10 text-[var(--theme-text-muted)]"
+            className="relative mb-2 h-10 w-10 text-white/80"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -397,14 +409,15 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
               d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
             />
           </svg>
-          <span className="text-sm font-medium text-[var(--theme-text-muted)]">
-            Add Photo
+          <span className="relative ak-eyebrow text-white/80">
+            From the recipe grimoire
           </span>
         </div>
       ) : (
         <img
           src={recipe.image}
           alt={recipe.name}
+          loading="lazy"
           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
         />
       )}
@@ -417,9 +430,18 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
         )}
       </div>
     </div>
-    <div className="p-4">
-      <h3 className="font-heading text-lg font-semibold leading-snug text-[var(--theme-text)]">
-        {recipe.name}
+    <div className="p-5">
+      <h3 className="font-heading text-xl font-semibold leading-snug text-[var(--theme-text)]">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            void onOpenRecipe(recipe);
+          }}
+          className="text-left hover:text-[var(--theme-accent)]"
+        >
+          {recipe.name}
+        </button>
       </h3>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-[var(--theme-text-muted)]">
         <button
@@ -435,7 +457,10 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
           by {recipe.author}
         </button>
       </div>
-      <div className="mt-3 flex items-center gap-3 text-xs text-[var(--theme-text-muted)]">
+      <p className="mt-3 line-clamp-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+        {recipe.description}
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--theme-border)] pt-3 text-xs text-[var(--theme-text-muted)]">
         <span className="flex items-center gap-1">
           <svg
             className="h-3.5 w-3.5"
@@ -3356,12 +3381,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const expandedRecipeArticle = expandedRecipe ? (
-    <article className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-cozy-lg">
+    <article className="ak-panel overflow-hidden shadow-cozy-lg">
       <div className="relative">
         {isPlaceholder(expandedRecipe.image) ? (
-          <div className="flex h-64 w-full flex-col items-center justify-center bg-[var(--theme-surface-alt)] sm:h-80">
+          <div
+            className="relative flex h-40 w-full flex-col items-center justify-center text-white sm:h-52"
+            style={{ background: sanctuaryBackground }}
+          >
+            <SanctuaryMotif />
             <svg
-              className="mb-2 h-12 w-12 text-[var(--theme-text-muted)]"
+              className="relative mb-2 h-12 w-12 text-white/80"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -3378,8 +3407,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z"
               />
             </svg>
-            <span className="text-sm font-medium text-[var(--theme-text-muted)]">
-              Add Photo
+            <span className="relative ak-eyebrow text-white/80">
+              From the recipe grimoire
             </span>
           </div>
         ) : (
@@ -3404,10 +3433,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </>
         )}
       </div>
-      <div className="grid gap-5 p-4 sm:p-6">
+      <div className="grid gap-6 p-5 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-2xl font-semibold tracking-normal">
+            <p className="ak-eyebrow mb-2 text-[var(--theme-accent)]">
+              The recipe
+            </p>
+            <h3 className="break-words text-3xl font-semibold tracking-normal sm:text-4xl">
               {expandedRecipe.name}
             </h3>
             <button
@@ -3454,7 +3486,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               onClick={() => void shareRecipe(expandedRecipe)}
               aria-label="Share"
               title="Copy recipe link"
-              className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
+              className="ak-button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold"
             >
               <Share className="h-4 w-4" aria-hidden="true" />
               {recipeShareCopied ? 'Copied!' : 'Share'}
@@ -3471,9 +3503,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           {expandedRecipe.description}
         </p>
 
-        <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <div className="text-[var(--theme-text-muted)] flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/40 px-4 py-3 text-sm">
           <span>{expandedRecipe.time}</span>
-          <span>{recipeSaves[expandedRecipe.id] ?? 0} saves</span>
+          <span>
+            {recipeSaves[expandedRecipe.id] ?? 0}{' '}
+            {(recipeSaves[expandedRecipe.id] ?? 0) === 1 ? 'save' : 'saves'}
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -3496,7 +3531,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           })}
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="ak-recipe-sections grid gap-4 lg:grid-cols-2">
           <section>
             <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)]">
               Ingredients
@@ -3511,6 +3546,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </p>
             ) : (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-[var(--theme-text)]">
+                {!expandedRecipeIngredients[expandedRecipe.id]?.length && (
+                  <li>Ingredients have not been added yet.</li>
+                )}
                 {(expandedRecipeIngredients[expandedRecipe.id] || []).map(
                   (ingredient) => (
                     <li key={ingredient}>{ingredient}</li>
@@ -3566,8 +3604,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           )}
         </div>
 
-        <section className="border-t border-[var(--theme-border)] pt-4">
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-[var(--theme-text)] mb-3">
+        <section className="border-t border-[var(--theme-border)] pt-6">
+          <p className="ak-eyebrow mb-2 text-[var(--theme-text-muted)]">
+            Around the table
+          </p>
+          <h4 className="text-xl font-semibold text-[var(--theme-text)] mb-4">
             Comments ({(comments[expandedRecipe.id] || []).length})
           </h4>
 
@@ -3647,6 +3688,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <div className="relative">
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <input
+                    aria-label={
+                      replyingTo
+                        ? `Reply to ${replyingToAuthor}`
+                        : 'Add a comment'
+                    }
                     ref={commentInputRef}
                     value={commentInput}
                     onChange={(e) => handleCommentInput(e.target.value)}
@@ -3656,14 +3702,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         ? `Replying to ${replyingToAuthor}...`
                         : 'Add a comment...'
                     }
-                    className="min-w-0 flex-1 rounded border border-[#0891b2]/40 bg-[var(--theme-surface-alt)] px-3 py-2 text-sm text-[var(--theme-text)] outline-none transition placeholder:text-[var(--theme-text-muted)] focus:border-[#0891b2] focus:ring-2 focus:ring-[#0891b2]/20"
+                    className="ak-input min-w-0 flex-1 rounded-xl px-4 py-3 text-sm"
                   />
                   <button
                     onClick={() =>
                       void addComment(expandedRecipe.id, replyingTo)
                     }
                     disabled={!commentInput.trim()}
-                    className="rounded bg-[#0891b2] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#0e7490] disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="ak-button-primary rounded-xl px-5 py-3 text-sm font-semibold disabled:opacity-40"
                   >
                     {replyingTo ? 'Reply' : 'Post'}
                   </button>
@@ -3761,7 +3807,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   ) : null;
 
   return (
-    <main className="flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]">
+    <main
+      style={sanctuaryThemeStyle(
+        isAuthenticated ? profileViewUser.kitchenIdentity?.theme : undefined
+      )}
+      className="flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]"
+    >
       {profileSetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 shadow-cozy-lg">
@@ -3852,7 +3903,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : (
               <button
                 onClick={onRequestAuth}
-                className="rounded-lg bg-gradient-to-r from-[#6d28d9] via-[#5b21b6] to-[#4338ca] px-4 py-1.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/50 transition hover:from-[#7c3aed] hover:via-[#6d28d9] hover:to-[#4f46e5]"
+                className="ak-button-primary rounded-full px-5 py-2.5 text-sm font-semibold"
               >
                 Sign in
               </button>
@@ -3862,10 +3913,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       </header>
 
       <div
-        className={`relative mx-auto grid w-full max-w-[1800px] flex-1 min-h-0 gap-4 px-4 py-4 lg:px-6 ${
+        className={`relative mx-auto w-full max-w-[1800px] flex-1 min-h-0 gap-4 px-4 py-4 lg:px-6 ${
           currentView === 'Build'
-            ? 'lg:grid-cols-[minmax(560px,1.4fr)_minmax(380px,0.9fr)]'
-            : ''
+            ? 'ak-workspace-build block lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)]'
+            : 'grid'
         }`}
       >
         <section
@@ -3876,7 +3927,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           {!expandedRecipeId && (
             <>
-              <h1 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
+              <p className="ak-eyebrow mb-2 flex items-center gap-2 text-[var(--theme-text-muted)]">
+                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                Community recipes
+              </p>
+              <h1 className="font-heading text-2xl font-semibold text-[var(--theme-text)] sm:text-3xl">
                 Search recipes
               </h1>
               <div className="mx-1 mt-3 flex items-stretch gap-2">
@@ -3934,7 +3989,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   onClick={startCreateRecipe}
                   aria-label="Create a recipe"
                   title="Create a recipe"
-                  className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0891b2] via-[#0e7490] to-[#155e75] px-3 text-white shadow-lg shadow-cyan-900/40 transition hover:-translate-y-0.5 hover:from-[#06b6d4] hover:via-[#0891b2] hover:to-[#0e7490] hover:shadow-xl active:scale-95 sm:px-4"
+                  className="ak-button-primary inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-3 text-white sm:px-5"
                 >
                   <Plus className="h-5 w-5" aria-hidden="true" />
                   <span className="hidden text-sm font-semibold sm:inline">
@@ -3962,7 +4017,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         if (tag === 'All') setActiveAuthor(null);
                         handleFilterClick(tag);
                       }}
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--theme-border)] px-4 py-2 text-xs font-semibold transition ${
                         activeTag === tag && !(tag === 'All' && activeAuthor)
                           ? 'text-white'
                           : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
@@ -4180,10 +4235,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             {isLoadingFeed ? (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {[0, 1, 2].map((item) => (
-                  <div
-                    key={item}
-                    className="overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)]"
-                  >
+                  <div key={item} className="ak-recipe-card overflow-hidden">
                     <div className="aspect-[4/3] animate-pulse bg-[var(--theme-border)]" />
                     <div className="grid gap-2.5 p-4">
                       <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
@@ -4211,7 +4263,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </button>
               </div>
             ) : expandedRecipeMessage && !expandedRecipe ? (
-              <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+              <div className="ak-panel mt-6 p-8 text-center">
                 <ErrorArtwork />
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   {expandedRecipeMessage}
@@ -4264,7 +4316,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </div>
               </>
             ) : (
-              <div className="mt-12 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+              <div className="ak-empty-state">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   {discoverQuery || activeTag !== 'All' || activeAuthor
                     ? 'No recipes match just yet'
@@ -4303,66 +4355,55 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         <section
           id="build"
-          className={`relative min-h-0 overflow-hidden rounded-xl bg-[var(--theme-surface)] ${
+          className={`ak-panel relative min-h-0 overflow-hidden ${
             currentView === 'Build'
               ? 'flex flex-col lg:col-start-1 lg:row-start-1'
               : 'hidden'
           }`}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-4 py-4 sm:px-5">
-            <div className="flex min-w-0 items-start gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentView('Discover');
-                  navigate('/discover');
-                }}
-                aria-label="Back to recipes"
-                title="Back to recipes"
-                className="mt-0.5 inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] px-2.5 text-[var(--theme-text-muted)] shadow-sm transition hover:-translate-x-0.5 hover:border-[var(--theme-accent)] hover:text-[var(--theme-accent)] sm:px-3"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden="true"
+          <div className="shrink-0 [&>header]:rounded-none">
+            <SanctuaryHeading
+              eyebrow="Recipe workshop"
+              title={isEditingRecipe ? 'Edit recipe' : 'New recipe'}
+              description={
+                !isAuthenticated
+                  ? 'Sign in to publish recipes.'
+                  : 'Write your recipe, then review it before sharing.'
+              }
+              actions={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentView('Discover');
+                    navigate('/discover');
+                  }}
+                  aria-label="Back to recipes"
+                  className="ak-banner-action"
                 >
-                  <path d="m15 18-6-6 6-6" />
-                </svg>
-                <span className="hidden text-xs font-semibold sm:inline">
-                  Recipes
-                </span>
-              </button>
-              <div className="min-w-0">
-                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  {isEditingRecipe ? 'Edit recipe' : 'New recipe'}
-                </h2>
-                {!isEditingRecipe && (
-                  <button
-                    type="button"
-                    onClick={loadExampleRecipe}
-                    className="mt-0.5 text-xs text-[var(--theme-text-muted)] underline decoration-dotted transition hover:text-[var(--theme-accent-strong)]"
-                  >
-                    Need inspiration? Load an example
-                  </button>
-                )}
-                {!isAuthenticated && (
-                  <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                    Sign in to publish recipes.
-                  </p>
-                )}
+                  ← Recipes
+                </button>
+              }
+            />
+            {!isEditingRecipe && (
+              <div className="border-b border-[var(--theme-border)] px-5 py-3">
+                <button
+                  type="button"
+                  onClick={loadExampleRecipe}
+                  className="text-xs font-semibold text-[var(--theme-accent)] underline decoration-dotted underline-offset-4"
+                >
+                  Need inspiration? Load an example
+                </button>
               </div>
-            </div>
+            )}
           </div>
 
           <fieldset
             disabled={!isAuthenticated}
-            className={`grid min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto p-4 ${!isAuthenticated ? 'pointer-events-none select-none opacity-45' : ''}`}
+            className={`ak-editor-fields min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto bg-[var(--theme-bg)]/50 p-4 sm:p-5 ${!isAuthenticated ? 'hidden' : 'grid'}`}
           >
             {publishMessage && (
               <div
+                role="status"
                 className={`rounded-lg border px-3 py-2 text-sm ${
                   publishMessageTone === 'error'
                     ? 'border-[#e5b3b3] bg-[#fff1f1] text-[#8f1d1d]'
@@ -4665,7 +4706,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           </fieldset>
 
           {!isAuthenticated && (
-            <div className="absolute inset-x-4 top-28 z-10 rounded-xl border border-[var(--theme-border)] bg-[color-mix(in_srgb,var(--theme-surface)_96%,transparent)] p-5 text-center shadow-2xl backdrop-blur">
+            <div className="m-5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6 text-center">
               <p className="text-[var(--theme-accent)] text-xs font-semibold uppercase">
                 Account Required
               </p>
@@ -4678,7 +4719,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </p>
               <button
                 onClick={onRequestAuth}
-                className="mt-4 rounded-lg bg-gradient-to-r from-[#6d28d9] via-[#5b21b6] to-[#4338ca] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-900/50 transition hover:from-[#7c3aed] hover:via-[#6d28d9] hover:to-[#4f46e5]"
+                className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
               >
                 Sign in to create
               </button>
@@ -4698,28 +4739,26 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-6xl">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  Saved recipes
-                </h2>
-                <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
-                  Recipes you've bookmarked from the shared feed.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setCurrentView('Discover');
-                  navigate('/discover');
-                }}
-                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-              >
-                Back to Discover
-              </button>
-            </div>
+            <SanctuaryHeading
+              eyebrow="Your personal collection"
+              title="Saved recipes"
+              description="Recipes you want to come back to, gathered from the community."
+              actions={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentView('Discover');
+                    navigate('/discover');
+                  }}
+                  className="ak-banner-action"
+                >
+                  Back to Discover
+                </button>
+              }
+            />
 
             {!isAuthenticated ? (
-              <div className="ak-card mt-8 rounded-2xl p-8 text-center">
+              <div className="ak-empty-state">
                 <h2 className="text-2xl">Keep your next favorite close</h2>
                 <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
                   Sign in to save recipes and build your personal collection.
@@ -4757,7 +4796,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="mt-10 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+              <div className="ak-empty-state">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   No saved recipes yet
                 </p>
@@ -4783,28 +4822,26 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-6xl">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  Drafts
-                </h2>
-                <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
-                  Continue recipes you were already building.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setCurrentView('Discover');
-                  navigate('/discover');
-                }}
-                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
-              >
-                Back to Discover
-              </button>
-            </div>
+            <SanctuaryHeading
+              eyebrow="Notes from your workshop"
+              title="Drafts"
+              description="Unfinished ideas, experiments, and recipes in the making. Only visible to you."
+              actions={
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentView('Discover');
+                    navigate('/discover');
+                  }}
+                  className="ak-banner-action"
+                >
+                  Back to Discover
+                </button>
+              }
+            />
 
             {!isAuthenticated ? (
-              <div className="ak-card mt-8 rounded-2xl p-8 text-center">
+              <div className="ak-empty-state">
                 <h2 className="text-2xl">A home for recipes in the making</h2>
                 <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
                   Sign in to work on a recipe and return when inspiration
@@ -4821,16 +4858,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             ) : draftRecords.length ? (
               <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {draftRecords.map((draftRecord) => (
-                  <article
-                    key={draftRecord.id}
-                    className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-5 shadow-sm"
-                  >
+                  <article key={draftRecord.id} className="ak-panel p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-4">
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--theme-accent)]">
                           Draft
                         </p>
-                        <h3 className="mt-2 font-heading text-lg font-semibold text-[var(--theme-text)]">
+                        <h3 className="mt-2 break-words font-heading text-xl font-semibold text-[var(--theme-text)]">
                           {draftRecord.title}
                         </h3>
                         <p className="mt-1 text-sm text-[var(--theme-text-muted)]">
@@ -4853,7 +4887,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <button
                         type="button"
                         onClick={() => resumeDraft(draftRecord)}
-                        className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--theme-accent-strong)]"
+                        className="ak-button-primary rounded-xl px-4 py-2.5 text-sm font-semibold"
                       >
                         Resume
                       </button>
@@ -4869,7 +4903,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 ))}
               </div>
             ) : (
-              <div className="mt-10 rounded-xl border border-dashed border-[var(--theme-border)] p-10 text-center">
+              <div className="ak-empty-state">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   No drafts yet
                 </p>
@@ -5049,13 +5083,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <section
-            className={`relative min-h-0 overflow-hidden rounded-xl bg-[var(--theme-surface)] ${
+            className={`ak-panel relative min-h-0 overflow-hidden ${
               currentView === 'Build' ? 'flex flex-col' : 'hidden'
             }`}
           >
-            <div className="border-b border-[var(--theme-border)] bg-[var(--theme-surface-alt)]/50 px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
+            <div className="border-b border-[var(--theme-border)] px-5 py-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
+                  <p className="ak-eyebrow mb-2 text-[var(--theme-text-muted)]">
+                    Before you share
+                  </p>
                   <h2 className="font-heading text-lg font-semibold text-[var(--theme-text)]">
                     Preview
                   </h2>
@@ -5090,7 +5127,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <button
                       onClick={publishRecipe}
                       disabled={isPublishing}
-                      className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
+                      className="ak-button-primary rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
                     >
                       {isPublishing
                         ? isEditingRecipe
@@ -5105,13 +5142,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <article className="overflow-hidden rounded-xl border border-[var(--theme-border)]">
+              <article className="ak-recipe-card overflow-hidden">
                 {isPlaceholder(imagePreviewUrl) ? (
                   <div
                     className="group flex aspect-[4/3] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[var(--theme-border)] bg-[var(--theme-surface-alt)] transition-all hover:border-[var(--theme-text)] hover:bg-[var(--theme-surface)]"
                     role="button"
                     tabIndex={0}
+                    aria-label="Add Photo"
                     onClick={() => {
+                      if (!isAuthenticated) {
+                        onRequestAuth?.();
+                        return;
+                      }
                       const input = document.querySelector<HTMLInputElement>(
                         '#recipe-photo-input-sidebar'
                       );
@@ -5119,6 +5161,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (!isAuthenticated) {
+                          onRequestAuth?.();
+                          return;
+                        }
                         const input = document.querySelector<HTMLInputElement>(
                           '#recipe-photo-input-sidebar'
                         );
@@ -5259,7 +5306,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           href="https://elevatorrobot.com"
           target="_blank"
           rel="noreferrer"
-          className="font-medium text-[#0891b2] hover:text-[#0e7490]"
+          className="font-semibold text-[var(--theme-accent)] hover:text-[var(--theme-accent-strong)]"
         >
           Elevator Robot
         </a>

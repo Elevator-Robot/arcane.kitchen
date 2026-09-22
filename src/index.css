@@ -136,6 +136,139 @@
     backdrop-filter: blur(10px);
   }
 
+  .ak-panel {
+    border: 1px solid var(--theme-border);
+    border-radius: 1.5rem;
+    background: var(--theme-surface);
+    box-shadow: 0 3px 12px rgba(44, 24, 16, 0.035);
+  }
+
+  .ak-eyebrow {
+    font-family: Nunito, ui-sans-serif, system-ui, sans-serif;
+    font-size: 0.625rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .ak-banner-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.625rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.12);
+    color: white;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    transition: background 160ms ease;
+  }
+
+  .ak-banner-action:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+  .ak-banner-action:focus-visible {
+    outline-color: white;
+  }
+
+  .ak-recipe-card {
+    border: 1px solid var(--theme-border);
+    border-radius: 1.5rem;
+    background: var(--theme-surface);
+    box-shadow: 0 3px 12px rgba(44, 24, 16, 0.04);
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .ak-recipe-card:hover,
+  .ak-recipe-card:focus-within {
+    border-color: var(--theme-border-strong);
+    box-shadow: 0 12px 32px rgba(44, 24, 16, 0.09);
+    transform: translateY(-2px);
+  }
+
+  .ak-empty-state {
+    margin-top: 1.5rem;
+    padding: clamp(1.5rem, 5vw, 3rem);
+    border: 1px dashed var(--theme-border-strong);
+    border-radius: 1.5rem;
+    background: var(--theme-surface);
+    text-align: center;
+  }
+
+  .ak-empty-state::before {
+    content: '✧' / '';
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 1rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 1rem;
+    color: var(--theme-accent);
+    background: var(--theme-surface-alt);
+    font-size: 1.5rem;
+  }
+
+  .ak-editor-fields > label,
+  .ak-editor-fields > div:not([role='status']) {
+    padding: 1.25rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 1rem;
+    background: var(--theme-surface);
+  }
+
+  .ak-editor-fields .ak-input {
+    border-radius: 0.75rem;
+  }
+
+  .ak-recipe-sections > section {
+    padding: 1.25rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 1.25rem;
+    background: color-mix(
+      in srgb,
+      var(--theme-surface-alt) 35%,
+      var(--theme-surface)
+    );
+  }
+
+  .ak-recipe-sections h4 {
+    font-size: 1.25rem;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .ak-recipe-sections ol {
+    padding-left: 1.5rem;
+  }
+  .ak-recipe-sections li {
+    padding: 0.375rem 0 0.375rem 0.25rem;
+  }
+  .ak-recipe-sections li::marker {
+    color: var(--theme-accent);
+    font-weight: 700;
+  }
+
+  @media (max-width: 1023px) {
+    .ak-workspace-build {
+      display: block;
+      overflow-y: auto;
+    }
+    .ak-workspace-build .ak-editor-fields {
+      overflow: visible;
+      flex: none;
+    }
+    .ak-workspace-build > aside {
+      margin-top: 1rem;
+    }
+  }
+
   .ak-header {
     background: color-mix(in srgb, var(--theme-surface-alt) 92%, transparent);
     border-color: var(--theme-border);
@@ -150,6 +283,9 @@
     border: 1px solid var(--theme-border);
     background: color-mix(in srgb, var(--theme-surface) 90%, white 10%);
     color: var(--theme-text);
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease;
   }
 
   .ak-input:focus,
@@ -165,6 +301,10 @@
       color-mix(in srgb, var(--theme-accent) 75%, var(--theme-sage) 25%)
     );
     color: #fff;
+    box-shadow: 0 3px 9px rgba(67, 48, 101, 0.13);
+    transition:
+      background 160ms ease,
+      box-shadow 160ms ease;
   }
 
   .ak-button-primary:hover {
@@ -268,6 +408,21 @@
   .auth-panel .amplify-input {
     border-radius: 0.625rem;
     min-height: 2.75rem;
+    border-color: var(--theme-border-strong);
+    background: var(--theme-surface);
+    color: var(--theme-text);
+  }
+
+  .auth-panel .amplify-label {
+    color: var(--theme-text);
+    font-weight: 600;
+  }
+  .auth-panel .amplify-button--link {
+    color: var(--theme-accent-strong);
+  }
+  .auth-panel .amplify-input:focus {
+    border-color: var(--theme-accent);
+    box-shadow: 0 0 0 3px var(--theme-focus);
   }
 
   .auth-panel .amplify-heading {

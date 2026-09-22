@@ -129,6 +129,16 @@ Authentication submission:
 - `getRecipeImageSource` in `RecipeBuilder.tsx` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
 
+## Sanctuary Design Language
+
+- `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets and constellation artwork across Saved, Drafts, Build, and Admin. Profile banners use the same motif.
+- Page headers, recipe placeholders, and accent/focus colors inherit the signed-in viewer’s saved `kitchenIdentity.theme` through `src/theme/sanctuaryTheme.ts`; guests use Moonlit. Visiting another cook keeps the viewer’s app theme while that cook’s profile banner retains its own atmosphere.
+- The login modal uses the original `/images/member-kitchen-hero.webp` artwork, beside the form on desktop and above it on mobile.
+- Discover remains search-first with no promotional hero. Recipe cards and expanded recipes use parchment surfaces, clear serif headings, restrained jewel accents, and keyboard-activatable recipe titles.
+- Shared `ak-panel`, `ak-recipe-card`, `ak-eyebrow`, `ak-banner-action`, and `ak-empty-state` classes live in `src/index.css`. Button/Input/Card/Badge use these theme tokens instead of separate dark/neon styling.
+- The Build workspace scrolls as one column below 1024px, with preview following the form; desktop retains independently scrolling editor and preview panes. Keep the `ak-workspace-build` and `ak-editor-fields` hooks when adjusting layout.
+- Catwitch remains the complete, uncropped recovery artwork. Shared auth inputs associate labels and errors with their fields; pale-on-parchment error colors must not be reintroduced.
+
 ## Merlin Color Palette
 
 - `src/theme/merlinPalette.ts` is the centralized Merlin/wizard accent palette (`MERLIN_PALETTE`) plus `randomMerlinColor()`.
