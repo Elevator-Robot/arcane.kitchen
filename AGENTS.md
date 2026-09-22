@@ -46,6 +46,7 @@ Authentication submission:
 
 ## Profile Route Resolution
 
+- Workspace first paint comes from the current URL, never the previous tab in localStorage. Cached/resolved profiles remain mounted during background revalidation; uncached routes use `ProfileSkeleton`, and profile recipe skeletons appear only on the initial feed load.
 - Profile routes track the requested sanitized username independently from the resolved profile record, so loading or failed `/u/:username` lookups cannot fall through to the signed-in user's profile.
 - A profile route renders the private profile only when its requested username matches the signed-in user's username; unresolved routes render a loading or not-found state.
 
@@ -160,6 +161,8 @@ Authentication submission:
 
 ## Admin Dashboard
 
+- Admin collections provide search, visibility/account-state filters, ten-row result pages, status badges, and links to recipes/conversations. Recipe/comment loading follows backend pagination; refresh failures retain existing records and distinguish unavailable collections from empty results.
+- Existing destructive actions use a keyboard-accessible confirmation dialog. All admin writes are deduplicated while pending, check GraphQL errors before changing UI state, and show success/error feedback. Refresh and mutation controls are disabled during conflicting operations.
 - Planning and progress are tracked in `docs/admin-dashboard.md`.
 - Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
 - Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.

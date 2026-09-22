@@ -61,6 +61,7 @@ import {
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
 import ProfileDropdown from './ProfileDropdown';
+import ProfileSkeleton from './profile/ProfileSkeleton';
 import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
 import SanctuaryHeading from './ui/SanctuaryHeading';
@@ -76,7 +77,6 @@ import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 const client: any = generateClient<Schema>();
 const doGetUrl = getUrl;
 const doUploadData = uploadData;
-const RECIPE_BUILDER_VIEW_KEY = 'arcaneKitchen.currentView';
 const RECIPE_BUILDER_FAVORITES_KEY = 'arcaneKitchen.favoriteRecipeIds';
 type RecipeBuilderView =
   | 'Discover'
@@ -84,24 +84,6 @@ type RecipeBuilderView =
   | 'Profile'
   | 'SavedRecipes'
   | 'Drafts';
-
-const getInitialRecipeBuilderView = (): RecipeBuilderView => {
-  if (typeof window === 'undefined' || !window.localStorage) return 'Discover';
-
-  const savedView = window.localStorage.getItem(RECIPE_BUILDER_VIEW_KEY);
-
-  if (
-    savedView === 'Discover' ||
-    savedView === 'Build' ||
-    savedView === 'Profile' ||
-    savedView === 'SavedRecipes' ||
-    savedView === 'Drafts'
-  ) {
-    return savedView;
-  }
-
-  return 'Discover';
-};
 
 const viewForPath = (pathname: string): RecipeBuilderView => {
   if (pathname.startsWith('/discover')) return 'Discover';
@@ -795,6 +777,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const requestedProfileUsername = getProfileUsernameFromPath(
+    location.pathname
+  );
+  const requestedProfileKey =
+    requestedProfileUsername === null
+      ? null
+      : sanitizeUsername(requestedProfileUsername);
   const isTabLocked = (tab: RecipeBuilderView) =>
     !isAuthenticated && tab === 'Build';
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_RECIPE_DRAFT);
@@ -813,11 +802,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [showAllTags, setShowAllTags] = useState('');
   const [discoverQuery, setDiscoverQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [currentView, setCurrentView] = useState<RecipeBuilderView>(
-    getInitialRecipeBuilderView
+  const [currentView, setCurrentView] = useState<RecipeBuilderView>(() =>
+    viewForPath(location.pathname)
   );
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const feedLoadRequestRef = useRef(0);
+  const feedHasSettledRef = useRef(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [deletingRecipeIds, setDeletingRecipeIds] = useState<Set<string>>(
     () => new Set()
@@ -892,9 +882,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [usernameSavePending, setUsernameSavePending] = useState(false);
   const [profileSetupOpen, setProfileSetupOpen] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
-  const [viewingProfileUsername, setViewingProfileUsername] = useState<
-    string | null
-  >(null);
   const draftAutosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -982,19 +969,25 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   // the cached maps for the current session and to localStorage for the signed
   // in user's own handle.
   const [profileRouteProfile, setProfileRouteProfile] =
-    useState<UserProfile | null>(null);
+    useState<UserProfile | null>(() =>
+      requestedProfileKey
+        ? findProfileByUsername(localProfiles, requestedProfileKey)
+        : null
+    );
   const [profileRouteUsername, setProfileRouteUsername] = useState<
     string | null
-  >(null);
-  const [isProfileRouteLoading, setIsProfileRouteLoading] = useState(false);
+  >(requestedProfileKey);
+  const [isProfileRouteLoading, setIsProfileRouteLoading] = useState(
+    Boolean(requestedProfileKey)
+  );
   useEffect(() => {
-    if (!viewingProfileUsername) {
+    if (!requestedProfileKey) {
       setProfileRouteProfile(null);
       setProfileRouteUsername(null);
       setIsProfileRouteLoading(false);
       return;
     }
-    const normalized = sanitizeUsername(viewingProfileUsername);
+    const normalized = requestedProfileKey;
     if (!normalized) {
       setProfileRouteProfile(null);
       setProfileRouteUsername(null);
@@ -1006,7 +999,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       backendProfilesByUsernameRef.current[sanitizeUsername(normalized)] ||
       findProfileByUsername(localProfiles, normalized) ||
       null;
-    setProfileRouteProfile(cached);
+    setProfileRouteProfile(
+      (previous) =>
+        cached ||
+        (previous && sanitizeUsername(previous.username) === normalized
+          ? previous
+          : null)
+    );
     setIsProfileRouteLoading(true);
     let cancelled = false;
     void getUserProfileByUsername(
@@ -1031,19 +1030,20 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [viewingProfileUsername, localProfiles, isAuthenticated]);
+  }, [requestedProfileKey, localProfiles, isAuthenticated]);
 
   const isViewingExternalProfile =
     currentView === 'Profile' &&
-    viewingProfileUsername !== null &&
-    profileRouteUsername === sanitizeUsername(viewingProfileUsername) &&
+    requestedProfileKey !== null &&
+    profileRouteUsername === requestedProfileKey &&
     profileRouteProfile !== null &&
     String(profileRouteProfile.userId) !== String(currentUserId);
   const isViewingOwnProfile =
+    isAuthenticated &&
+    Boolean(activeProfile) &&
     currentView === 'Profile' &&
-    viewingProfileUsername !== null &&
-    sanitizeUsername(viewingProfileUsername) ===
-      sanitizeUsername(activeUsername);
+    requestedProfileKey !== null &&
+    requestedProfileKey === sanitizeUsername(activeUsername);
   const creatorName = activeUsername ? `@${activeUsername}` : 'Guest cook';
 
   // Repair legacy records and keep the denormalized author label aligned with
@@ -1431,6 +1431,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
     } finally {
       if (requestId === feedLoadRequestRef.current) {
+        feedHasSettledRef.current = true;
         setIsLoadingFeed(false);
       }
     }
@@ -1439,11 +1440,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   useEffect(() => {
     loadRecipes();
   }, [loadRecipes]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.localStorage) return;
-    window.localStorage.setItem(RECIPE_BUILDER_VIEW_KEY, currentView);
-  }, [currentView]);
 
   const previousAuthenticatedRef = useRef(isAuthenticated);
 
@@ -1466,7 +1462,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
       if (recipeIdFromPath) {
         setCurrentView(viewForPath(location.pathname));
-        setViewingProfileUsername(profileUsername);
         if (location.pathname === '/') {
           navigate(`/discover?recipe=${encodeURIComponent(recipeIdFromPath)}`, {
             replace: true,
@@ -1549,7 +1544,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         setExpandedRecipeId(null);
         setExpandedRecipeMessage('');
         justClosedRecipeIdRef.current = null;
-        setViewingProfileUsername(profileUsername);
         setCurrentView('Profile');
         return;
       }
@@ -1565,7 +1559,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         }
         justClosedRecipeIdRef.current = null;
         setExpandedRecipeMessage('');
-        setViewingProfileUsername(null);
         setCurrentView('Discover');
         return;
       }
@@ -1575,7 +1568,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
       justClosedRecipeIdRef.current = null;
       setExpandedRecipeMessage('');
-      setViewingProfileUsername(null);
       if (location.pathname !== '/discover') {
         const pathView = viewForPath(location.pathname);
         if (pathView !== currentView) {
@@ -3872,7 +3864,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <button
                 onClick={() => {
                   setExpandedRecipeId(null);
-                  setViewingProfileUsername(null);
                   setCurrentView('Discover');
                   navigate('/discover');
                 }}
@@ -4923,15 +4914,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             currentView === 'Profile' ? 'flex flex-col' : 'hidden'
           }`}
         >
-          {isProfileRouteLoading ? (
-            <div className="mx-auto w-full max-w-4xl p-8 text-center">
-              <p className="text-sm text-[var(--theme-text-muted)]">
-                Loading profile...
-              </p>
-            </div>
+          {Boolean(requestedProfileKey) &&
+          !isViewingOwnProfile &&
+          !isViewingExternalProfile &&
+          (isProfileRouteLoading ||
+            profileRouteUsername !== requestedProfileKey) ? (
+            <ProfileSkeleton />
           ) : isViewingExternalProfile && publicProfileViewUser ? (
             <UserProfileView
               user={publicProfileViewUser}
+              isLoadingRecipes={isLoadingFeed && !feedHasSettledRef.current}
               publishedRecipes={feedRecipes
                 .filter(
                   (recipe) => recipe.ownerId === publicProfileViewUser.userId
@@ -4955,7 +4947,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               }}
               isOwnProfile={false}
             />
-          ) : viewingProfileUsername !== null && !isViewingOwnProfile ? (
+          ) : !isViewingOwnProfile &&
+            (requestedProfileUsername !== null || currentView === 'Profile') ? (
             <div className="mx-auto w-full max-w-4xl p-8 text-center">
               <ErrorArtwork />
               <h1 className="font-heading text-2xl font-semibold text-[var(--theme-text)]">
@@ -4975,6 +4968,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           ) : (
             <UserProfileView
               user={profileViewUser}
+              isLoadingRecipes={isLoadingFeed && !feedHasSettledRef.current}
               onSaveKitchenIdentity={saveKitchenIdentity}
               publishedRecipes={feedRecipes
                 .filter((r) => r.ownerId === currentUserId)
@@ -5065,7 +5059,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 // update local UI pieces
                 setProfileData(updated[uid]);
                 if (handle && handle !== activeUsername) {
-                  setViewingProfileUsername(handle);
                   navigate(getProfileRoutePath(handle), { replace: true });
                 }
                 // update profileViewUser via state dependencies by touching profileData

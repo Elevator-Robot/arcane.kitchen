@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, within, waitFor } from '@testing-library/react';
+import { act, screen, within, waitFor } from '@testing-library/react';
 import { kitchenTheme } from '../../utils/kitchenIdentity';
 import userEvent from '@testing-library/user-event';
 import {
@@ -171,6 +171,90 @@ describe('RecipeBuilder Component', () => {
       screen.getByRole('textbox', { name: 'Search recipes' })
     ).toBeInTheDocument();
   }, 40000);
+
+  it('keeps a cached own profile and in-progress editor mounted during refresh', async () => {
+    const profile = {
+      userId: 'testuser',
+      username: 'test',
+      displayName: 'Test cook',
+      avatar: 'witch.webp',
+      bio: 'Kitchen lore',
+      createdAt: '2020-01-01',
+      updatedAt: '2020-01-01',
+      needsUsernameSetup: false,
+    };
+    localStorage.setItem('arcaneKitchen.currentView', 'Build');
+    localStorage.setItem(
+      'arcaneKitchen.userProfiles',
+      JSON.stringify({ testuser: profile })
+    );
+    window.history.replaceState({}, '', '/u/test');
+    let resolveLookup!: (result: unknown) => void;
+    const lookup = new Promise((resolve) => {
+      resolveLookup = resolve;
+    });
+    mockUserProfileList.mockImplementation((options) =>
+      options?.filter?.username ? lookup : Promise.resolve({ data: [profile] })
+    );
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    const section = document.getElementById('profile')!;
+    expect(section).not.toHaveClass('hidden');
+    expect(document.getElementById('build')).toHaveClass('hidden');
+    expect(
+      within(section).queryByRole('status', { name: 'Loading profile' })
+    ).not.toBeInTheDocument();
+    expect(
+      within(section).getByRole('heading', { name: 'test' })
+    ).toBeInTheDocument();
+    await user.click(within(section).getByRole('button', { name: 'edit bio' }));
+    const editor = within(section).getByRole('textbox', { name: 'bio' });
+    await user.clear(editor);
+    await user.type(editor, 'Still writing my kitchen story');
+    await act(async () => resolveLookup({ data: [profile] }));
+    expect(within(section).getByRole('textbox', { name: 'bio' })).toBe(editor);
+    expect(editor).toHaveValue('Still writing my kitchen story');
+  });
+
+  it('shows one profile skeleton for an uncached route instead of the viewer’s profile', async () => {
+    window.history.replaceState({}, '', '/u/another_cook');
+    let resolveLookup!: (result: unknown) => void;
+    const lookup = new Promise((resolve) => {
+      resolveLookup = resolve;
+    });
+    mockUserProfileList.mockImplementation((options) =>
+      options?.filter?.username ? lookup : Promise.resolve({ data: [] })
+    );
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    const section = document.getElementById('profile')!;
+    expect(
+      within(section).getByRole('status', { name: 'Loading profile' })
+    ).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('heading', { name: 'test' })
+    ).not.toBeInTheDocument();
+    expect(
+      within(section).queryByText('Profile not found')
+    ).not.toBeInTheDocument();
+    await act(async () =>
+      resolveLookup({
+        data: [
+          {
+            id: 'other',
+            userId: 'other',
+            username: 'another_cook',
+            displayName: 'Another cook',
+          },
+        ],
+      })
+    );
+    expect(
+      await within(section).findByRole('heading', { name: 'another_cook' })
+    ).toBeInTheDocument();
+    expect(
+      within(section).queryByRole('status', { name: 'Loading profile' })
+    ).not.toBeInTheDocument();
+  });
 
   it.each(['/saved', '/drafts', '/build', '/u/other_chef'])(
     'uses the viewer’s saved atmosphere on %s',
