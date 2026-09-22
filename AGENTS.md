@@ -40,6 +40,8 @@ Authentication submission:
 ## User-Facing Errors
 
 - `ErrorArtwork` uses the supplied catwitch image at `/images/catwitch.webp` on unavailable-content and recovery screens. Keep the complete image and caption visible; do not crop it.
+- Discover feed-loading failures use a text-only retry panel, without catwitch artwork.
+- Discover renders no placeholder tiles or visible loading message while an empty feed request is pending, including Retry. Existing recipe cards stay mounted during background loads; a screen-reader status and `aria-busy` indicate loading.
 - `AppErrorBoundary` and startup/configuration fallbacks show catwitch artwork and reload recovery instead of a blank application. The production service worker precaches the artwork and `offline.html` for unavailable navigations.
 - `src/utils/userFacingErrors.ts` is the shared boundary for displaying backend, Cognito, storage, and network errors to users.
 - Use `getUserFacingErrorMessage()` for UI messages and keep raw errors in `console.error` diagnostics only; do not render raw `error.message` or serialized error objects.
@@ -73,7 +75,7 @@ Authentication submission:
 - Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
 - Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
 - Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
-- Account menus link directly to Saved recipes and Recipe drafts. Guests receive contextual sign-in invitations on those routes and on personal Discover filters.
+- Account menus link directly to Saved recipes and Recipe drafts. Guests receive contextual sign-in invitations on those routes.
 - Auth, recipe, and full-size image overlays use `AccessibleDialog` for keyboard containment, Escape dismissal, and focus restoration.
 - Discover distinguishes request failures (with Retry), empty collections, empty filters (with Clear all filters), and successful search counts. Search covers recipe text, tags, and authors; it does not claim to index ingredient records.
 - Nonempty drafts autosave without requiring a photo or ingredients, and the debounce survives navigation between workspace views. Browser refresh/unmount during the debounce is still a follow-up.
@@ -99,6 +101,7 @@ Authentication submission:
 - Discover and Build are not global navigation tabs. The recipe explorer is the home surface, its search row owns the responsive `Create recipe` action, and the editor header owns the contextual `Back to recipes` action.
 - The Discover search bar groups standard search, clear, and newest/oldest sort controls in one responsive surface; sorting is a labeled icon toggle rather than a separate select.
 - Discover opens directly with search, Create recipe, filters, and the feed; there is no promotional welcome card above the search controls.
+- Discover filters come only from tags on loaded community recipes. There are no All/Favorites/New/My recipes shortcut chips or New card badges. Selecting an active tag again clears it; names such as “All” are valid ordinary community tags. Counts deduplicate each recipe's tags case-insensitively.
 - Primary content uses centered `max-w-6xl` rails where practical; profile cards use shared theme tokens, profile identity stacks on narrow screens, and forms/body copy remain left-aligned for readability.
 
 ## Profile & Avatars
@@ -134,10 +137,17 @@ Authentication submission:
 
 - `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets and constellation artwork across Saved, Drafts, Build, and Admin. Profile banners use the same motif.
 - Page headers, recipe placeholders, and accent/focus colors inherit the signed-in viewer’s saved `kitchenIdentity.theme` through `src/theme/sanctuaryTheme.ts`; guests use Moonlit. Visiting another cook keeps the viewer’s app theme while that cook’s profile banner retains its own atmosphere.
-- The login modal uses the original `/images/member-kitchen-hero.webp` artwork, beside the form on desktop and above it on mobile.
+- The login modal uses the original `/images/member-kitchen-hero.webp` as an edge-to-edge 3:2 tabletop for its initial choice screen. Compact email/recovery views grow only to fit their content, capped by the visible viewport; secondary email actions share a row. There is no wood-extension asset, added image band, or white/stacked fallback; scrolling is reserved for constrained screens.
+- Initial and desktop artwork uses `object-fit: contain` in a matching 3:2 frame. Compact expanded forms use a centered `cover` fit so the original image fills the content-sized frame without stretching or margins; some outer scenery is cropped in that mode.
+- Sign-in opens with one non-selectable, stylized `Arcane Kitchen` heading, native Google SSO and a visible `Continue with email` disclosure; there is no OR divider. Choosing email hides social sign-in and focuses the email field. Credentials stay mounted when switching options, and errors/recovery retain email mode unless the user explicitly goes back. The X is anchored to the image’s top-right; do not restore extra welcome copy.
+- All authentication headings are non-selectable. Submit, password recovery, and back-navigation buttons share the glass treatment, including Amplify's native link-style buttons.
+- Auth glass-button rules exclude `.amplify-alert__dismiss`; error alerts reserve a compact dismiss column so messages wrap normally instead of being squeezed by a full-width close button.
 - `AuthModal` owns the viewport-bounded image/form layout and visual-viewport keyboard resizing. Keep its close control outside the scrollable form area; Amplify container widths must be fluid and its default form padding removed inside `.auth-panel` to avoid clipping. Native form keyboard behavior is preserved, and the install prompt is hidden while authentication is open.
 - Discover remains search-first with no promotional hero. Recipe cards and expanded recipes use parchment surfaces, clear serif headings, restrained jewel accents, and keyboard-activatable recipe titles.
 - Shared `ak-panel`, `ak-recipe-card`, `ak-eyebrow`, `ak-banner-action`, and `ak-empty-state` classes live in `src/index.css`. Button/Input/Card/Badge use these theme tokens instead of separate dark/neon styling.
+- Glass controls share `--ak-glass-*` tokens and explicit `ak-button-*` variants. `ui/Button` forwards native refs, defaults to `type="button"`, and provides loading, choice, image, menu, banner, overlay, and quiet variants. Native framework controls keep scoped adapters; never apply glass styling to every raw button or alert-dismiss control.
+- `RecipeTagFilters` owns the community tag row and overflow disclosure. Primary navigation/logo buttons remain visually transparent and spring on press (except reduced motion); the sort toggle has fixed narrow/wide widths so Newest/Oldest cannot shift layout.
+- Shared controls have a smaller press bounce than the logo and respect reduced motion. Headings and static login-modal text are non-selectable; login inputs retain native text selection/editing.
 - The Build workspace scrolls as one column below 1024px, with preview following the form; desktop retains independently scrolling editor and preview panes. Keep the `ak-workspace-build` and `ak-editor-fields` hooks when adjusting layout.
 - Catwitch remains the complete, uncropped recovery artwork. Shared auth inputs associate labels and errors with their fields; pale-on-parchment error colors must not be reintroduced.
 

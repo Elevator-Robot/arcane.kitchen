@@ -61,6 +61,8 @@ import {
 } from '../utils/userProfiles';
 import UserProfileView from './UserProfileView';
 import ProfileDropdown from './ProfileDropdown';
+import RecipeTagFilters from './RecipeTagFilters';
+import Button from './ui/Button';
 import ProfileSkeleton from './profile/ProfileSkeleton';
 import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
@@ -259,13 +261,13 @@ const CommentItem: React.FC<CommentItemProps> = ({
                     setEditValue(comment.content);
                   }
                 }}
-                className="rounded px-1.5 py-0.5 text-xs text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] transition"
+                className="ak-button-ghost rounded-lg px-2 py-1.5 text-xs"
               >
                 {editingCommentId === comment.id ? 'Cancel' : 'Edit'}
               </button>
               <button
                 onClick={() => onDelete(comment.id)}
-                className="rounded px-1.5 py-0.5 text-xs text-[var(--theme-text-muted)] hover:bg-red-50 hover:text-red-600 transition"
+                className="ak-button-danger-soft rounded-lg px-2 py-1.5 text-xs"
               >
                 Delete
               </button>
@@ -297,7 +299,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
           <div className="mt-1.5 flex gap-2">
             <button
               onClick={() => onReply(comment.id, comment.author)}
-              className="rounded-lg px-2 py-1.5 text-xs font-semibold text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-accent)] transition"
+              className="ak-button-ghost rounded-lg px-3 py-1.5 text-xs"
             >
               Reply
             </button>
@@ -467,14 +469,11 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
               void onToggleFavorite(recipe.id);
             }}
             disabled={isPendingFavorite}
+            aria-pressed={isFavorited}
             aria-label={
               isFavorited ? `Unsave ${recipe.name}` : `Save ${recipe.name}`
             }
-            className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
-              isFavorited
-                ? 'text-fuchsia-600'
-                : 'text-[var(--theme-text-muted)] hover:text-fuchsia-600'
-            }`}
+            className="ak-button-secondary ak-button-save inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm disabled:opacity-60"
           >
             <Heart
               className="h-4 w-4"
@@ -484,11 +483,6 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
             <span>{saveCount}</span>
           </button>
         </span>
-        {recipe.rating === 'New' && (
-          <span className="rounded-full bg-[var(--theme-surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--theme-text-muted)]">
-            New
-          </span>
-        )}
       </div>
       {isAuthenticated && currentUserId && recipe.ownerId === currentUserId && (
         <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--theme-border)] pt-3">
@@ -499,7 +493,7 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
               void onEditRecipe?.(recipe.id, recipe.ownerId);
             }}
             disabled={loadingEditRecipeId === recipe.id}
-            className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
+            className="ak-button-secondary rounded-lg px-3 py-2 text-xs disabled:opacity-60"
           >
             {loadingEditRecipeId === recipe.id ? 'Opening...' : 'Edit'}
           </button>
@@ -510,11 +504,7 @@ const FeedRecipeCard: React.FC<FeedRecipeCardProps> = ({
               void onDeleteRecipe?.(recipe.id, recipe.ownerId);
             }}
             disabled={deletingRecipeIds?.has(recipe.id)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
-              armedDeleteRecipeIds?.has(recipe.id)
-                ? 'bg-red-600 hover:bg-red-700'
-                : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
-            }`}
+            className={`rounded-lg px-3 py-2 text-xs disabled:opacity-60 ${armedDeleteRecipeIds?.has(recipe.id) ? 'ak-button-danger' : 'ak-button-danger-soft'}`}
           >
             {deletingRecipeIds?.has(recipe.id)
               ? 'Deleting...'
@@ -532,12 +522,6 @@ const IMAGE_PLACEHOLDER = '__no_image__';
 const neutralImagePlaceholder = IMAGE_PLACEHOLDER;
 const isPlaceholder = (src: string) =>
   src === IMAGE_PLACEHOLDER || src === neutralImagePlaceholder;
-
-const isRecipeNew = (recipe: FeedRecipe) => {
-  if (!recipe.createdAt) return false;
-  const createdAt = dayjs(recipe.createdAt);
-  return createdAt.isValid() && dayjs().diff(createdAt, 'day') < 30;
-};
 
 function dataUrlToFile(dataUrl: string, filename: string): File {
   const parts = dataUrl.split(',');
@@ -619,8 +603,6 @@ const TAG_CATEGORIES: Record<string, string[]> = {
   Season: ['Spring', 'Summer', 'Fall', 'Winter'],
   Difficulty: ['Easy', 'Medium', 'Hard'],
 };
-
-const officialTagSet = new Set(Object.values(TAG_CATEGORIES).flat());
 
 const tagCategoryMap = new Map<string, string>();
 for (const [category, tags] of Object.entries(TAG_CATEGORIES)) {
@@ -789,17 +771,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const [draft, setDraft] = useState<RecipeDraft>(EMPTY_RECIPE_DRAFT);
   const [feedRecipes, setFeedRecipes] = useState<FeedRecipe[]>([]);
   const [feedError, setFeedError] = useState('');
-  const [activeTag, setActiveTag] = useState('All');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [activeAuthor, setActiveAuthor] = useState<string | null>(null);
   const [activeTagColor, setActiveTagColor] = useState(randomMerlinColor);
   const handleFilterClick = useCallback((tag: string) => {
     setActiveTag((prev) => {
-      const next = prev === tag ? 'All' : tag;
-      if (next !== 'All') setActiveTagColor(randomMerlinColor());
+      const next = prev === tag.toLowerCase() ? null : tag.toLowerCase();
+      if (next !== null) setActiveTagColor(randomMerlinColor());
       return next;
     });
   }, []);
-  const [showAllTags, setShowAllTags] = useState('');
   const [discoverQuery, setDiscoverQuery] = useState('');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentView, setCurrentView] = useState<RecipeBuilderView>(() =>
@@ -1102,7 +1083,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       if (!normalized) return;
 
       setActiveAuthor(normalized);
-      setActiveTag('All');
+      setActiveTag(null);
       setActiveTagColor(randomMerlinColor());
       setExpandedRecipeId(null);
       setExpandedRecipeMessage('');
@@ -2061,15 +2042,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const query = discoverQuery.trim();
 
     const matchesTagFilter = (recipe: FeedRecipe) => {
-      if (activeTag === 'All') return true;
-      if (activeTag === 'Favorites') return favoriteRecipeIds.has(recipe.id);
-      if (activeTag === 'New') return isRecipeNew(recipe);
-      if (activeTag === 'My recipes') {
-        return Boolean(currentUserId) && recipe.ownerId === currentUserId;
-      }
+      if (activeTag === null) return true;
 
       return recipe.tags.some(
-        (tag) => tag.toLowerCase() === activeTag.toLowerCase()
+        (tag) => normalizeTag(tag).toLowerCase() === activeTag
       );
     };
 
@@ -2169,24 +2145,19 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       .map(({ recipe }) => recipe);
 
     return filtered.length ? sorted : fallback;
-  }, [
-    activeTag,
-    activeAuthor,
-    currentUserId,
-    discoverQuery,
-    favoriteRecipeIds,
-    feedRecipes,
-    sortOrder,
-  ]);
+  }, [activeTag, activeAuthor, discoverQuery, feedRecipes, sortOrder]);
 
   const availableFilterTags = useMemo(() => {
     const tagMap = new Map<string, { label: string; count: number }>();
 
     for (const recipe of feedRecipes) {
+      const seen = new Set<string>();
       for (const tag of recipe.tags) {
         const normalized = normalizeTag(tag);
         if (!normalized) continue;
         const key = normalized.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
         const existing = tagMap.get(key);
         if (existing) {
           existing.count++;
@@ -2196,34 +2167,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       }
     }
 
-    return Array.from(tagMap.values()).sort((a, b) => b.count - a.count);
-  }, [feedRecipes]);
-
-  const officialFilterTags = useMemo(() => {
-    const result: {
-      category: string;
-      tags: { label: string; count: number }[];
-    }[] = [];
-    const tagByLabel = new Map(
-      availableFilterTags.map((t) => [t.label.toLowerCase(), t])
+    return Array.from(tagMap.values()).sort(
+      (a, b) => b.count - a.count || a.label.localeCompare(b.label)
     );
-
-    for (const [category, labels] of Object.entries(TAG_CATEGORIES)) {
-      const found: { label: string; count: number }[] = [];
-      for (const label of labels) {
-        const match = tagByLabel.get(label.toLowerCase());
-        if (match) found.push(match);
-      }
-      if (found.length > 0) {
-        result.push({ category, tags: found });
-      }
-    }
-    return result;
-  }, [availableFilterTags]);
-
-  const communityFilterTags = useMemo(() => {
-    return availableFilterTags.filter((t) => !officialTagSet.has(t.label));
-  }, [availableFilterTags]);
+  }, [feedRecipes]);
 
   const allExistingTags = useMemo(() => {
     const tags = new Set<string>();
@@ -2779,7 +2726,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       );
       setImagePreviewUrl(neutralImagePlaceholder);
       await loadRecipes();
-      setActiveTag('All');
+      setActiveTag(null);
       setDiscoverQuery('');
       setExpandedRecipeId(null);
       setCurrentView('Discover');
@@ -3418,7 +3365,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               }}
               aria-label="View full-size image"
               title="View full-size image"
-              className="absolute right-3 top-3 z-20 rounded-full bg-black/65 p-2 text-white transition hover:bg-black/85"
+              className="ak-button-secondary ak-button-on-dark absolute right-3 top-3 z-20 rounded-full p-2.5"
             >
               <Maximize2 className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -3451,16 +3398,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               type="button"
               onClick={() => toggleFavoriteRecipe(expandedRecipe.id)}
               disabled={pendingFavoriteRecipeIds.has(expandedRecipe.id)}
+              aria-pressed={favoriteRecipeIds.has(expandedRecipe.id)}
               aria-label={
                 favoriteRecipeIds.has(expandedRecipe.id)
                   ? `Unsave ${expandedRecipe.name}`
                   : `Save ${expandedRecipe.name}`
               }
-              className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
-                favoriteRecipeIds.has(expandedRecipe.id)
-                  ? 'text-fuchsia-600'
-                  : 'text-[var(--theme-text-muted)] hover:text-fuchsia-600'
-              }`}
+              className="ak-button-secondary ak-button-save inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm disabled:opacity-60"
             >
               <Heart
                 className="h-4 w-4"
@@ -3667,7 +3611,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                                 COMMENTS_PER_PAGE,
                             }));
                           }}
-                          className="mb-4 w-full rounded border border-[var(--theme-border)] py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                          className="ak-button-secondary mb-4 w-full rounded-xl py-2.5 text-sm"
                         >
                           Show more ({rootComments.length - count} remaining)
                         </button>
@@ -3712,7 +3656,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         setReplyingToAuthor('');
                         setCommentInput('');
                       }}
-                      className="rounded border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                      className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
                     >
                       Cancel
                     </button>
@@ -3751,7 +3695,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             <p className="text-sm text-[var(--theme-text-muted)]">
               <button
                 onClick={onRequestAuth}
-                className="text-[#0e7490] hover:text-[#0891b2] hover:underline"
+                className="ak-button-secondary rounded-lg px-3 py-1.5 text-sm"
               >
                 Sign in
               </button>{' '}
@@ -3768,7 +3712,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 void startEditRecipe(expandedRecipe.id, expandedRecipe.ownerId)
               }
               disabled={loadingEditRecipeId === expandedRecipe.id}
-              className="rounded-md border border-[var(--theme-border)] px-2.5 py-1 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] disabled:opacity-60"
+              className="ak-button-secondary rounded-xl px-4 py-2 text-sm disabled:opacity-60"
             >
               {loadingEditRecipeId === expandedRecipe.id
                 ? 'Opening...'
@@ -3780,11 +3724,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 deleteRecipe(expandedRecipe.id, expandedRecipe.ownerId)
               }
               disabled={deletingRecipeIds.has(expandedRecipe.id)}
-              className={`rounded-md px-2.5 py-1 text-xs font-medium text-white transition disabled:opacity-60 ${
-                armedDeleteRecipeIds.has(expandedRecipe.id)
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-[var(--theme-text-muted)] hover:bg-red-600'
-              }`}
+              className={`rounded-xl px-4 py-2 text-sm disabled:opacity-60 ${armedDeleteRecipeIds.has(expandedRecipe.id) ? 'ak-button-danger' : 'ak-button-danger-soft'}`}
             >
               {deletingRecipeIds.has(expandedRecipe.id)
                 ? 'Deleting...'
@@ -3840,7 +3780,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <button
                 type="button"
                 onClick={() => setProfileSetupOpen(false)}
-                className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)]"
+                className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
               >
                 Later
               </button>
@@ -3848,7 +3788,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 type="button"
                 onClick={() => void saveUsernameSetup()}
                 disabled={usernameSavePending}
-                className="rounded-lg bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--theme-accent-strong)] disabled:opacity-60"
+                className="ak-button-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-60"
               >
                 {usernameSavePending ? 'Saving...' : 'Save profile'}
               </button>
@@ -3867,7 +3807,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   setCurrentView('Discover');
                   navigate('/discover');
                 }}
-                className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+                className="ak-logo-button flex items-center gap-2 p-0.5"
                 aria-label="Go to Home"
               >
                 <img
@@ -3892,12 +3832,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 onSignOut={onSignOut}
               />
             ) : (
-              <button
-                onClick={onRequestAuth}
-                className="ak-button-primary rounded-full px-5 py-2.5 text-sm font-semibold"
-              >
+              <Button onClick={onRequestAuth} className="rounded-full">
                 Sign in
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -3949,7 +3886,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         onClick={() => setDiscoverQuery('')}
                         aria-label="Clear search"
                         title="Clear search"
-                        className="absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                        className="ak-button-ghost absolute right-1 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full"
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -3967,7 +3904,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     title={
                       sortOrder === 'desc' ? 'Newest first' : 'Oldest first'
                     }
-                    className="inline-flex shrink-0 items-center gap-2 self-stretch rounded-r-2xl px-3 text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)] sm:px-4"
+                    className="ak-button-ghost inline-flex w-12 shrink-0 items-center justify-center gap-2 self-stretch rounded-r-2xl sm:w-28"
                   >
                     <ArrowDownUp className="h-4 w-4" aria-hidden="true" />
                     <span className="hidden text-xs font-semibold sm:inline">
@@ -3975,55 +3912,22 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     </span>
                   </button>
                 </div>
-                <button
+                <Button
+                  size="none"
                   type="button"
                   onClick={startCreateRecipe}
                   aria-label="Create a recipe"
                   title="Create a recipe"
-                  className="ak-button-primary inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl px-3 text-white sm:px-5"
+                  className="h-12 shrink-0 rounded-2xl px-3 sm:px-5"
                 >
                   <Plus className="h-5 w-5" aria-hidden="true" />
                   <span className="hidden text-sm font-semibold sm:inline">
                     Create recipe
                   </span>
-                </button>
+                </Button>
               </div>
 
               <div className="mt-4 space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {['All', 'Favorites', 'New', 'My recipes'].map((tag) => (
-                    <button
-                      key={tag}
-                      aria-pressed={
-                        activeTag === tag && !(tag === 'All' && activeAuthor)
-                      }
-                      onClick={() => {
-                        if (
-                          !isAuthenticated &&
-                          (tag === 'Favorites' || tag === 'My recipes')
-                        ) {
-                          onRequestAuth?.();
-                          return;
-                        }
-                        if (tag === 'All') setActiveAuthor(null);
-                        handleFilterClick(tag);
-                      }}
-                      className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[var(--theme-border)] px-4 py-2 text-xs font-semibold transition ${
-                        activeTag === tag && !(tag === 'All' && activeAuthor)
-                          ? 'text-white'
-                          : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                      }`}
-                      style={
-                        activeTag === tag && !(tag === 'All' && activeAuthor)
-                          ? { backgroundColor: activeTagColor }
-                          : undefined
-                      }
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-
                 {activeAuthor && (
                   <div className="flex flex-col gap-3 rounded-2xl border border-[var(--theme-border)] bg-gradient-to-r from-[var(--theme-surface)] to-[var(--theme-surface-alt)] px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -4038,7 +3942,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <Link
                         to={getProfileRoutePath(activeAuthor)}
                         onClick={() => setActiveAuthor(null)}
-                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--theme-text)] px-4 py-2 text-sm font-semibold text-[var(--theme-surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:flex-none"
+                        className="ak-button-primary inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm sm:flex-none"
                       >
                         View author profile
                         <svg
@@ -4057,7 +3961,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         onClick={() => setActiveAuthor(null)}
                         aria-label={`Clear author collection @${activeAuthor}`}
                         title="Clear author collection"
-                        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                        className="ak-button-secondary inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
                       >
                         <X className="h-4 w-4" aria-hidden="true" />
                       </button>
@@ -4065,195 +3969,47 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   </div>
                 )}
 
-                {officialFilterTags.map(({ category, tags }) => {
-                  const MAX_PER_CATEGORY = 5;
-                  const visible = tags.slice(0, MAX_PER_CATEGORY);
-                  const hidden = tags.slice(MAX_PER_CATEGORY);
-
-                  return (
-                    <div key={category}>
-                      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-text-muted)]">
-                        {category}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {visible.map(({ label, count }) => (
-                          <button
-                            key={label}
-                            onClick={() => handleFilterClick(label)}
-                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
-                              activeTag === label
-                                ? 'text-white shadow-sm'
-                                : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                            }`}
-                            style={
-                              activeTag === label
-                                ? { backgroundColor: activeTagColor }
-                                : undefined
-                            }
-                          >
-                            {label}
-                            <span
-                              className={`inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none ${
-                                activeTag === label
-                                  ? 'bg-white/20 text-white'
-                                  : 'bg-[var(--theme-border)] text-[var(--theme-text-muted)]'
-                              }`}
-                            >
-                              {count}
-                            </span>
-                          </button>
-                        ))}
-                        {hidden.length > 0 && (
-                          <div className="relative">
-                            <button
-                              onClick={() =>
-                                setShowAllTags(
-                                  showAllTags === category ? '' : category
-                                )
-                              }
-                              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition ${
-                                showAllTags === category
-                                  ? 'bg-[var(--theme-accent)] text-white'
-                                  : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                              }`}
-                            >
-                              {showAllTags === category
-                                ? 'Less'
-                                : `+${hidden.length}`}
-                            </button>
-                            {showAllTags === category && (
-                              <div className="absolute left-0 top-full z-30 mt-2 flex flex-wrap gap-1.5 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-3 shadow-cozy-lg">
-                                {hidden.map(({ label, count }) => (
-                                  <button
-                                    key={label}
-                                    onClick={() => {
-                                      handleFilterClick(label);
-                                      setShowAllTags('');
-                                    }}
-                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
-                                      activeTag === label
-                                        ? 'text-white'
-                                        : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface)] hover:text-[var(--theme-text)]'
-                                    }`}
-                                    style={
-                                      activeTag === label
-                                        ? { backgroundColor: activeTagColor }
-                                        : undefined
-                                    }
-                                  >
-                                    {label}
-                                    <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
-                                      {count}
-                                    </span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {communityFilterTags.length > 0 && (
-                  <div>
-                    <button
-                      onClick={() =>
-                        setShowAllTags(
-                          showAllTags === '__community' ? '' : '__community'
-                        )
-                      }
-                      className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--theme-text-muted)] hover:text-[var(--theme-text)] transition"
-                    >
-                      Community ({communityFilterTags.length})
-                      <svg
-                        className={`h-3 w-3 transition ${showAllTags === '__community' ? 'rotate-180' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
-                    {showAllTags === '__community' && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {communityFilterTags.map(({ label, count }) => (
-                          <button
-                            key={label}
-                            onClick={() => handleFilterClick(label)}
-                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${
-                              activeTag === label
-                                ? 'text-white shadow-sm'
-                                : 'bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]'
-                            }`}
-                            style={
-                              activeTag === label
-                                ? { backgroundColor: activeTagColor }
-                                : undefined
-                            }
-                          >
-                            {label}
-                            <span className="inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--theme-border)] px-1 text-[10px] font-semibold leading-none text-[var(--theme-text-muted)]">
-                              {count}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <RecipeTagFilters
+                  tags={availableFilterTags}
+                  selected={activeTag}
+                  selectedColor={activeTagColor}
+                  onSelect={handleFilterClick}
+                />
               </div>
             </>
           )}
 
           {isLoadingFeed && (
-            <p
-              role="status"
-              className="text-[var(--theme-text-muted)] mt-4 text-sm"
-            >
+            <p role="status" className="sr-only">
               Loading shared recipes...
             </p>
           )}
 
           {/* Recipe grid */}
-          <div className={`mt-6 ${expandedRecipe ? '' : ''}`}>
-            {isLoadingFeed ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {[0, 1, 2].map((item) => (
-                  <div key={item} className="ak-recipe-card overflow-hidden">
-                    <div className="aspect-[4/3] animate-pulse bg-[var(--theme-border)]" />
-                    <div className="grid gap-2.5 p-4">
-                      <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
-                      <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--theme-bg-soft)]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : feedError ? (
+          <section
+            className="mt-6"
+            aria-label="Recipe results"
+            aria-busy={isLoadingFeed}
+          >
+            {feedError && (
               <div
                 role="alert"
                 className="rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-8 text-center"
               >
-                <ErrorArtwork />
                 <h2 className="text-xl">The kitchen is taking a moment</h2>
                 <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
                   {feedError}
                 </p>
-                <button
+                <Button
                   type="button"
                   onClick={() => void loadRecipes()}
-                  className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
+                  className="mt-5"
                 >
                   Try again
-                </button>
+                </Button>
               </div>
-            ) : expandedRecipeMessage && !expandedRecipe ? (
+            )}
+            {expandedRecipeMessage && !expandedRecipe ? (
               <div className="ak-panel mt-6 p-8 text-center">
                 <ErrorArtwork />
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
@@ -4306,24 +4062,24 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   ))}
                 </div>
               </>
-            ) : (
+            ) : isLoadingFeed || feedError ? null : (
               <div className="ak-empty-state">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  {discoverQuery || activeTag !== 'All' || activeAuthor
+                  {discoverQuery || activeTag !== null || activeAuthor
                     ? 'No recipes match just yet'
                     : 'Every collection starts with one recipe'}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                  {discoverQuery || activeTag !== 'All' || activeAuthor
+                  {discoverQuery || activeTag !== null || activeAuthor
                     ? 'Try a different title, tag, or cook — or clear your filters to explore.'
                     : 'Share something you love to cook and help this kitchen grow.'}
                 </p>
-                {discoverQuery || activeTag !== 'All' || activeAuthor ? (
+                {discoverQuery || activeTag !== null || activeAuthor ? (
                   <button
                     type="button"
                     onClick={() => {
                       setDiscoverQuery('');
-                      setActiveTag('All');
+                      setActiveTag(null);
                       setActiveAuthor(null);
                     }}
                     className="ak-button-secondary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
@@ -4341,7 +4097,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 )}
               </div>
             )}
-          </div>
+          </section>
         </section>
 
         <section
@@ -4496,12 +4252,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                           <button
                             key={tag}
                             type="button"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
                               updateDraft('tags', [...draft.tags, tag]);
                               setNewTagValue('');
                             }}
-                            className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-[var(--theme-text)] hover:bg-[var(--theme-surface-alt)] transition"
+                            className="ak-menu-item justify-between text-left"
                           >
                             <span>{tag}</span>
                             {category && (
@@ -4535,7 +4291,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     key={tag}
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
+                    className="ak-button-primary inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs"
                     style={{ backgroundColor: getTagColor(tag) }}
                     aria-label={`Remove tag ${tag}`}
                     title={`Remove ${tag}`}
@@ -4579,7 +4335,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       />
                       <button
                         onClick={() => removeIngredient(ingredient.id)}
-                        className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
+                        className="ak-button-danger-soft h-10 w-10 rounded-lg text-sm"
                         aria-label="Remove ingredient"
                       >
                         x
@@ -4648,7 +4404,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     <button
                       type="button"
                       onClick={() => removeInstruction(index)}
-                      className="ak-button-secondary ak-muted h-9 w-9 rounded-lg text-sm font-semibold"
+                      className="ak-button-danger-soft h-9 w-9 rounded-lg text-sm"
                       aria-label={`Remove step ${index + 1}`}
                     >
                       x
@@ -4685,7 +4441,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     />
                     <button
                       onClick={() => removeUtensil(index)}
-                      className="ak-button-secondary ak-muted h-10 w-10 rounded-lg text-sm font-semibold"
+                      className="ak-button-danger-soft h-10 w-10 rounded-lg text-sm"
                       aria-label="Remove utensil"
                     >
                       x
@@ -4868,7 +4624,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <button
                         type="button"
                         onClick={() => void removeDraftRecord(draftRecord)}
-                        className="rounded-full border border-[var(--theme-border)] px-3 py-1.5 text-xs font-medium text-[var(--theme-text-muted)] transition hover:bg-red-50 hover:text-red-700"
+                        className="ak-button-danger-soft rounded-full px-3 py-2 text-xs"
                       >
                         Delete
                       </button>
@@ -4885,7 +4641,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       <button
                         type="button"
                         onClick={() => void removeDraftRecord(draftRecord)}
-                        className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                        className="ak-button-danger-soft rounded-xl px-4 py-2.5 text-sm"
                       >
                         Delete draft
                       </button>
@@ -5113,14 +4869,14 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         setCurrentView('Discover');
                         navigate('/discover');
                       }}
-                      className="rounded-lg border border-[var(--theme-border)] px-4 py-2 text-sm font-medium text-[var(--theme-text-muted)] transition hover:bg-[var(--theme-surface-alt)] hover:text-[var(--theme-text)]"
+                      className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
                     >
                       Cancel
                     </button>
-                    <button
+                    <Button
                       onClick={publishRecipe}
+                      isLoading={isPublishing}
                       disabled={isPublishing}
-                      className="ak-button-primary rounded-xl px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
                     >
                       {isPublishing
                         ? isEditingRecipe
@@ -5129,7 +4885,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                         : isEditingRecipe
                           ? 'Save changes'
                           : 'Publish'}
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -5344,7 +5100,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             type="button"
             onClick={collapseExpandedRecipe}
             aria-label="Close recipe"
-            className="fixed right-4 top-4 z-10 rounded-full bg-black/70 p-2 text-white transition hover:bg-black"
+            className="ak-button-secondary ak-button-on-dark fixed right-4 top-4 z-10 rounded-full p-2.5"
           >
             <X className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -5369,7 +5125,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               type="button"
               onClick={() => setShowRecipeImageLightbox(false)}
               aria-label="Close full-size image"
-              className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25"
+              className="ak-button-secondary ak-button-on-dark absolute right-4 top-4 rounded-full p-2.5"
             >
               <X className="h-5 w-5" aria-hidden="true" />
             </button>

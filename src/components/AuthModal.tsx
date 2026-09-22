@@ -1,29 +1,21 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
-import { BookOpen, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import AccessibleDialog from './AccessibleDialog';
 
 export function AuthIntro() {
   const { route } = useAuthenticator((context) => [context.route]);
   if (route !== 'signIn' && route !== 'confirmSignUp') {
-    return (
-      <p className="ak-eyebrow mb-5 pr-12 text-[var(--theme-accent)]">
-        Member kitchen
-      </p>
-    );
+    return null;
   }
   return (
     <header className="ak-auth-intro">
-      <p className="ak-eyebrow text-[var(--theme-accent)]">Member kitchen</p>
-      <h2 className="mt-3 text-3xl leading-tight">
-        {route === 'confirmSignUp'
-          ? 'Check your inbox.'
-          : 'Make yourself at home.'}
-      </h2>
-      {route === 'signIn' && (
-        <p className="mt-3 text-sm leading-6 text-[var(--theme-text-muted)]">
-          Sign in to save recipes and share your own.
-        </p>
+      {route === 'signIn' ? (
+        <h2 className="ak-auth-wordmark">
+          <span>Arcane</span> Kitchen
+        </h2>
+      ) : (
+        <h2 className="text-3xl leading-tight">Check your inbox.</h2>
       )}
     </header>
   );
@@ -77,7 +69,15 @@ export default function AuthModal({
         } as CSSProperties
       }
     >
-      <div className="ak-auth-card">
+      <div
+        className="ak-auth-card"
+        data-compact={
+          (typeof window !== 'undefined' &&
+            (window.innerWidth <= 1024 ||
+              (viewport.height ?? window.innerHeight) <= 560)) ||
+          undefined
+        }
+      >
         <button
           type="button"
           onClick={onClose}
@@ -87,33 +87,21 @@ export default function AuthModal({
           <X className="h-5 w-5" aria-hidden="true" />
         </button>
         <aside className="ak-auth-art" aria-label="Arcane Kitchen">
-          <img
-            src="/images/member-kitchen-hero.webp"
-            alt=""
-            className="ak-auth-image"
-          />
-          <div className="ak-auth-art-shade" aria-hidden="true" />
-          <div className="ak-auth-brand">
-            <BookOpen className="h-4 w-4" aria-hidden="true" />
-            <span>Arcane Kitchen</span>
-          </div>
-          <div className="ak-auth-caption">
-            <p className="ak-eyebrow text-white/75">
-              From your kitchen, with love
-            </p>
-            <p className="mt-3 font-heading text-3xl leading-tight">
-              Recipes worth keeping.
-              <br />A kitchen of your own.
-            </p>
-            <p className="mt-4 max-w-xs text-sm leading-6 text-white/80">
-              Save your favorites, share what you make, and find your people
-              around the table.
-            </p>
+          <div className="ak-auth-scene">
+            <img
+              src="/images/member-kitchen-hero.webp"
+              alt="A wooden tabletop framed by herbs, crystals, potion bottles, candles, and an open recipe book."
+              width={1536}
+              height={1024}
+              className="ak-auth-image"
+            />
           </div>
         </aside>
-        <section className="ak-auth-content" aria-label="Account access">
-          <div className="ak-auth-form-rail">
-            <div className="auth-panel">{children}</div>
+        <section className="ak-auth-sheet" aria-label="Account access">
+          <div className="ak-auth-content">
+            <div className="ak-auth-form-rail">
+              <div className="auth-panel">{children}</div>
+            </div>
           </div>
         </section>
       </div>

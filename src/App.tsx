@@ -19,7 +19,10 @@ import ErrorArtwork from './components/ErrorArtwork';
 import { sanctuaryThemeStyle } from './theme/sanctuaryTheme';
 import RecipeBuilder from './components/RecipeBuilder';
 import AdminDashboard from './components/AdminDashboard';
-import SignInForm from './components/SignInForm';
+import {
+  AuthSignInOptions,
+  EmailSignInFooter,
+} from './components/AuthSignInOptions';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { randomMerlinColor } from './theme/merlinPalette';
 import {
@@ -240,14 +243,6 @@ export const authServices = {
     return request;
   },
 };
-
-function CustomSignIn() {
-  return (
-    <div>
-      <SignInForm />
-    </div>
-  );
-}
 
 function ConfirmationCodeHeader() {
   const [code, setCode] = useState(Array(6).fill(''));
@@ -622,20 +617,22 @@ function App({ pathname }: AppProps = {}) {
               {authNotice}
             </div>
           )}
-          <Authenticator
-            hideSignUp
-            components={{
-              Header: AuthIntro,
-              SignIn: CustomSignIn as any,
-              ConfirmSignUp: {
-                Header: ConfirmationCodeHeader,
-              },
-            }}
-            formFields={authFormFields}
-            services={authServices}
-          >
-            {() => <AuthSuccess onComplete={handleAuthComplete} />}
-          </Authenticator>
+          <AuthSignInOptions>
+            <Authenticator
+              hideSignUp
+              components={{
+                Header: AuthIntro,
+                SignIn: { Footer: EmailSignInFooter },
+                ConfirmSignUp: {
+                  Header: ConfirmationCodeHeader,
+                },
+              }}
+              formFields={authFormFields}
+              services={authServices}
+            >
+              {() => <AuthSuccess onComplete={handleAuthComplete} />}
+            </Authenticator>
+          </AuthSignInOptions>
         </AuthModal>
       )}
     </div>

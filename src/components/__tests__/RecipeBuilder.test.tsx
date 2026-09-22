@@ -433,6 +433,70 @@ describe('RecipeBuilder Component', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('keeps initial and retry loading empty without placeholder tiles or artwork', async () => {
+    let finish!: (result: unknown) => void;
+    mockRecipeList.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const user = userEvent.setup();
+    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    const results = screen.getByRole('region', { name: 'Recipe results' });
+    expect(results).toHaveAttribute('aria-busy', 'true');
+    expect(results).toBeEmptyDOMElement();
+    await act(async () =>
+      finish({ data: [], errors: [{ message: 'Network error' }] })
+    );
+    const error = await within(results).findByRole('alert');
+    expect(within(error).queryByRole('img')).not.toBeInTheDocument();
+    let retry!: (result: unknown) => void;
+    mockRecipeList.mockReturnValue(
+      new Promise((resolve) => {
+        retry = resolve;
+      })
+    );
+    await user.click(within(error).getByRole('button', { name: 'Try again' }));
+    expect(results).toHaveAttribute('aria-busy', 'true');
+    expect(results).toBeEmptyDOMElement();
+    await act(async () =>
+      retry({ data: [createMockRecipe({ name: 'Back in the kitchen' })] })
+    );
+    expect(
+      await within(results).findByRole('heading', {
+        name: 'Back in the kitchen',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('keeps loaded recipe cards mounted during a background refresh', async () => {
+    const recipe = createMockRecipe({ name: 'A recipe to keep' });
+    mockRecipeList.mockResolvedValue({ data: [recipe] });
+    const { rerender } = await renderRecipeBuilder(
+      unauthenticatedRecipeBuilderProps
+    );
+    const title = await screen.findByRole('heading', {
+      name: 'A recipe to keep',
+    });
+    let finish!: (result: unknown) => void;
+    mockRecipeList.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { default: RecipeBuilder } = await import('../RecipeBuilder');
+    rerender(<RecipeBuilder {...defaultRecipeBuilderProps} />);
+    await waitFor(() =>
+      expect(
+        screen.getByRole('region', { name: 'Recipe results' })
+      ).toHaveAttribute('aria-busy', 'true')
+    );
+    expect(screen.getByRole('heading', { name: 'A recipe to keep' })).toBe(
+      title
+    );
+    await act(async () => finish({ data: [recipe] }));
+  });
+
   it('closes a recipe with Escape and returns to its base route', async () => {
     mockRecipeList.mockResolvedValue({ data: [createMockRecipe()] });
     const user = userEvent.setup();
@@ -448,19 +512,88 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.search).toBe('');
   });
 
-  it('invites guests to sign in for personal filters', async () => {
+  it('uses community tags without shortcut filters and lets guests deselect a tag', async () => {
     const onRequestAuth = vi.fn();
     const user = userEvent.setup();
+    mockRecipeList.mockResolvedValue({
+      data: [
+        createMockRecipe({ name: 'Cozy soup', tags: ['Comfort', 'comfort'] }),
+        createMockRecipe({
+          id: 'salad',
+          name: 'Garden salad',
+          tags: ['Fresh'],
+        }),
+      ],
+    });
     await renderRecipeBuilder({
       ...unauthenticatedRecipeBuilderProps,
       onRequestAuth,
     });
-    await user.click(screen.getByRole('button', { name: 'Favorites' }));
-    expect(onRequestAuth).toHaveBeenCalledOnce();
-    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute(
-      'aria-pressed',
-      'true'
+    const tag = await screen.findByRole('button', {
+      name: 'Filter by Comfort',
+    });
+    expect(tag).toHaveAttribute('title', '1 recipe');
+    for (const name of ['All', 'Favorites', 'New', 'My recipes']) {
+      expect(
+        within(document.getElementById('discover')!).queryByRole('button', {
+          name,
+        })
+      ).not.toBeInTheDocument();
+    }
+    expect(
+      within(document.getElementById('discover')!).queryByText('New')
+    ).not.toBeInTheDocument();
+    await user.click(tag);
+    expect(tag).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.queryByRole('heading', { name: 'Garden salad' })
+    ).not.toBeInTheDocument();
+    await user.click(tag);
+    expect(tag).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      screen.getByRole('heading', { name: 'Garden salad' })
+    ).toBeInTheDocument();
+    expect(onRequestAuth).not.toHaveBeenCalled();
+  });
+
+  it('treats community tags named All as real tags rather than a shortcut', async () => {
+    const user = userEvent.setup();
+    mockRecipeList.mockResolvedValue({
+      data: [
+        createMockRecipe({ name: 'Tagged recipe', tags: ['All'] }),
+        createMockRecipe({
+          id: 'other',
+          name: 'Other recipe',
+          tags: ['Fresh'],
+        }),
+      ],
+    });
+    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    await user.click(
+      await screen.findByRole('button', { name: 'Filter by All' })
     );
+    expect(
+      screen.queryByRole('heading', { name: 'Other recipe' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Tagged recipe' })
+    ).toBeInTheDocument();
+  });
+
+  it('activates editor tag suggestions from the keyboard', async () => {
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
+    await user.type(
+      screen.getByPlaceholderText('e.g., Quick, Vegetarian, Dessert'),
+      'Vege'
+    );
+    const suggestion = screen.getByRole('button', { name: /^Vegetarian/ });
+    suggestion.focus();
+    await user.keyboard('{Enter}');
+    expect(
+      screen.getByRole('button', { name: 'Remove tag Vegetarian' })
+    ).toBeInTheDocument();
   });
 
   it('shows catwitch recovery for unavailable recipes linked from a collection', async () => {

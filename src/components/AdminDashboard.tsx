@@ -618,7 +618,7 @@ export default function AdminDashboard({
           <button
             onClick={onBack}
             aria-label="Go to Discover"
-            className="flex items-center gap-2 rounded-md p-0.5 transition active:scale-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
+            className="ak-logo-button flex items-center gap-2 p-0.5"
           >
             <img
               src="/logo-no-background.svg"
@@ -708,7 +708,7 @@ export default function AdminDashboard({
                   type="button"
                   onClick={() => setSuccess('')}
                   aria-label="Dismiss confirmation"
-                  className="rounded-lg p-2"
+                  className="ak-button-ghost rounded-lg p-2"
                 >
                   <X className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -763,7 +763,7 @@ export default function AdminDashboard({
                       setSearch('');
                       setPage(1);
                     }}
-                    className="rounded-lg p-2"
+                    className="ak-button-ghost rounded-lg p-2"
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
                   </button>
@@ -966,7 +966,7 @@ export default function AdminDashboard({
                       !transferOwnerId ||
                       pendingUserAction !== null
                     }
-                    className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                    className="ak-button-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-50"
                   >
                     {pendingUserAction === 'transferOwnership'
                       ? 'Transferring...'
@@ -1046,10 +1046,10 @@ function Stat({
           ? { backgroundColor: activeColor, borderColor: activeColor }
           : undefined
       }
-      className={`rounded-2xl border p-3 text-left transition sm:p-4 ${active ? 'text-white shadow-lg' : 'border-[var(--theme-border)] bg-[var(--theme-surface)] hover:border-[var(--theme-accent)]'}`}
+      className="ak-button-choice rounded-2xl p-3 text-left sm:p-4"
     >
       <p
-        className={`text-xs uppercase ${active ? 'text-white/80' : 'text-[var(--theme-text-muted)]'}`}
+        className={`text-xs uppercase ${active ? 'text-white' : 'text-[var(--theme-text-muted)]'}`}
       >
         {label}
       </p>
@@ -1057,7 +1057,7 @@ function Stat({
         {loading ? '—' : value}
       </p>
       <p
-        className={`mt-1 hidden text-xs sm:block ${active ? 'text-white/80' : 'text-[var(--theme-text-muted)]'}`}
+        className={`mt-1 hidden text-xs sm:block ${active ? 'text-white' : 'text-[var(--theme-text-muted)]'}`}
       >
         View {label.toLowerCase()}
       </p>
@@ -1106,13 +1106,13 @@ function RecipeList({
               <div className="flex gap-2">
                 <button
                   onClick={() => void saveRecipe()}
-                  className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white"
+                  className="ak-button-primary rounded-xl px-4 py-2.5 text-sm"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => setEditingRecipe(null)}
-                  className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm"
+                  className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
                 >
                   Cancel
                 </button>
@@ -1149,13 +1149,13 @@ function RecipeList({
                       description: recipe.description || '',
                     });
                   }}
-                  className="rounded-full border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)]"
+                  className="ak-button-secondary rounded-xl px-3 py-2 text-sm"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => void removeRecipe(recipe)}
-                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                  className="ak-button-danger-soft rounded-xl px-3 py-2 text-sm"
                 >
                   Delete
                 </button>
@@ -1201,13 +1201,13 @@ function CommentList({
               <div className="flex gap-2">
                 <button
                   onClick={() => void saveComment()}
-                  className="rounded-full bg-[var(--theme-accent)] px-4 py-2 text-sm font-semibold text-white"
+                  className="ak-button-primary rounded-xl px-4 py-2.5 text-sm"
                 >
                   Save
                 </button>
                 <button
                   onClick={() => setEditingComment(null)}
-                  className="rounded-full border border-[var(--theme-border)] px-4 py-2 text-sm"
+                  className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
                 >
                   Cancel
                 </button>
@@ -1239,13 +1239,13 @@ function CommentList({
                     setEditingComment(comment);
                     setCommentForm(comment.content);
                   }}
-                  className="rounded-full border border-[var(--theme-border)] px-3 py-2 text-sm text-[var(--theme-text-muted)]"
+                  className="ak-button-secondary rounded-xl px-3 py-2 text-sm"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => void removeComment(comment)}
-                  className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 hover:bg-red-100"
+                  className="ak-button-danger-soft rounded-xl px-3 py-2 text-sm"
                 >
                   Delete
                 </button>
@@ -1369,7 +1369,7 @@ function UserTable({
                       onClick={() =>
                         onModerateUser(user, user.isBanned ? 'unban' : 'ban')
                       }
-                      className="rounded-full border border-[var(--theme-border)] px-3 py-1.5 text-xs text-[var(--theme-text-muted)] disabled:opacity-50"
+                      className="ak-button-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                     >
                       {user.isBanned ? 'Unban' : 'Ban'}
                     </button>
@@ -1381,7 +1381,7 @@ function UserTable({
                           user.contentHidden ? 'restoreContent' : 'hideContent'
                         )
                       }
-                      className="rounded-full border border-[var(--theme-border)] px-3 py-1.5 text-xs text-[var(--theme-text-muted)] disabled:opacity-50"
+                      className="ak-button-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                     >
                       {user.contentHidden ? 'Restore content' : 'Hide content'}
                     </button>
@@ -1393,7 +1393,7 @@ function UserTable({
                           user.isDeleted ? 'restore' : 'delete'
                         )
                       }
-                      className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 hover:bg-red-100 disabled:opacity-50"
+                      className="ak-button-danger-soft rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                     >
                       {user.isDeleted ? 'Restore user' : 'Delete user'}
                     </button>

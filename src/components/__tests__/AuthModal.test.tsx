@@ -77,11 +77,15 @@ describe('image-led authentication modal', () => {
     ).toBe('12px');
   });
 
-  it('keeps the welcome copy out of password recovery and labels confirmation clearly', () => {
+  it('shows one brand title on sign-in and labels confirmation clearly', () => {
     const { rerender } = render(<AuthIntro />);
     expect(
-      screen.getByRole('heading', { name: 'Make yourself at home.' })
+      screen.getByRole('heading', { name: 'Arcane Kitchen' })
     ).toBeInTheDocument();
+    expect(screen.queryByText('Member kitchen')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Make yourself at home.')
+    ).not.toBeInTheDocument();
     auth.route = 'forgotPassword';
     rerender(<AuthIntro />);
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();

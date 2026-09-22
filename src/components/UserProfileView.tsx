@@ -6,6 +6,7 @@ import DraftCard from './profile/DraftCard';
 import type { User, Recipe, Draft } from '../types/profile';
 import { Link } from 'react-router-dom';
 import { BookOpen, Plus } from 'lucide-react';
+import Button from './ui/Button';
 import {
   CustomizeSanctuary,
   SanctuaryBanner,
@@ -157,14 +158,10 @@ export default function UserProfileView({
             </p>
           </div>
           {isOwnProfile && onNewRecipe && visibleTab !== 'saved' && (
-            <button
-              type="button"
-              onClick={onNewRecipe}
-              className="ak-button-primary inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
-            >
+            <Button type="button" onClick={onNewRecipe}>
               <Plus className="h-4 w-4" aria-hidden="true" />
               Create recipe
-            </button>
+            </Button>
           )}
         </div>
         <div>
