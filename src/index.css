@@ -349,7 +349,189 @@
     background: var(--theme-overlay);
   }
 
+  .ak-auth-overlay {
+    --auth-inset: clamp(0.75rem, 3vw, 2rem);
+    position: fixed;
+    inset: 0;
+    top: var(--auth-viewport-top, 0px);
+    bottom: auto;
+    height: var(--auth-viewport-height, 100dvh);
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: var(--auth-inset);
+    background: var(--theme-overlay);
+    backdrop-filter: blur(12px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .ak-auth-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-rows: minmax(0, 1fr);
+    width: 100%;
+    max-width: 62rem;
+    height: min(
+      42rem,
+      calc(var(--auth-viewport-height, 100dvh) - 2 * var(--auth-inset))
+    );
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--theme-border);
+    border-radius: 1.75rem;
+    background: var(--theme-surface);
+    box-shadow: 0 32px 100px rgba(25, 15, 28, 0.35);
+  }
+
+  .ak-auth-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid var(--theme-border);
+    border-radius: 50%;
+    background: var(--theme-surface);
+    color: var(--theme-text-muted);
+    box-shadow: 0 2px 8px rgba(44, 24, 16, 0.06);
+    transition:
+      background 160ms ease,
+      color 160ms ease;
+  }
+  .ak-auth-close:hover {
+    background: var(--theme-surface-alt);
+    color: var(--theme-text);
+  }
+
+  .ak-auth-art {
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    overflow: hidden;
+    background: #251c17;
+    color: white;
+  }
+  .ak-auth-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 48% center;
+  }
+  .ak-auth-art-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.3),
+      transparent 30%,
+      rgba(0, 0, 0, 0.75)
+    );
+  }
+  .ak-auth-brand {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 2rem;
+    font-family: Fraunces, Georgia, serif;
+    font-size: 1.125rem;
+  }
+  .ak-auth-caption {
+    position: absolute;
+    inset: auto 2rem 2.5rem;
+  }
+
+  .ak-auth-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 3rem clamp(1.5rem, 3vw, 3rem) 2rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--theme-border-strong) transparent;
+    scroll-padding-block: 1rem;
+  }
+  .ak-auth-content::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+  .ak-auth-content::-webkit-scrollbar-thumb {
+    background: var(--theme-border-strong);
+    border-radius: 999px;
+  }
+  .ak-auth-form-rail {
+    flex: none;
+    width: 100%;
+    max-width: 24rem;
+    min-width: 0;
+    margin-inline: auto;
+    margin-block: auto;
+  }
+  .ak-auth-intro {
+    margin-bottom: 1.75rem;
+  }
+  .ak-auth-intro .ak-eyebrow {
+    padding-right: 3rem;
+  }
+
+  @media (max-width: 767px) {
+    .ak-auth-card {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: clamp(6rem, 17dvh, 8.5rem) minmax(0, 1fr);
+      height: min(
+        44rem,
+        calc(var(--auth-viewport-height, 100dvh) - 2 * var(--auth-inset))
+      );
+      border-radius: 1.25rem;
+    }
+    .ak-auth-content {
+      padding: 1.5rem 1.25rem;
+    }
+    .ak-auth-brand {
+      margin: 0;
+      position: absolute;
+      bottom: 1.25rem;
+      left: 1.25rem;
+    }
+    .ak-auth-caption {
+      display: none;
+    }
+    .ak-auth-intro {
+      margin-bottom: 1.25rem;
+    }
+    .ak-auth-intro h2 {
+      font-size: 1.625rem;
+    }
+    .ak-auth-intro .ak-eyebrow {
+      display: none;
+    }
+  }
+
+  @media (min-width: 768px) and (max-height: 560px) {
+    .ak-auth-caption > p:last-child {
+      display: none;
+    }
+  }
+
+  .auth-panel {
+    min-width: 0;
+    width: 100%;
+  }
   .auth-panel [data-amplify-authenticator] {
+    --amplify-components-authenticator-container-width-max: 100%;
+    --amplify-components-authenticator-form-padding: 0;
+    --amplify-colors-background-primary: var(--theme-surface);
+    --amplify-colors-font-primary: var(--theme-text);
+    --amplify-colors-font-secondary: var(--theme-text-muted);
     --amplify-components-authenticator-router-box-shadow: none;
     --amplify-components-authenticator-router-border-width: 0;
     --amplify-components-authenticator-router-background-color: transparent;
@@ -361,6 +543,8 @@
     --amplify-colors-brand-primary-80: #5b21b6;
     --amplify-colors-brand-primary-90: #4338ca;
     width: 100%;
+    min-width: 0;
+    display: block;
   }
 
   .auth-panel [data-amplify-router] {
@@ -372,6 +556,49 @@
 
   .auth-panel [data-amplify-container] {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .auth-panel [data-amplify-form] {
+    padding: 0;
+    min-width: 0;
+  }
+  .auth-panel [data-amplify-footer] {
+    padding: 0;
+  }
+  .auth-panel fieldset,
+  .auth-panel .amplify-field-group__field-wrapper {
+    min-width: 0;
+  }
+  .auth-panel .amplify-input {
+    font-size: 1rem;
+  }
+  .auth-panel .amplify-input::placeholder {
+    color: var(--theme-text-muted);
+    opacity: 0.8;
+  }
+
+  .auth-panel .federated-sign-in-button {
+    border-color: var(--theme-border-strong);
+    background: var(--theme-surface);
+    color: var(--theme-text);
+  }
+  .auth-panel .amplify-divider::after {
+    background: var(--theme-surface);
+  }
+  .auth-panel .amplify-passwordfield .amplify-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .auth-panel
+    .amplify-passwordfield
+    .amplify-field-group__outer-end
+    .amplify-button {
+    border-radius: 0 0.625rem 0.625rem 0;
+    border-color: var(--theme-border-strong);
+    background: var(--theme-surface);
+    color: var(--theme-text-muted);
   }
 
   .auth-panel .amplify-tabs {
@@ -427,6 +654,8 @@
 
   .auth-panel .amplify-heading {
     letter-spacing: 0;
+    font-family: Fraunces, Georgia, serif;
+    color: var(--theme-text);
   }
 
   .confirmation-code-grid {
