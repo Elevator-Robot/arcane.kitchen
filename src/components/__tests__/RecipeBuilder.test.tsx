@@ -581,6 +581,9 @@ describe('RecipeBuilder Component', () => {
   });
 
   it('activates editor tag suggestions from the keyboard', async () => {
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe({ tags: ['Vegetarian', 'Quick'] })],
+    });
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));

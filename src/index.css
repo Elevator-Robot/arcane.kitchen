@@ -1261,4 +1261,34 @@
   form[data-amplify-authenticator-confirmsignup] .amplify-label {
     display: none;
   }
+
+  .ak-loading-sparkle {
+    animation: ak-loading-spin 9s linear infinite;
+    filter: drop-shadow(
+      0 0 12px color-mix(in srgb, currentColor 55%, transparent)
+    );
+  }
+
+  .ak-loading-breathe {
+    text-shadow: 0 0 20px color-mix(in srgb, currentColor 40%, transparent);
+    animation: ak-loading-breathe 2.6s ease-in-out infinite;
+  }
+
+  @keyframes ak-loading-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes ak-loading-breathe {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.78;
+      transform: scale(0.985);
+    }
+  }
 }

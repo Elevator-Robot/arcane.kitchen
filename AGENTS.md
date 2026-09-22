@@ -158,7 +158,7 @@ Authentication submission:
 - The Discover tag filters pick a random palette color on every filter click, applied as the selected button's background via inline `style` (Tailwind can't do dynamic arbitrary colors). All palette colors read well with white text.
 - Recipe tags in the Build editor/preview and expanded recipe modal receive stable random colors from the same palette when they load; dynamic colors use inline `style` values.
 - Profile navigation tabs use a cool-to-warm left-to-right progression from the same palette: Recipes, Drafts, then Saved.
-- The `Preparing your kitchen…` loading message uses one random Merlin palette color per display and has no surrounding card container.
+- The `Preparing your kitchen…` startup message uses one random Merlin palette color per display, sits above a slowly spinning sparkle, and gently breathes via `ak-loading-breathe`; both are pure-CSS so the global reduced-motion rule disables them. It has no surrounding card container.
 - The sign-in button (`Button` primary variant in `src/components/ui/Button.tsx`) uses amethyst/indigo tones from the palette.
 - Active and selected controls use `randomMerlinColor()` from `src/theme/merlinPalette.ts`; do not add hard-coded orange or brown button states.
 
