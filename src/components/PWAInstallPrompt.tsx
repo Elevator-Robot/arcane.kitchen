@@ -90,7 +90,7 @@ export default function PWAInstallPrompt() {
         </div>
         <button
           onClick={handleDismiss}
-          className="shrink-0 p-1 text-[var(--theme-text-muted)] hover:text-[var(--theme-text)] transition"
+          className="ak-button-ghost shrink-0 rounded-full p-2"
           aria-label="Dismiss"
         >
           <svg
