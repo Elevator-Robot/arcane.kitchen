@@ -18,15 +18,6 @@
     --theme-sage-strong: #4a663a;
     --theme-focus: rgba(109, 40, 217, 0.18);
     --theme-overlay: rgba(44, 24, 16, 0.64);
-    --ak-glass-blur: blur(7px);
-    --ak-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 28%);
-    --ak-glass-shadow: 0 3px 10px rgb(44 24 16 / 9%);
-    --ak-glass-sheen: linear-gradient(
-      180deg,
-      rgb(255 255 255 / 12%),
-      rgb(0 0 0 / 16%) 14%,
-      rgb(0 0 0 / 20%)
-    );
   }
 
   html {
@@ -67,8 +58,6 @@
   h4,
   h5,
   h6 {
-    user-select: none;
-    -webkit-user-select: none;
     font-family: Fraunces, Georgia, ui-serif, serif;
     font-weight: 600;
     letter-spacing: 0;
@@ -171,22 +160,15 @@
     padding: 0.625rem 1rem;
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 999px;
-    background: linear-gradient(135deg, rgb(0 0 0 / 22%), rgb(0 0 0 / 16%));
+    background: rgba(0, 0, 0, 0.12);
     color: white;
     font-size: 0.8125rem;
     font-weight: 700;
-    box-shadow:
-      var(--ak-glass-highlight),
-      0 3px 10px rgb(0 0 0 / 12%);
-    backdrop-filter: var(--ak-glass-blur);
-    transition:
-      background 160ms ease,
-      border-color 160ms ease,
-      box-shadow 160ms ease;
+    transition: background 160ms ease;
   }
 
-  .ak-banner-action:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgb(0 0 0 / 30%), rgb(0 0 0 / 22%));
+  .ak-banner-action:hover {
+    background: rgba(255, 255, 255, 0.15);
   }
   .ak-banner-action:focus-visible {
     outline-color: white;
@@ -312,264 +294,47 @@
     box-shadow: 0 0 0 4px var(--theme-focus);
   }
 
-  /* Opt-in controls: never blanket-style native buttons or alert dismiss icons. */
-  .ak-button-primary,
-  .ak-button-secondary,
-  .ak-button-danger,
-  .ak-button-danger-soft,
-  .ak-button-choice,
-  .ak-button-ghost,
-  .ak-button-image {
+  .ak-button-primary {
+    background: linear-gradient(
+      135deg,
+      var(--theme-accent),
+      color-mix(in srgb, var(--theme-accent) 75%, var(--theme-sage) 25%)
+    );
+    color: #fff;
+    box-shadow: 0 3px 9px rgba(67, 48, 101, 0.13);
+    transition:
+      background 160ms ease,
+      box-shadow 160ms ease;
+  }
+
+  .ak-button-primary:hover {
+    background: linear-gradient(
+      135deg,
+      var(--theme-accent-strong),
+      var(--theme-sage)
+    );
+  }
+
+  .ak-button-danger {
+    background-image: linear-gradient(135deg, #d94a4a, #8f1d1d);
+    background-color: transparent;
+    color: #fff;
+  }
+
+  .ak-button-danger:hover {
+    background-image: linear-gradient(135deg, #b91c1c, #7f1d1d);
+  }
+
+  .ak-button-secondary {
+    background: var(--theme-surface);
     border: 1px solid var(--theme-border-strong);
-    border-radius: 0.75rem;
-    font-weight: 600;
-    box-shadow: var(--ak-glass-highlight), var(--ak-glass-shadow);
-    backdrop-filter: var(--ak-glass-blur);
-    transition:
-      background-color 160ms ease,
-      border-color 160ms ease,
-      box-shadow 160ms ease,
-      color 160ms ease;
-  }
-  .ak-button-primary,
-  .ak-button-danger {
-    background-color: color-mix(in srgb, var(--theme-accent) 94%, transparent);
-    background-image: var(--ak-glass-sheen);
-    border-color: color-mix(in srgb, var(--theme-accent) 55%, white);
-    color: white;
-  }
-  .ak-button-secondary,
-  .ak-button-choice,
-  .ak-button-image {
-    background-color: color-mix(in srgb, var(--theme-surface) 74%, transparent);
-    background-image: linear-gradient(
-      135deg,
-      rgb(255 255 255 / 42%),
-      rgb(255 255 255 / 4%)
-    );
     color: var(--theme-text);
   }
-  .ak-button-danger {
-    background-color: #a92f3c;
-    border-color: #d59098;
-  }
-  .ak-button-danger-soft {
-    background-color: rgb(255 241 242 / 78%);
-    background-image: linear-gradient(
-      135deg,
-      rgb(255 255 255 / 50%),
-      transparent
-    );
-    border-color: #d8a1a7;
-    color: #942637;
-  }
-  .ak-button-ghost {
-    background: transparent;
-    border-color: transparent;
-    color: var(--theme-text-muted);
-    box-shadow: none;
-    backdrop-filter: none;
-  }
-  .ak-button-primary:hover:not(:disabled),
-  .ak-button-danger:hover:not(:disabled),
-  .ak-button-secondary:hover:not(:disabled),
-  .ak-button-choice:hover:not(:disabled),
-  .ak-button-image:hover:not(:disabled) {
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 45%),
-      0 5px 14px rgb(44 24 16 / 13%);
+
+  .ak-button-secondary:hover {
+    background: color-mix(in srgb, var(--theme-surface-alt) 82%, white 18%);
     border-color: var(--theme-accent);
-  }
-  .ak-button-primary:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--theme-accent) 35%, white);
-  }
-  .ak-button-danger:hover:not(:disabled),
-  .ak-button-danger-soft:hover:not(:disabled) {
-    border-color: #b84251;
-    box-shadow:
-      var(--ak-glass-highlight),
-      0 4px 12px rgb(148 38 55 / 14%);
-  }
-  .ak-button-danger-soft:hover:not(:disabled) {
-    background-color: #ffe4e6;
-  }
-  .ak-button-ghost:hover:not(:disabled),
-  .ak-button-ghost:focus-visible {
-    background: linear-gradient(
-      135deg,
-      rgb(255 255 255 / 45%),
-      color-mix(in srgb, var(--theme-surface-alt) 70%, transparent)
-    );
-    border-color: var(--theme-border);
-    box-shadow: var(--ak-glass-highlight);
-    color: var(--theme-text);
-  }
-  .ak-button-choice[aria-pressed='true'],
-  .ak-button-choice-active {
-    background-color: var(--theme-accent);
-    background-image: var(--ak-glass-sheen);
-    border-color: rgb(255 255 255 / 38%);
-    color: white;
-  }
-  .ak-button-image[aria-pressed='true'] {
-    outline: 2px solid var(--theme-accent);
-    outline-offset: 2px;
-  }
-  .ak-button-save[aria-pressed='true'] {
-    background-color: color-mix(
-      in srgb,
-      var(--theme-accent) 12%,
-      var(--theme-surface)
-    );
-    border-color: color-mix(
-      in srgb,
-      var(--theme-accent) 50%,
-      var(--theme-border)
-    );
     color: var(--theme-accent-strong);
-  }
-  .ak-button-choice:has(input:disabled) {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-  :is(
-    .ak-button-primary,
-    .ak-button-secondary,
-    .ak-button-danger,
-    .ak-button-danger-soft,
-    .ak-button-choice,
-    .ak-button-ghost,
-    .ak-button-image,
-    .ak-banner-action
-  ):disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    box-shadow: var(--ak-glass-highlight);
-  }
-  .ak-button-on-dark {
-    background: linear-gradient(
-      135deg,
-      rgb(24 18 32 / 78%),
-      rgb(24 18 32 / 68%)
-    );
-    border-color: rgb(255 255 255 / 35%);
-    color: white;
-  }
-  .ak-button-on-dark:focus-visible {
-    outline-color: white;
-  }
-  .ak-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.625rem 1rem;
-    color: var(--theme-text);
-    font-size: 0.875rem;
-  }
-  .ak-menu-item:hover,
-  .ak-menu-item:focus-visible {
-    background: linear-gradient(
-      135deg,
-      rgb(255 255 255 / 45%),
-      var(--theme-surface-alt)
-    );
-    box-shadow: var(--ak-glass-highlight);
-    outline-offset: -3px;
-  }
-
-  .ak-logo-button {
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    box-shadow: none;
-    transform-origin: center;
-    transition: transform 260ms cubic-bezier(0.22, 1.55, 0.36, 1);
-  }
-  .ak-tag-list {
-    scrollbar-width: thin;
-    scrollbar-color: var(--theme-border-strong) transparent;
-  }
-  .ak-tag-list::-webkit-scrollbar {
-    display: block;
-    width: 6px;
-  }
-  .ak-tag-list::-webkit-scrollbar-thumb {
-    background: var(--theme-border-strong);
-    border-radius: 999px;
-  }
-  .ak-logo-button:active {
-    transform: scale(0.9);
-    transition-duration: 90ms;
-    transition-timing-function: ease-out;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .ak-logo-button:active {
-      transform: none;
-    }
-  }
-
-  :is(
-    [data-ak-button],
-    .ak-button-primary,
-    .ak-button-secondary,
-    .ak-button-danger,
-    .ak-button-danger-soft,
-    .ak-button-choice,
-    .ak-button-ghost,
-    .ak-button-image,
-    .ak-menu-item,
-    .ak-banner-action,
-    .ak-auth-close,
-    .ak-auth-email-toggle
-  ),
-  .auth-panel .amplify-button:not(.amplify-alert__dismiss) {
-    user-select: none;
-    -webkit-user-select: none;
-    transition:
-      scale 180ms cubic-bezier(0.22, 1.4, 0.36, 1),
-      background-color 160ms ease,
-      border-color 160ms ease,
-      box-shadow 160ms ease,
-      color 160ms ease;
-  }
-  :is(
-      [data-ak-button],
-      .ak-button-primary,
-      .ak-button-secondary,
-      .ak-button-danger,
-      .ak-button-danger-soft,
-      .ak-button-choice,
-      .ak-button-ghost,
-      .ak-button-image,
-      .ak-menu-item,
-      .ak-banner-action,
-      .ak-auth-close,
-      .ak-auth-email-toggle
-    ):active:not(:disabled),
-  .auth-panel
-    .amplify-button:not(.amplify-alert__dismiss):active:not(:disabled) {
-    scale: 0.97;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    :is(
-      [data-ak-button],
-      .ak-button-primary,
-      .ak-button-secondary,
-      .ak-button-danger,
-      .ak-button-danger-soft,
-      .ak-button-choice,
-      .ak-button-ghost,
-      .ak-button-image,
-      .ak-menu-item,
-      .ak-banner-action,
-      .ak-auth-close,
-      .ak-auth-email-toggle
-    ):active,
-    .auth-panel .amplify-button:active {
-      scale: 1 !important;
-    }
   }
 
   .ak-muted {
@@ -584,329 +349,7 @@
     background: var(--theme-overlay);
   }
 
-  .ak-auth-overlay {
-    --auth-inset: clamp(0.75rem, 3vw, 2rem);
-    position: fixed;
-    inset: 0;
-    top: var(--auth-viewport-top, 0px);
-    bottom: auto;
-    height: var(--auth-viewport-height, 100dvh);
-    z-index: 60;
-    display: grid;
-    place-items: center;
-    padding: var(--auth-inset);
-    background: var(--theme-overlay);
-    backdrop-filter: blur(12px);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-
-  .ak-auth-card {
-    user-select: none;
-    -webkit-user-select: none;
-    position: relative;
-    width: min(
-      76rem,
-      100%,
-      calc((var(--auth-viewport-height, 100dvh) - 2 * var(--auth-inset)) * 1.5)
-    );
-    aspect-ratio: 3 / 2;
-    min-height: 0;
-    overflow: hidden;
-    border: 1px solid var(--theme-border);
-    border-radius: 1.75rem;
-    background: #171310;
-    box-shadow: 0 32px 100px rgba(25, 15, 28, 0.35);
-  }
-
-  .ak-auth-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    flex-shrink: 0;
-    z-index: 2;
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    border: 1px solid var(--theme-border);
-    border-radius: 50%;
-    background: var(--theme-surface);
-    color: var(--theme-text-muted);
-    box-shadow: 0 2px 8px rgba(44, 24, 16, 0.06);
-    transition:
-      background 160ms ease,
-      color 160ms ease;
-  }
-  .ak-auth-close:hover {
-    background: var(--theme-surface-alt);
-    color: var(--theme-text);
-  }
-
-  .ak-auth-art {
-    position: absolute;
-    inset: 0;
-    min-width: 0;
-    min-height: 0;
-    overflow: hidden;
-    background: #171310;
-    color: #f5e6ce;
-  }
-  .ak-auth-scene {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-  }
-  .ak-auth-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: center;
-  }
-  .ak-auth-sheet {
-    position: absolute;
-    top: 50%;
-    left: 47%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    width: min(28rem, 48%);
-    max-height: 88%;
-    min-height: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    color: #fff1db;
-  }
-  .ak-auth-content {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    width: 100%;
-    padding: 0.5rem 1.75rem 1.5rem;
-    border-radius: inherit;
-    scrollbar-width: thin;
-    scrollbar-color: var(--theme-border-strong) transparent;
-    scroll-padding-block: 1rem;
-  }
-  .ak-auth-content::-webkit-scrollbar {
-    display: block;
-    width: 6px;
-  }
-  .ak-auth-content::-webkit-scrollbar-thumb {
-    background: var(--theme-border-strong);
-    border-radius: 999px;
-  }
-  .ak-auth-form-rail {
-    flex: none;
-    width: 100%;
-    max-width: 24rem;
-    min-width: 0;
-    margin-inline: auto;
-    margin-block: auto;
-  }
-  .ak-auth-intro {
-    margin-bottom: 1.25rem;
-  }
-  .ak-auth-wordmark {
-    user-select: none;
-    -webkit-user-select: none;
-    font-family: Fraunces, Georgia, serif;
-    font-size: clamp(1.875rem, 3.5vw, 2.75rem);
-    font-weight: 500;
-    line-height: 1.15;
-    letter-spacing: -0.04em;
-    text-align: center;
-    padding-block: 0.25rem 0.5rem;
-  }
-  .ak-auth-wordmark span {
-    font-style: italic;
-    font-weight: 400;
-    margin-inline-end: 0.08em;
-  }
-  .ak-auth-card :is(h1, h2, h3, h4, h5, h6, legend, .amplify-heading) {
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  .ak-auth-card[data-compact] {
-    border-radius: 1rem;
-  }
-  .ak-auth-card[data-compact] .ak-auth-content {
-    padding: 0.25rem 0.5rem 0.75rem;
-  }
-  .ak-auth-card[data-compact] .ak-auth-sheet {
-    width: min(28rem, 90%);
-    max-height: 92%;
-    left: 50%;
-  }
-  .ak-auth-card[data-compact] .ak-auth-intro {
-    margin-bottom: 0.625rem;
-  }
-  .ak-auth-card[data-compact] .ak-auth-wordmark {
-    font-size: clamp(1.25rem, 6vw, 1.75rem);
-    padding-block: 0.125rem 0.25rem;
-  }
-  .ak-auth-card[data-compact] .ak-auth-close {
-    top: 0.25rem;
-    right: 0.25rem;
-  }
-  .ak-auth-card[data-compact]:has(
-      .ak-auth-methods[data-email-expanded='true'],
-      .auth-panel form:not([data-amplify-authenticator-signin])
-    ) {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: min(42rem, 100%);
-    height: auto;
-    max-height: calc(
-      var(--auth-viewport-height, 100dvh) - 2 * var(--auth-inset)
-    );
-    padding: 3rem 0.75rem 0.75rem;
-    aspect-ratio: auto;
-  }
-  .ak-auth-card[data-compact]:has(
-      .ak-auth-methods[data-email-expanded='true'],
-      .auth-panel form:not([data-amplify-authenticator-signin])
-    )
-    .ak-auth-sheet {
-    position: relative;
-    inset: auto;
-    transform: none;
-    width: min(28rem, 100%);
-    max-height: calc(
-      var(--auth-viewport-height, 100dvh) - 2 * var(--auth-inset) - 3.75rem -
-        2px
-    );
-  }
-  .ak-auth-card[data-compact]:has(
-      .ak-auth-methods[data-email-expanded='true'],
-      .auth-panel form:not([data-amplify-authenticator-signin])
-    )
-    .ak-auth-image {
-    object-fit: cover;
-    object-position: 47% center;
-  }
-  .auth-panel {
-    min-width: 0;
-    width: 100%;
-  }
-
-  /* Keep Amplify's native inputs mounted to preserve values while collapsed. */
-  .ak-auth-methods[data-email-expanded='false']
-    form[data-amplify-authenticator-signin]
-    fieldset,
-  .ak-auth-methods[data-email-expanded='false']
-    form[data-amplify-authenticator-signin]
-    button[type='submit'] {
-    display: none;
-  }
-  .ak-auth-methods[data-email-expanded='true']
-    form[data-amplify-authenticator-signin]
-    .federated-sign-in-container,
-  .ak-auth-methods[data-email-expanded='false']
-    form[data-amplify-authenticator-signin]
-    [role='alert'] {
-    display: none;
-  }
-  .ak-auth-methods form[data-amplify-authenticator-signin] .amplify-divider {
-    display: none;
-  }
-  .ak-auth-email-footer {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  .ak-auth-label-short {
-    display: none;
-  }
-  .ak-auth-card[data-compact]
-    .ak-auth-methods[data-email-expanded='true']
-    .ak-auth-email-footer {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  }
-  .ak-auth-card[data-compact] .ak-auth-email-footer .ak-auth-glass-secondary {
-    min-width: 0;
-    padding-inline: 0.5rem;
-    gap: 0.375rem;
-    font-size: 0.75rem;
-  }
-  .ak-auth-card[data-compact] .ak-auth-label-long {
-    display: none;
-  }
-  .ak-auth-card[data-compact] .ak-auth-label-short {
-    display: inline;
-  }
-  .ak-auth-email-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.625rem;
-    width: 100%;
-    min-height: 2.75rem;
-    padding: 0.65rem 1rem;
-    border: 1px solid var(--theme-border);
-    border-radius: 0.75rem;
-    background: transparent;
-    color: var(--theme-text);
-    font-size: 0.9375rem;
-    font-weight: 600;
-    transition:
-      background 160ms ease,
-      border-color 160ms ease;
-  }
-  .ak-auth-email-toggle:hover {
-    background: var(--theme-surface-alt);
-  }
-  .ak-auth-email-toggle:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-  }
-  .ak-auth-email-toggle-open {
-    border-color: transparent;
-    font-size: 0.8125rem;
-    font-weight: 400;
-  }
-  @keyframes ak-auth-email-reveal {
-    from {
-      opacity: 0;
-      transform: translateY(4px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  .ak-auth-methods[data-email-expanded='true']
-    form[data-amplify-authenticator-signin]
-    fieldset {
-    animation: ak-auth-email-reveal 180ms ease-out;
-  }
-  .ak-auth-card .ak-auth-email-toggle {
-    border-color: rgb(245 230 206 / 35%);
-    color: #fff1db;
-  }
-  .ak-auth-card .ak-auth-email-toggle:hover {
-    background: rgb(245 230 206 / 10%);
-  }
-  .ak-auth-card .ak-auth-email-toggle-open {
-    border-color: transparent;
-  }
   .auth-panel [data-amplify-authenticator] {
-    --amplify-components-authenticator-container-width-max: 100%;
-    --amplify-components-authenticator-form-padding: 0;
-    --amplify-colors-background-primary: var(--theme-surface);
-    --amplify-colors-font-primary: var(--theme-text);
-    --amplify-colors-font-secondary: var(--theme-text-muted);
     --amplify-components-authenticator-router-box-shadow: none;
     --amplify-components-authenticator-router-border-width: 0;
     --amplify-components-authenticator-router-background-color: transparent;
@@ -918,8 +361,6 @@
     --amplify-colors-brand-primary-80: #5b21b6;
     --amplify-colors-brand-primary-90: #4338ca;
     width: 100%;
-    min-width: 0;
-    display: block;
   }
 
   .auth-panel [data-amplify-router] {
@@ -931,52 +372,6 @@
 
   .auth-panel [data-amplify-container] {
     width: 100%;
-    max-width: 100%;
-    min-width: 0;
-  }
-
-  .auth-panel [data-amplify-form] {
-    padding: 0;
-    min-width: 0;
-  }
-  .auth-panel [data-amplify-footer] {
-    padding: 0;
-  }
-  .auth-panel fieldset,
-  .auth-panel .amplify-field-group__field-wrapper {
-    min-width: 0;
-  }
-  .auth-panel .amplify-input {
-    font-size: 1rem;
-  }
-  .auth-panel .amplify-input::placeholder {
-    color: var(--theme-text-muted);
-    opacity: 0.8;
-  }
-
-  .auth-panel .federated-sign-in-button {
-    border-color: var(--theme-border-strong);
-    background: var(--theme-surface);
-    color: var(--theme-text);
-  }
-  .auth-panel .amplify-divider::after {
-    background: var(--theme-surface);
-  }
-  .auth-panel .amplify-divider[data-label]::after {
-    top: 50%;
-  }
-  .auth-panel .amplify-passwordfield .amplify-input {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
-  .auth-panel
-    .amplify-passwordfield
-    .amplify-field-group__outer-end
-    .amplify-button {
-    border-radius: 0 0.625rem 0.625rem 0;
-    border-color: var(--theme-border-strong);
-    background: var(--theme-surface);
-    color: var(--theme-text-muted);
   }
 
   .auth-panel .amplify-tabs {
@@ -988,18 +383,11 @@
   }
 
   .auth-panel .amplify-button--primary {
-    background: linear-gradient(
-      135deg,
-      rgb(92 43 166 / 92%),
-      rgb(57 46 123 / 88%)
-    );
+    background: linear-gradient(135deg, #6d28d9, #4338ca);
     color: #fff;
-    border: 1px solid rgb(216 191 249 / 65%);
+    border: 0;
     border-radius: 0.5rem;
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 18%),
-      0 4px 16px rgb(17 10 30 / 16%);
-    backdrop-filter: var(--ak-glass-blur);
+    box-shadow: 0 1px 2px rgba(44, 24, 16, 0.15);
     font-size: 0.875rem;
     font-weight: 600;
     line-height: 1.25rem;
@@ -1009,11 +397,7 @@
   }
 
   .auth-panel .amplify-button--primary:hover {
-    background: linear-gradient(
-      135deg,
-      rgb(109 50 190 / 95%),
-      rgb(67 56 150 / 95%)
-    );
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
   }
 
   .auth-panel .amplify-button:not(.amplify-button--link) {
@@ -1033,7 +417,7 @@
     color: var(--theme-text);
     font-weight: 600;
   }
-  .auth-panel .amplify-button--link:not(.amplify-alert__dismiss) {
+  .auth-panel .amplify-button--link {
     color: var(--theme-accent-strong);
   }
   .auth-panel .amplify-input:focus {
@@ -1043,172 +427,6 @@
 
   .auth-panel .amplify-heading {
     letter-spacing: 0;
-    font-family: Fraunces, Georgia, serif;
-    color: var(--theme-text);
-  }
-
-  /* The full-size form sits directly on the wood, with contrast at each control. */
-  .ak-auth-card .ak-auth-intro {
-    text-shadow: 0 2px 8px rgb(0 0 0 / 65%);
-  }
-  .ak-auth-card .auth-panel .ak-eyebrow,
-  .ak-auth-card .ak-auth-intro p,
-  .ak-auth-card .auth-panel .amplify-label,
-  .ak-auth-card .auth-panel .amplify-heading {
-    color: #f7e8d2;
-  }
-  .ak-auth-card [data-amplify-authenticator] {
-    --amplify-colors-font-primary: #fff1db;
-    --amplify-colors-font-secondary: #e9d5bd;
-  }
-  .ak-auth-card .auth-panel .amplify-text {
-    color: inherit;
-  }
-  .ak-auth-card .auth-panel .amplify-input,
-  .ak-auth-card .auth-panel .federated-sign-in-button,
-  .ak-auth-card
-    .auth-panel
-    .amplify-passwordfield
-    .amplify-field-group__outer-end
-    .amplify-button,
-  .ak-auth-card .confirmation-code-input {
-    background: rgb(22 16 12 / 72%);
-    border-color: rgb(245 230 206 / 48%);
-    color: #fff1db;
-    box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
-  }
-  .ak-auth-card .auth-panel .amplify-input::placeholder {
-    color: #e4cfb7;
-    opacity: 0.85;
-  }
-  .ak-auth-card .auth-panel .amplify-button--link:not(.amplify-alert__dismiss) {
-    color: #ead6ff;
-    text-shadow: 0 1px 4px #140e0a;
-  }
-  .ak-auth-card .ak-auth-close {
-    background: rgb(22 16 12 / 45%);
-    border-color: rgb(245 230 206 / 35%);
-    color: #fff1db;
-    box-shadow: none;
-  }
-  .ak-auth-card .ak-auth-close:hover {
-    background: rgb(245 230 206 / 15%);
-  }
-  .ak-auth-card :where(button, input, a):focus-visible {
-    outline-color: #dfc0ff;
-  }
-  .ak-auth-card .auth-panel .amplify-divider[data-label] {
-    border: 0;
-    height: 1rem;
-    background:
-      linear-gradient(rgb(245 230 206 / 35%), rgb(245 230 206 / 35%)) left
-        center / calc(50% - 1.25rem) 1px no-repeat,
-      linear-gradient(rgb(245 230 206 / 35%), rgb(245 230 206 / 35%)) right
-        center / calc(50% - 1.25rem) 1px no-repeat;
-  }
-  .ak-auth-card .auth-panel .amplify-divider::after {
-    background: transparent;
-    color: #fff1db;
-  }
-
-  .auth-panel .ak-auth-glass-secondary,
-  .auth-panel .amplify-button--link:not(.amplify-alert__dismiss) {
-    width: 100%;
-    min-height: 2.75rem;
-    border: 1px solid var(--theme-border-strong);
-    border-radius: 0.75rem;
-    background: rgb(255 250 245 / 50%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 28%);
-    backdrop-filter: var(--ak-glass-blur);
-    color: var(--theme-text);
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-decoration: none;
-  }
-  .auth-panel .ak-auth-glass-secondary:hover,
-  .auth-panel .amplify-button--link:not(.amplify-alert__dismiss):hover {
-    background: var(--theme-surface-alt);
-  }
-  .ak-auth-card .auth-panel .amplify-button--primary {
-    background: linear-gradient(
-      135deg,
-      rgb(92 43 166 / 72%),
-      rgb(57 46 123 / 65%)
-    );
-  }
-  .ak-auth-card .auth-panel .amplify-button--primary:hover {
-    background: linear-gradient(
-      135deg,
-      rgb(109 50 190 / 85%),
-      rgb(67 56 150 / 80%)
-    );
-  }
-  .ak-auth-card .auth-panel .ak-auth-glass-secondary,
-  .ak-auth-card .auth-panel .amplify-button--link:not(.amplify-alert__dismiss) {
-    border-color: rgb(245 230 206 / 35%);
-    background: rgb(245 230 206 / 9%);
-    color: #fff1db;
-    text-shadow: none;
-  }
-  .ak-auth-card .auth-panel .ak-auth-glass-secondary:hover,
-  .ak-auth-card
-    .auth-panel
-    .amplify-button--link:not(.amplify-alert__dismiss):hover {
-    background: rgb(245 230 206 / 17%);
-  }
-
-  .auth-panel .amplify-alert {
-    display: grid;
-    grid-template-columns: 1rem minmax(0, 1fr) 2rem;
-    align-items: start;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid rgb(255 175 145 / 45%);
-    border-radius: 0.75rem;
-    background: rgb(59 25 19 / 92%);
-    color: #fff0e5;
-    text-align: left;
-  }
-  .auth-panel .amplify-alert > div {
-    min-width: 0;
-  }
-  .auth-panel .amplify-alert__icon {
-    font-size: 1rem;
-    padding-top: 0.2rem;
-  }
-  .auth-panel .amplify-alert__body {
-    font-size: 0.875rem;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-    word-break: normal;
-  }
-  .auth-panel .amplify-alert__dismiss {
-    width: 2rem;
-    min-width: 2rem;
-    height: 2rem;
-    min-height: 2rem;
-    padding: 0.25rem;
-    border: 0;
-    border-radius: 0.5rem;
-    background: transparent;
-    color: inherit;
-    box-shadow: none;
-    backdrop-filter: none;
-  }
-  .auth-panel .amplify-alert__dismiss:hover {
-    background: rgb(255 255 255 / 10%);
-  }
-
-  .ak-auth-card :is(.ak-auth-close, .ak-auth-email-toggle) {
-    transition:
-      scale 180ms cubic-bezier(0.22, 1.4, 0.36, 1),
-      background-color 160ms ease,
-      border-color 160ms ease;
-  }
-  .ak-auth-card :is(input, textarea) {
-    user-select: text;
-    -webkit-user-select: text;
   }
 
   .confirmation-code-grid {
@@ -1260,35 +478,5 @@
 
   form[data-amplify-authenticator-confirmsignup] .amplify-label {
     display: none;
-  }
-
-  .ak-loading-sparkle {
-    animation: ak-loading-spin 9s linear infinite;
-    filter: drop-shadow(
-      0 0 12px color-mix(in srgb, currentColor 55%, transparent)
-    );
-  }
-
-  .ak-loading-breathe {
-    text-shadow: 0 0 20px color-mix(in srgb, currentColor 40%, transparent);
-    animation: ak-loading-breathe 2.6s ease-in-out infinite;
-  }
-
-  @keyframes ak-loading-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes ak-loading-breathe {
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.78;
-      transform: scale(0.985);
-    }
   }
 }

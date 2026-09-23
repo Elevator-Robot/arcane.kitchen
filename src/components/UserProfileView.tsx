@@ -6,7 +6,6 @@ import DraftCard from './profile/DraftCard';
 import type { User, Recipe, Draft } from '../types/profile';
 import { Link } from 'react-router-dom';
 import { BookOpen, Plus } from 'lucide-react';
-import Button from './ui/Button';
 import {
   CustomizeSanctuary,
   SanctuaryBanner,
@@ -21,7 +20,6 @@ import {
 type Props = {
   user: User;
   publishedRecipes: Recipe[];
-  isLoadingRecipes?: boolean;
   draftRecipes?: Draft[];
   savedRecipes?: Recipe[];
   onSelectPreset?: (file: string) => void;
@@ -46,7 +44,6 @@ type Props = {
 export default function UserProfileView({
   user,
   publishedRecipes,
-  isLoadingRecipes = false,
   draftRecipes = [],
   savedRecipes = [],
   onRecipeOptions,
@@ -146,66 +143,47 @@ export default function UserProfileView({
                   : 'Treasures worth keeping'}
             </h2>
             <p className="mt-2 text-xs text-[var(--theme-text-muted)]">
-              {visibleTab === 'recipes' &&
-              isLoadingRecipes &&
-              !publishedRecipes.length
-                ? 'Loading recipes…'
-                : visibleTab === 'recipes'
-                  ? `${publishedRecipes.length} shared ${publishedRecipes.length === 1 ? 'recipe' : 'recipes'} · ${publishedRecipes.reduce((sum, recipe) => sum + (recipe.saves || 0), 0)} community saves`
-                  : visibleTab === 'drafts'
-                    ? 'Unfinished ideas have a home here.'
-                    : 'A collection of inspiration from other kitchens.'}
+              {visibleTab === 'recipes'
+                ? `${publishedRecipes.length} shared ${publishedRecipes.length === 1 ? 'recipe' : 'recipes'} · ${publishedRecipes.reduce((sum, recipe) => sum + (recipe.saves || 0), 0)} community saves`
+                : visibleTab === 'drafts'
+                  ? 'Unfinished ideas have a home here.'
+                  : 'A collection of inspiration from other kitchens.'}
             </p>
           </div>
           {isOwnProfile && onNewRecipe && visibleTab !== 'saved' && (
-            <Button type="button" onClick={onNewRecipe}>
+            <button
+              type="button"
+              onClick={onNewRecipe}
+              className="ak-button-primary inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold"
+            >
               <Plus className="h-4 w-4" aria-hidden="true" />
               Create recipe
-            </Button>
+            </button>
           )}
         </div>
         <div>
-          {visibleTab === 'recipes' &&
-            !publishedRecipes.length &&
-            isLoadingRecipes && (
-              <div
-                role="status"
-                aria-label="Loading profile recipes"
-                className="grid gap-4 sm:grid-cols-2"
-              >
-                {[0, 1].map((index) => (
-                  <div
-                    key={index}
-                    aria-hidden="true"
-                    className="ak-panel h-48 bg-[var(--theme-surface-alt)]"
-                  />
-                ))}
-              </div>
-            )}
-          {visibleTab === 'recipes' &&
-            !publishedRecipes.length &&
-            !isLoadingRecipes && (
-              <div className="rounded-2xl border border-dashed border-[var(--theme-border)] p-8 text-center">
-                <p className="font-heading text-xl">
-                  {isOwnProfile
-                    ? 'Your grimoire starts with a single recipe.'
-                    : 'A new story is simmering.'}
-                </p>
-                <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-                  {isOwnProfile
-                    ? 'Share a family favorite, a brave experiment, or your everyday comfort food.'
-                    : 'This cook hasn’t shared a recipe yet. There’s plenty more magic to discover.'}
-                </p>
-                {!isOwnProfile && (
-                  <Link
-                    to="/discover"
-                    className="mt-4 inline-flex text-sm font-semibold text-[var(--theme-accent)]"
-                  >
-                    Explore other kitchens →
-                  </Link>
-                )}
-              </div>
-            )}
+          {visibleTab === 'recipes' && !publishedRecipes.length && (
+            <div className="rounded-2xl border border-dashed border-[var(--theme-border)] p-8 text-center">
+              <p className="font-heading text-xl">
+                {isOwnProfile
+                  ? 'Your grimoire starts with a single recipe.'
+                  : 'A new story is simmering.'}
+              </p>
+              <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                {isOwnProfile
+                  ? 'Share a family favorite, a brave experiment, or your everyday comfort food.'
+                  : 'This cook hasn’t shared a recipe yet. There’s plenty more magic to discover.'}
+              </p>
+              {!isOwnProfile && (
+                <Link
+                  to="/discover"
+                  className="mt-4 inline-flex text-sm font-semibold text-[var(--theme-accent)]"
+                >
+                  Explore other kitchens →
+                </Link>
+              )}
+            </div>
+          )}
           {visibleTab === 'recipes' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {publishedRecipes.map((r) => (

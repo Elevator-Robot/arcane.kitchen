@@ -1,5 +1,4 @@
 import { MERLIN_PALETTE } from '../../theme/merlinPalette';
-import Button from '../ui/Button';
 
 export type TabKey = 'recipes' | 'drafts' | 'saved';
 
@@ -19,77 +18,68 @@ export default function NavigationTabs({
   onChange,
 }: Props) {
   const tabColors: Record<TabKey, string> = {
-    recipes: MERLIN_PALETTE[2],
+    recipes: MERLIN_PALETTE[7],
     drafts: MERLIN_PALETTE[1],
     saved: MERLIN_PALETTE[5],
   };
-  const tabClass = 'rounded-full px-3 py-2.5 text-sm sm:px-5';
+  const tabClass = (key: TabKey) =>
+    `flex items-center gap-2 py-4 px-3 text-sm font-semibold transition ${active === key ? 'border-b-2' : 'text-gray-500 hover:text-gray-700'}`;
 
   return (
     <nav
       aria-label="Your recipe collections"
-      className="border-t border-[var(--theme-border)] px-2 py-3 sm:px-4"
+      className="border-t border-[var(--theme-border)] px-2 py-2 sm:px-4"
     >
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-        <Button
-          variant="choice"
-          size="none"
+      <div className="flex items-center justify-center gap-2 sm:gap-8">
+        <button
           type="button"
           onClick={() => onChange('recipes')}
           aria-pressed={active === 'recipes'}
-          className={tabClass}
+          className={tabClass('recipes')}
           style={
             active === 'recipes'
-              ? { backgroundColor: tabColors.recipes }
+              ? { color: tabColors.recipes, borderColor: tabColors.recipes }
               : undefined
           }
         >
           <span className="">Recipes</span>
-        </Button>
+        </button>
 
         {showPrivateTabs && (
           <>
-            <Button
-              variant="choice"
-              size="none"
+            <button
               type="button"
               onClick={() => onChange('drafts')}
               aria-pressed={active === 'drafts'}
-              className={tabClass}
+              className={tabClass('drafts')}
               style={
                 active === 'drafts'
-                  ? { backgroundColor: tabColors.drafts }
+                  ? { color: tabColors.drafts, borderColor: tabColors.drafts }
                   : undefined
               }
             >
               <span>Drafts</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${active === 'drafts' ? 'bg-white/15 text-white' : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)]'}`}
-              >
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
                 {draftsCount}
               </span>
-            </Button>
+            </button>
 
-            <Button
-              variant="choice"
-              size="none"
+            <button
               type="button"
               onClick={() => onChange('saved')}
               aria-pressed={active === 'saved'}
-              className={tabClass}
+              className={tabClass('saved')}
               style={
                 active === 'saved'
-                  ? { backgroundColor: tabColors.saved }
+                  ? { color: tabColors.saved, borderColor: tabColors.saved }
                   : undefined
               }
             >
               <span>Saved</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${active === 'saved' ? 'bg-white/15 text-white' : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)]'}`}
-              >
+              <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
                 {savedCount}
               </span>
-            </Button>
+            </button>
           </>
         )}
       </div>
