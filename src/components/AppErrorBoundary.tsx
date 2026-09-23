@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import ErrorArtwork from './ErrorArtwork';
+import Button from './ui/Button';
 
 export function AppErrorFallback() {
   return (
@@ -12,13 +13,9 @@ export function AppErrorFallback() {
           recipes.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="ak-button-primary rounded-xl px-5 py-3 font-semibold"
-          >
+          <Button type="button" onClick={() => window.location.reload()}>
             Reload kitchen
-          </button>
+          </Button>
           <a
             href="/discover"
             className="ak-button-secondary rounded-xl px-5 py-3 font-semibold"
