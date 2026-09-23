@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 
 /** Keyboard containment and focus restoration for the account overlay. */
 export default function AccessibleDialog({
@@ -6,12 +6,14 @@ export default function AccessibleDialog({
   onClose,
   label,
   className,
+  style,
   dismissOnBackdrop = false,
 }: {
   children: ReactNode;
   onClose: () => void;
   label: string;
   className?: string;
+  style?: CSSProperties;
   dismissOnBackdrop?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -70,6 +72,7 @@ export default function AccessibleDialog({
       aria-modal="true"
       aria-label={label}
       tabIndex={-1}
+      style={style}
       onClick={(event) => {
         if (dismissOnBackdrop && event.target === event.currentTarget)
           onClose();

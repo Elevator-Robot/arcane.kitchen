@@ -1,11 +1,33 @@
 # Admin Dashboard
 
-Status: planning
+Status: implemented console UI; backend enforcement and linked-record cleanup follow-ups remain
 
-Branch: `feat/admin-dashboard`
+Current UI branch: `deploy/profile-refresh-admin-polish`
 
 This document is the source of truth for the admin-dashboard work. Update the
 progress and decisions sections as implementation proceeds.
+
+## Console usability update
+
+- Search recipes by title, description, owner, or ID; comments by text, author,
+  recipe ID, or user ID; users by name, handle, email, or ID.
+- Filter content by visibility and users by moderation state. Search/filter changes
+  reset paging; results show counts, clear actions, and ten-row pages.
+- Recipe/comment reads follow all backend pages before presenting collection totals.
+  Failed refreshes preserve the last loaded records; unloaded failures are not shown
+  as empty collections. Loading and unavailable totals use a dash.
+- Recipe/conversation links provide context. User status badges distinguish active,
+  disabled, banned, content-hidden, and deleted accounts.
+- Existing destructive confirmations now use `AccessibleDialog` with keyboard focus
+  containment and Escape/Cancel support. No write occurs until confirmation.
+- Pending actions are deduplicated and disable conflicting controls. GraphQL error
+  responses do not remove rows or close successful-looking editors. Confirmed writes
+  show a dismissible success message; raw diagnostics remain in console logs.
+- The users table is keyboard-scrollable, with a mobile horizontal-scroll hint.
+- Ownership transfers now call the existing `adminActions` transfer operation,
+  including its preflight validation and audit log, instead of directly updating a
+  recipe's owner fields. Backend permissions are unchanged. The remaining backend
+  caveats below still apply.
 
 ## Goal
 
@@ -104,9 +126,11 @@ ordinary users.
   action confirmations.
 - [x] Build the initial scrollable user-management table.
 - [x] Build ownership-transfer UI and confirmation flows.
-- [ ] Add visible admin-context and destructive-action warnings.
-- [ ] Add unit, integration, and authorization tests.
-- [ ] Update application documentation and deployment notes.
+- [x] Add visible admin-context and destructive-action confirmations.
+- [x] Add client workflow and collection-helper tests, including non-admin UI access.
+- [ ] Validate backend authorization and moderation enforcement against a deployed environment.
+- [x] Add collection search, status filters, paging, and request/action feedback.
+- [x] Update application documentation and deployment notes.
 
 ## Decisions To Make
 
