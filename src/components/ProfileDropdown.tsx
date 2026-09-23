@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bookmark, FilePenLine } from 'lucide-react';
 import { randomMerlinColor } from '../theme/merlinPalette';
-import Button from './ui/Button';
 
 type Props = {
   profilePath: string;
@@ -65,16 +64,13 @@ export default function ProfileDropdown({
           setOpen(false);
       }}
     >
-      <Button
-        variant="secondary"
-        size="none"
+      <button
         ref={triggerRef}
         aria-label={`Account for ${displayLabel}`}
         type="button"
         onClick={() => setOpen((current) => !current)}
         aria-expanded={open}
-        style={open ? { borderColor: activeColor } : undefined}
-        className="group flex items-center gap-2 rounded-full px-2 py-1"
+        className="group flex items-center gap-2 rounded-full border border-transparent px-2 py-1 transition hover:border-[var(--theme-border)] hover:bg-[var(--theme-surface-alt)]"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--theme-accent)] text-sm font-semibold text-white shadow-md">
           {avatarUrl ? (
@@ -90,6 +86,7 @@ export default function ProfileDropdown({
         </span>
         <span
           className={`hidden max-w-[120px] truncate text-sm font-medium text-[var(--theme-text)] transition-all duration-300 sm:inline ${open ? 'translate-x-1' : ''} group-hover:translate-x-1`}
+          style={open ? { color: activeColor } : undefined}
         >
           {displayLabel}
         </span>
@@ -106,17 +103,16 @@ export default function ProfileDropdown({
             d="M19 9l-7 7-7-7"
           />
         </svg>
-      </Button>
+      </button>
       {open && (
         <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-lg">
-          <Button
-            variant="menu"
-            size="none"
+          <button
             type="button"
             onClick={() => {
               navigate(profilePath);
               setOpen(false);
             }}
+            className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
           >
             <svg
               className="h-4 w-4 text-[var(--theme-text-muted)]"
@@ -132,11 +128,11 @@ export default function ProfileDropdown({
               />
             </svg>
             Profile
-          </Button>
+          </button>
           <Link
             to="/saved"
             onClick={() => setOpen(false)}
-            className="ak-menu-item"
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
           >
             <Bookmark className="h-4 w-4" aria-hidden="true" />
             Saved recipes
@@ -144,20 +140,19 @@ export default function ProfileDropdown({
           <Link
             to="/drafts"
             onClick={() => setOpen(false)}
-            className="ak-menu-item"
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
           >
             <FilePenLine className="h-4 w-4" aria-hidden="true" />
             Recipe drafts
           </Link>
           {isAdmin && (
-            <Button
-              variant="menu"
-              size="none"
+            <button
               type="button"
               onClick={() => {
                 navigate('/admin');
                 setOpen(false);
               }}
+              className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
             >
               <svg
                 className="h-4 w-4 text-[var(--theme-text-muted)]"
@@ -178,14 +173,14 @@ export default function ProfileDropdown({
                 />
               </svg>
               Admin dashboard
-            </Button>
+            </button>
           )}
           <div className="my-1 border-t border-[var(--theme-border)]" />
           <a
             href="https://x.com/ElevatorRobot"
             target="_blank"
             rel="noopener noreferrer"
-            className="ak-menu-item"
+            className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
           >
             <svg
               className="h-4 w-4 text-[var(--theme-text-muted)]"
@@ -196,7 +191,11 @@ export default function ProfileDropdown({
             </svg>
             Feedback &amp; Support
           </a>
-          <Button variant="menu" size="none" type="button" onClick={onSignOut}>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="flex w-full items-center gap-3 px-4 py-2 text-sm text-[var(--theme-text)] transition hover:bg-[var(--theme-surface-alt)]"
+          >
             <svg
               className="h-4 w-4 text-[var(--theme-text-muted)]"
               fill="none"
@@ -211,7 +210,7 @@ export default function ProfileDropdown({
               />
             </svg>
             Logout
-          </Button>
+          </button>
         </div>
       )}
     </div>

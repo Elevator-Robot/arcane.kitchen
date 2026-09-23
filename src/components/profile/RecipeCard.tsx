@@ -1,6 +1,5 @@
 import { Heart, MessageCircle, MoreVertical } from 'lucide-react';
 import type { Recipe } from '../../types/profile';
-import Button from '../ui/Button';
 
 type Props = {
   recipe: Recipe;
@@ -42,9 +41,7 @@ export default function RecipeCard({
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
           <h3 className="mb-1 line-clamp-2 font-semibold text-[var(--theme-text)]">
-            <Button
-              variant="unstyled"
-              size="none"
+            <button
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
@@ -53,7 +50,7 @@ export default function RecipeCard({
               className="text-left hover:text-[var(--theme-accent)]"
             >
               {recipe.title}
-            </Button>
+            </button>
           </h3>
           <p className="mb-4 text-xs text-[var(--theme-text-muted)]">
             {recipe.time}
@@ -68,20 +65,21 @@ export default function RecipeCard({
                 {recipe.comments}
               </span>
             )}
-            <Button
-              variant="secondary"
-              size="none"
+            <button
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
                 onToggleFavorite?.(String(recipe.id));
               }}
               disabled={isPendingFavorite || !onToggleFavorite}
-              aria-pressed={isFavorited}
               aria-label={
                 isFavorited ? `Unsave ${recipe.title}` : `Save ${recipe.title}`
               }
-              className="ak-button-save gap-1.5 rounded-full px-3 py-2 text-sm disabled:opacity-60"
+              className={`inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
+                isFavorited
+                  ? 'text-fuchsia-600'
+                  : 'text-[var(--theme-text-muted)] hover:text-fuchsia-600'
+              }`}
             >
               <Heart
                 className="h-4 w-4"
@@ -89,23 +87,21 @@ export default function RecipeCard({
                 aria-hidden="true"
               />
               <span>{recipe.saves ?? 0}</span>
-            </Button>
+            </button>
           </div>
 
           {onOptions && (
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               type="button"
               aria-label={`Edit ${recipe.title}`}
               onClick={(e) => {
                 e.stopPropagation();
                 onOptions(recipe.id);
               }}
-              className="rounded-full"
+              className="rounded p-2 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
             >
               <MoreVertical className="w-4 h-4" aria-hidden="true" />
-            </Button>
+            </button>
           )}
         </div>
       </div>

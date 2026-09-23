@@ -132,7 +132,7 @@ export default function ProfileHeader({
                   setSelectedPreset(null);
                   setShowAvatarModal(true);
                 }}
-                className="ak-button-secondary absolute bottom-2 right-2 rounded-full p-2.5"
+                className="absolute bottom-2 right-2 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] p-2 shadow transition hover:bg-[var(--theme-surface-alt)]"
                 aria-label="update avatar"
               >
                 <Camera className="w-4 h-4" style={{ color: actionColor }} />
@@ -160,7 +160,7 @@ export default function ProfileHeader({
                         }}
                         aria-label="edit username"
                         disabled={usernameChangeLocked}
-                        className="ak-button-ghost rounded-full p-2 disabled:opacity-50"
+                        className="rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {usernameChangeLocked ? (
                           <Lock className="h-3.5 w-3.5" />
@@ -216,7 +216,7 @@ export default function ProfileHeader({
                         onProfileUpdated({ handle: desired });
                     }}
                     style={{ backgroundColor: actionColor }}
-                    className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                    className="rounded px-3 py-2 text-white"
                   >
                     Save
                   </button>
@@ -225,7 +225,7 @@ export default function ProfileHeader({
                       setIsEditingHandle(false);
                       setDraftHandle(user.handle || '');
                     }}
-                    className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                    className="rounded border border-[var(--theme-border)] px-3 py-2"
                   >
                     Cancel
                   </button>
@@ -257,7 +257,7 @@ export default function ProfileHeader({
                             setIsEditingBio(true);
                           }}
                           aria-label="edit bio"
-                          className="ak-button-ghost -ml-1 shrink-0 rounded-full p-2"
+                          className="-ml-1 rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -277,7 +277,7 @@ export default function ProfileHeader({
                             setIsEditingBio(true);
                           }}
                           aria-label="edit bio"
-                          className="ak-button-ghost shrink-0 rounded-full p-2"
+                          className="rounded-full p-1 text-[var(--theme-text-muted)] hover:bg-[var(--theme-surface-alt)]"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -301,7 +301,7 @@ export default function ProfileHeader({
                         setIsEditingBio(false);
                         setDraftBio(user.bio || '');
                       }}
-                      className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                      className="rounded border border-[var(--theme-border)] px-3 py-2"
                     >
                       Cancel
                     </button>
@@ -319,7 +319,7 @@ export default function ProfileHeader({
                           onProfileUpdated({ bio: draftBio });
                       }}
                       style={{ backgroundColor: actionColor }}
-                      className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                      className="rounded px-3 py-2 text-white"
                     >
                       Save
                     </button>
@@ -345,7 +345,7 @@ export default function ProfileHeader({
               onClick={handleShareProfile}
               aria-label="Share profile"
               title="Share profile"
-              className="ak-button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm"
+              className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm font-medium text-[var(--theme-text-muted)] transition hover:text-[var(--theme-text)]"
             >
               <Share className="h-4 w-4" aria-hidden="true" />
               {copied ? 'Copied!' : 'Share'}
@@ -365,7 +365,7 @@ export default function ProfileHeader({
               <button
                 onClick={() => setShowAvatarModal(false)}
                 aria-label="Close avatar picker"
-                className="ak-button-ghost rounded-full p-2"
+                className="p-1 rounded-md text-gray-600 hover:bg-[var(--theme-surface-alt)]"
               >
                 <X size={16} />
               </button>
@@ -383,7 +383,7 @@ export default function ProfileHeader({
                     setShowAvatarModal(false);
                     setSelectedPreset(null);
                   }}
-                  className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                  className="rounded border px-3 py-1"
                 >
                   Cancel
                 </button>
@@ -396,7 +396,7 @@ export default function ProfileHeader({
                     }
                   }}
                   style={{ backgroundColor: actionColor }}
-                  className="ak-button-primary rounded-xl px-4 py-2 text-sm disabled:opacity-50"
+                  className="rounded px-3 py-1 text-white disabled:opacity-50"
                 >
                   Save Picture
                 </button>

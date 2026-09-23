@@ -14,15 +14,12 @@ import {
   signUp,
 } from 'aws-amplify/auth';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import AuthModal, { AuthIntro } from './components/AuthModal';
+import AccessibleDialog from './components/AccessibleDialog';
 import ErrorArtwork from './components/ErrorArtwork';
 import { sanctuaryThemeStyle } from './theme/sanctuaryTheme';
 import RecipeBuilder from './components/RecipeBuilder';
 import AdminDashboard from './components/AdminDashboard';
-import {
-  AuthSignInOptions,
-  EmailSignInFooter,
-} from './components/AuthSignInOptions';
+import SignInForm from './components/SignInForm';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { randomMerlinColor } from './theme/merlinPalette';
 import {
@@ -243,6 +240,14 @@ export const authServices = {
     return request;
   },
 };
+
+function CustomSignIn() {
+  return (
+    <div>
+      <SignInForm />
+    </div>
+  );
+}
 
 function ConfirmationCodeHeader() {
   const [code, setCode] = useState(Array(6).fill(''));
@@ -549,31 +554,31 @@ function App({ pathname }: AppProps = {}) {
     setShowAuth(false);
   }, [refreshAuthState]);
 
+  const submitAuthFormOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.metaKey ||
+      event.ctrlKey
+    ) {
+      return;
+    }
+
+    const target = event.target as HTMLElement;
+    const form = target.closest('form');
+
+    if (!form) return;
+
+    event.preventDefault();
+    form.requestSubmit();
+  };
+
   if (!isAuthInitialized) {
     return (
       <div className="flex h-screen h-dvh items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
-        <div className="flex flex-col items-center gap-3">
-          <span
-            className="ak-loading-sparkle"
-            style={{ color: loadingColor }}
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="h-5 w-5"
-              aria-hidden="true"
-            >
-              <path d="M12 0c.9 6.3 5.5 11 11.9 12C18.5 13 13.9 17.7 13 24c-.9-6.3-5.5-11-11.9-12C6.5 11 11.1 6.3 12 0Z" />
-            </svg>
-          </span>
-          <span
-            className="ak-loading-breathe text-sm font-medium"
-            style={{ color: loadingColor }}
-          >
-            Preparing your kitchen…
-          </span>
-        </div>
+        <span className="text-sm font-medium" style={{ color: loadingColor }}>
+          Preparing your kitchen…
+        </span>
       </div>
     );
   }
@@ -624,35 +629,77 @@ function App({ pathname }: AppProps = {}) {
         onProfileSaved={() => void refreshAuthState()}
       />
 
-      {!showAuth && <PWAInstallPrompt />}
+      <PWAInstallPrompt />
 
       {showAuth && (
-        <AuthModal onClose={() => setShowAuth(false)}>
-          {authNotice && (
-            <div
-              role="alert"
-              className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
-            >
-              {authNotice}
+        <AccessibleDialog
+          label="Sign in to Arcane Kitchen"
+          onClose={() => setShowAuth(false)}
+        >
+          <div className="mx-auto flex min-h-full w-full max-w-4xl items-center justify-center">
+            <div className="ak-panel relative grid w-full overflow-hidden shadow-2xl md:grid-cols-2">
+              <section className="relative flex min-h-52 flex-col justify-end p-6 text-white md:min-h-[540px] md:p-8">
+                <img
+                  src="/images/member-kitchen-hero.webp"
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                <div className="relative max-w-sm pr-12 md:pr-0">
+                  <p className="ak-eyebrow text-white/80">Member kitchen</p>
+                  <h2 className="mt-3 text-2xl md:text-4xl">
+                    Share recipes people want to save
+                  </h2>
+                  <p className="mt-3 hidden text-sm leading-7 text-white/85 md:block">
+                    Publish your creations, save favorites, and make your
+                    kitchen sanctuary your own.
+                  </p>
+                </div>
+              </section>
+              <button
+                type="button"
+                onClick={() => setShowAuth(false)}
+                className="ak-button-secondary absolute right-4 top-4 z-10 rounded-full px-4 py-2 text-sm font-semibold"
+              >
+                Close
+              </button>
+              <section className="p-5 sm:p-8">
+                <div className="mb-5 md:mt-10">
+                  <h2 className="text-2xl">Your member kitchen</h2>
+                  <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                    Sign in to save recipes and share your own.
+                  </p>
+                </div>
+                <div
+                  className="auth-panel relative mx-auto w-full max-w-md"
+                  onKeyDown={submitAuthFormOnEnter}
+                >
+                  {authNotice && (
+                    <div
+                      role="alert"
+                      className="mb-4 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+                    >
+                      {authNotice}
+                    </div>
+                  )}
+                  <Authenticator
+                    hideSignUp
+                    components={{
+                      SignIn: CustomSignIn as any,
+                      ConfirmSignUp: {
+                        Header: ConfirmationCodeHeader,
+                      },
+                    }}
+                    formFields={authFormFields}
+                    services={authServices}
+                  >
+                    {() => <AuthSuccess onComplete={handleAuthComplete} />}
+                  </Authenticator>
+                </div>
+              </section>
             </div>
-          )}
-          <AuthSignInOptions>
-            <Authenticator
-              hideSignUp
-              components={{
-                Header: AuthIntro,
-                SignIn: { Footer: EmailSignInFooter },
-                ConfirmSignUp: {
-                  Header: ConfirmationCodeHeader,
-                },
-              }}
-              formFields={authFormFields}
-              services={authServices}
-            >
-              {() => <AuthSuccess onComplete={handleAuthComplete} />}
-            </Authenticator>
-          </AuthSignInOptions>
-        </AuthModal>
+          </div>
+        </AccessibleDialog>
       )}
     </div>
   );

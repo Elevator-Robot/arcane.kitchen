@@ -24,7 +24,6 @@ import {
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
-import Button from '../ui/Button';
 
 export function SanctuaryBanner({
   identity,
@@ -48,15 +47,14 @@ export function SanctuaryBanner({
           sanctuary
         </p>
         {onCustomize && (
-          <Button
-            variant="banner"
-            size="none"
+          <button
             type="button"
             onClick={onCustomize}
+            className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/15 px-4 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-white/15"
           >
             <WandSparkles className="h-4 w-4" aria-hidden="true" />
             Customize sanctuary
-          </Button>
+          </button>
         )}
       </div>
       <div className={`relative max-w-2xl ${compact ? 'mt-4' : 'mt-7'}`}>
@@ -154,9 +152,7 @@ export function SignatureRecipe({
 }) {
   return (
     <section className="relative overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)]">
-      <Button
-        variant="unstyled"
-        size="none"
+      <button
         type="button"
         onClick={() => onOpen(recipe.id)}
         className="group grid w-full text-left sm:grid-cols-[220px_1fr]"
@@ -192,7 +188,7 @@ export function SignatureRecipe({
             />
           </span>
         </div>
-      </Button>
+      </button>
     </section>
   );
 }
@@ -262,17 +258,15 @@ export function CustomizeSanctuary({
               are public.
             </p>
           </div>
-          <Button
-            variant="secondary"
-            size="icon"
+          <button
             type="button"
             onClick={onClose}
             disabled={pending}
             aria-label="Close customization"
-            className="rounded-full disabled:opacity-50"
+            className="rounded-full p-2 hover:bg-[var(--theme-surface-alt)] disabled:opacity-50"
           >
             <X className="h-5 w-5" />
-          </Button>
+          </button>
         </header>
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_280px]">
           <fieldset disabled={pending} className="min-w-0 space-y-7">
@@ -282,14 +276,12 @@ export function CustomizeSanctuary({
               </legend>
               <div className="mt-3 grid grid-cols-2 gap-3">
                 {KITCHEN_THEMES.map((theme) => (
-                  <Button
-                    variant="image"
-                    size="none"
+                  <button
                     key={theme.id}
                     type="button"
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
-                    className="overflow-hidden rounded-xl text-left"
+                    className="overflow-hidden rounded-xl border border-[var(--theme-border)] text-left focus-visible:ring-2 focus-visible:ring-[var(--theme-accent)]"
                   >
                     <span
                       className="flex h-16 items-center justify-between px-4 text-3xl text-white"
@@ -303,7 +295,7 @@ export function CustomizeSanctuary({
                     <span className="block px-3 py-2 text-xs font-semibold">
                       {theme.name}
                     </span>
-                  </Button>
+                  </button>
                 ))}
               </div>
             </fieldset>
@@ -316,20 +308,18 @@ export function CustomizeSanctuary({
               </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
-                  <Button
-                    variant="choice"
-                    size="none"
+                  <button
                     type="button"
                     key={calling.id}
                     aria-pressed={draft.calling === calling.id}
                     onClick={() => setField('calling', calling.id)}
-                    className="rounded-xl p-3 text-left text-sm"
+                    className={`rounded-xl border p-3 text-left text-sm transition ${draft.calling === calling.id ? 'border-[var(--theme-accent)] bg-[var(--theme-focus)]' : 'border-[var(--theme-border)] hover:bg-[var(--theme-surface-alt)]'}`}
                   >
                     <span aria-hidden="true" className="mr-2">
                       {calling.icon}
                     </span>
                     {calling.name}
-                  </Button>
+                  </button>
                 ))}
               </div>
             </fieldset>
@@ -339,20 +329,18 @@ export function CustomizeSanctuary({
               </legend>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {KITCHEN_FAMILIARS.map((familiar) => (
-                  <Button
-                    variant="choice"
-                    size="none"
+                  <button
                     key={familiar.id}
                     type="button"
                     aria-pressed={draft.familiar === familiar.id}
                     onClick={() => setField('familiar', familiar.id)}
-                    className="flex-col rounded-xl p-3 text-center"
+                    className={`rounded-xl border p-3 text-center transition ${draft.familiar === familiar.id ? 'border-[var(--theme-accent)] bg-[var(--theme-focus)]' : 'border-[var(--theme-border)] hover:bg-[var(--theme-surface-alt)]'}`}
                   >
                     <span className="block text-2xl" aria-hidden="true">
                       {familiar.symbol}
                     </span>
                     <span className="mt-2 block text-xs">{familiar.name}</span>
-                  </Button>
+                  </button>
                 ))}
               </div>
             </fieldset>
@@ -396,7 +384,7 @@ export function CustomizeSanctuary({
                 {PANTRY_CHARMS.map((item) => (
                   <label
                     key={item}
-                    className={`ak-button-choice cursor-pointer rounded-full px-3 py-2 text-xs focus-within:ring-2 focus-within:ring-[var(--theme-accent)] ${draft.pantry.includes(item) ? 'ak-button-choice-active' : ''}`}
+                    className={`cursor-pointer rounded-full border px-3 py-2 text-xs font-semibold focus-within:ring-2 focus-within:ring-[var(--theme-accent)] ${draft.pantry.includes(item) ? 'border-[var(--theme-accent)] bg-[var(--theme-focus)]' : 'border-[var(--theme-border)]'}`}
                   >
                     <input
                       type="checkbox"
@@ -478,34 +466,32 @@ export function CustomizeSanctuary({
             </p>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               type="button"
               disabled={pending}
               onClick={() =>
                 setDraft(normalizeKitchenIdentity(DEFAULT_KITCHEN_IDENTITY))
               }
-              className="rounded-lg text-xs"
+              className="text-xs text-[var(--theme-text-muted)] underline underline-offset-4"
             >
               Reset choices
-            </Button>
+            </button>
             <div className="flex gap-2">
-              <Button
-                variant="secondary"
+              <button
                 type="button"
                 disabled={pending}
                 onClick={onClose}
+                className="ak-button-secondary rounded-xl px-4 py-3 text-sm font-semibold"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="submit"
-                isLoading={pending}
                 disabled={pending || !changed}
+                className="ak-button-primary rounded-xl px-4 py-3 text-sm font-semibold disabled:opacity-50"
               >
                 {pending ? 'Saving…' : 'Save sanctuary'}
-              </Button>
+              </button>
             </div>
           </div>
         </footer>
