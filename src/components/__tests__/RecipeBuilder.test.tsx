@@ -34,6 +34,7 @@ const {
   mockFavoriteList,
   mockUserProfileList,
   mockUserProfileUpdate,
+  mockCommentList,
   mockRecipeGetUrl,
   mockRecipeUploadData,
 } = vi.hoisted(() => ({
@@ -46,6 +47,7 @@ const {
   mockUserProfileList: vi
     .fn()
     .mockResolvedValue({ data: [], errors: undefined }),
+  mockCommentList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
   mockRecipeGetUrl: vi
     .fn()
     .mockResolvedValue({ url: new URL('https://example.com/image.jpg') }),
@@ -107,6 +109,12 @@ vi.mock('aws-amplify/data', () => ({
         update: mockUserProfileUpdate,
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
       },
+      Comment: {
+        list: mockCommentList,
+        create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        update: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+      },
     },
   }),
 }));
@@ -152,6 +160,7 @@ describe('RecipeBuilder Component', () => {
     mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
     mockFavoriteList.mockResolvedValue({ data: [], errors: undefined });
     mockUserProfileList.mockResolvedValue({ data: [], errors: undefined });
+    mockCommentList.mockResolvedValue({ data: [], errors: undefined });
     mockUserProfileUpdate
       .mockReset()
       .mockResolvedValue({ data: {}, errors: undefined });
@@ -515,6 +524,44 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.search).toBe('');
   });
 
+  it('renders comment usernames plainly and inserts one mention marker', async () => {
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe()],
+      errors: undefined,
+    });
+    mockCommentList.mockResolvedValue({
+      data: [
+        {
+          id: 'comment-1',
+          recipeId: 'recipe-1',
+          userId: 'commenter-1',
+          author: '@aphexlog',
+          content: 'Looks delicious',
+          parentId: null,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      errors: undefined,
+    });
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    await user.click(
+      await screen.findByRole('button', { name: 'Test Recipe' })
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'aphexlog' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '@aphexlog' })
+    ).not.toBeInTheDocument();
+
+    const commentInput = screen.getByRole('textbox', { name: 'Add a comment' });
+    await user.type(commentInput, '@aph');
+    await user.click(await screen.findByRole('button', { name: '@aphexlog' }));
+    expect(commentInput).toHaveValue('@aphexlog ');
+  });
+
   it('uses community tags without shortcut filters and lets guests deselect a tag', async () => {
     const onRequestAuth = vi.fn();
     const user = userEvent.setup();
@@ -785,6 +832,34 @@ describe('RecipeBuilder Component', () => {
 
     const discoverSection = document.getElementById('discover');
     expect(discoverSection).not.toBeNull();
+    await user.click(
+      within(discoverSection!).getByRole('button', { name: 'Test Recipe' })
+    );
+    const recipeDialog = await screen.findByRole('dialog', {
+      name: 'Test Recipe',
+    });
+    expect(
+      within(recipeDialog).queryByText('The recipe')
+    ).not.toBeInTheDocument();
+    expect(
+      within(recipeDialog).queryByText('Around the table')
+    ).not.toBeInTheDocument();
+    await user.click(
+      within(recipeDialog).getByRole('button', { name: 'by @recipe_author' })
+    );
+    expect(
+      screen.queryByRole('dialog', { name: 'Test Recipe' })
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {
+        name: 'Clear author collection @recipe_author',
+      })
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Clear author collection @recipe_author',
+      })
+    );
     await user.click(
       within(discoverSection!).getByRole('button', {
         name: 'by @recipe_author',

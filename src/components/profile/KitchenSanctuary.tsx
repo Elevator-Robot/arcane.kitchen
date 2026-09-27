@@ -85,7 +85,7 @@ export function SanctuaryDetails({
 }) {
   const familiar = kitchenFamiliar(identity.familiar);
   return (
-    <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-3">
+    <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-2 xl:grid-cols-4">
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           Kitchen familiar
@@ -132,13 +132,25 @@ export function SanctuaryDetails({
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
-          Current side quest
+          Main quest
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
           {identity.quest || 'Following the next delicious idea.'}
         </p>
         <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
           A small adventure, one recipe at a time.
+        </p>
+      </section>
+      <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
+        <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+          <Compass className="h-3.5 w-3.5" aria-hidden="true" />
+          Side quest
+        </h2>
+        <p className="mt-5 break-words font-heading text-lg leading-7">
+          {identity.sideQuest || 'No diversion has claimed this cook just yet.'}
+        </p>
+        <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
+          A smaller pursuit worth following along the way.
         </p>
       </section>
     </div>
@@ -277,9 +289,7 @@ export function CustomizeSanctuary({
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_280px]">
           <fieldset disabled={pending} className="min-w-0 space-y-7">
             <fieldset>
-              <legend className="text-sm font-bold">
-                1. Set the atmosphere
-              </legend>
+              <legend className="text-sm font-bold">1. Sanctuary aspect</legend>
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {KITCHEN_THEMES.map((theme) => (
                   <Button
@@ -314,12 +324,7 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">
-                2. Choose your culinary calling
-              </legend>
-              <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                A little roleplay, never a rank. Change it whenever you like.
-              </p>
+              <legend className="text-sm font-bold">2. Kitchen trade</legend>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
                   <Button
@@ -340,9 +345,7 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">
-                3. Meet your familiar
-              </legend>
+              <legend className="text-sm font-bold">3. Familiar bond</legend>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {KITCHEN_FAMILIARS.map((familiar) => (
                   <Button
@@ -377,9 +380,9 @@ export function CustomizeSanctuary({
               </span>
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-bold">Current cooking quest</span>
+              <span className="text-sm font-bold">Main quest</span>
               <textarea
-                aria-label="Current cooking quest"
+                aria-label="Main quest"
                 value={draft.quest}
                 onChange={(event) => setField('quest', event.target.value)}
                 maxLength={140}
@@ -391,9 +394,24 @@ export function CustomizeSanctuary({
                 {draft.quest.length}/140
               </span>
             </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold">Side quest</span>
+              <textarea
+                aria-label="Side quest"
+                value={draft.sideQuest}
+                onChange={(event) => setField('sideQuest', event.target.value)}
+                maxLength={140}
+                rows={2}
+                placeholder="Perfect a moonlit picnic loaf…"
+                className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
+              />
+              <span className="text-right text-xs text-[var(--theme-text-muted)]">
+                {draft.sideQuest.length}/140
+              </span>
+            </label>
             <fieldset>
               <legend className="text-sm font-bold">
-                Stock your pantry of curiosities{' '}
+                Pantry of curiosities{' '}
                 <span className="font-normal text-[var(--theme-text-muted)]">
                   ({draft.pantry.length}/3)
                 </span>

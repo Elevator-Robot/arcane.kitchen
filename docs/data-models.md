@@ -119,7 +119,7 @@ Main fields:
 - `displayName` (required)
 - `bio`
 - `avatar` (preset filename)
-- `kitchenIdentity` (optional JSON): `theme`, `calling`, `familiar`, `motto`, `quest`, `pantry`, `signatureRecipeId`. Defaults and limits live in `src/utils/kitchenIdentity.ts`; presets represent creative choices rather than earned achievements.
+- `kitchenIdentity` (optional JSON): `theme`, `calling`, `familiar`, `motto`, `quest`, `sideQuest`, `pantry`, `signatureRecipeId`. Defaults and limits live in `src/utils/kitchenIdentity.ts`; presets represent creative choices rather than earned achievements.
 - `needsUsernameSetup`
 - `isBanned`
 - `isDeleted`

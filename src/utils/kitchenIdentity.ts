@@ -142,39 +142,45 @@ export const KITCHEN_THEMES = [
 export const KITCHEN_CLASSES = [
   {
     id: 'kitchen-witch',
-    name: 'Kitchen Witch',
-    icon: '✦',
-    description: 'A little intuition. A generous pinch of magic.',
+    name: 'Herbalist',
+    icon: '❧',
+    description:
+      'Keeper of garden lore, restorative broths, and fragrant leaves.',
   },
   {
     id: 'hearthkeeper',
-    name: 'Hearthkeeper',
+    name: 'Cook',
     icon: '♨',
-    description: 'Comfort food and a place for everyone at the table.',
+    description:
+      'Steady at the hearth and practiced in the craft of a generous table.',
   },
   {
     id: 'herb-druid',
-    name: 'Herb Druid',
-    icon: '❧',
-    description: 'Rooted in the garden. Guided by the seasons.',
+    name: 'Alchemist',
+    icon: '⚗',
+    description:
+      'Transforms spice, heat, and curious ingredients through experiment.',
   },
   {
     id: 'dough-artificer',
-    name: 'Dough Artificer',
-    icon: '⚒',
-    description: 'Turning flour, patience, and curiosity into treasure.',
+    name: 'Baker',
+    icon: '◇',
+    description:
+      'Works in flour, fermentation, patience, and the measured warmth of ovens.',
   },
   {
     id: 'spice-alchemist',
-    name: 'Spice Alchemist',
-    icon: '⚗',
-    description: 'Bold experiments. Unexpected combinations.',
+    name: 'Forager',
+    icon: '⌁',
+    description:
+      'Reads the seasons and gathers uncommon provisions from field and forest.',
   },
   {
     id: 'feast-bard',
-    name: 'Feast Bard',
-    icon: '♫',
-    description: 'Every dish has a story worth sharing.',
+    name: 'Cellarer',
+    icon: '◈',
+    description:
+      'Preserves the harvest and keeps a careful store for leaner seasons.',
   },
 ] as const;
 
@@ -238,6 +244,7 @@ export type KitchenIdentity = {
   familiar: string;
   motto: string;
   quest: string;
+  sideQuest: string;
   pantry: string[];
   signatureRecipeId: string;
 };
@@ -248,6 +255,7 @@ export const DEFAULT_KITCHEN_IDENTITY: KitchenIdentity = {
   familiar: 'cat',
   motto: '',
   quest: '',
+  sideQuest: '',
   pantry: [],
   signatureRecipeId: '',
 };
@@ -279,6 +287,7 @@ export function normalizeKitchenIdentity(value: unknown): KitchenIdentity {
       DEFAULT_KITCHEN_IDENTITY.familiar,
     motto: text('motto', 80),
     quest: text('quest', 140),
+    sideQuest: text('sideQuest', 140),
     pantry: Array.isArray(input.pantry)
       ? [
           ...new Set(

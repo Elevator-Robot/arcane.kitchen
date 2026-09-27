@@ -5,11 +5,11 @@ social communities, with a cooking/fantasy character-sheet vocabulary.
 
 ## Personalization
 
-- **Atmosphere:** Moonlit library, Enchanted grove, Dragon’s hearth, Celestial observatory.
-- **Calling:** Kitchen Witch, Hearthkeeper, Herb Druid, Dough Artificer, Spice Alchemist, Feast Bard. These are self-selected identities, not ranks.
+- **Sanctuary aspect:** Moonlit library, Enchanted grove, Dragon’s hearth, Celestial observatory, Sunlit conservatory, Tidepool apothecary, Berryglass salon, or Frosted great hall.
+- **Kitchen trade:** Herbalist, Cook, Alchemist, Baker, Forager, or Cellarer.
 - **Familiar:** Cauldron cat, Pocket dragon, Pantry owl, Foraging fox, Potion frog, Flour-dusted rabbit.
 - **Motto:** up to 80 characters in the profile banner.
-- **Side quest:** up to 140 characters about a current cooking adventure.
+- **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
 - **Pantry:** up to three curated favorite ingredients.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
 - Existing avatar presets and bio remain available; bio copy encourages kitchen lore.
@@ -40,7 +40,7 @@ mocked persistence tests, not a live deployment.
 ## Verification
 
 - Public/private rendering and removal of the single Recipes tab.
-- Theme, calling, familiar, motto, quest, ingredient limits, and signature selection.
+- Theme, trade, familiar, motto, main and side quests, ingredient limits, and signature selection.
 - Cancel/reset staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.

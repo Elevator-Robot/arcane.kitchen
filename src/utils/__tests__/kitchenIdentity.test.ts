@@ -34,11 +34,13 @@ describe('kitchen identity persistence', () => {
       familiar: 'invalid',
       motto: 'x'.repeat(100),
       quest: 'x'.repeat(200),
+      sideQuest: 'x'.repeat(180),
       pantry: ['Garlic', 'Garlic', 'Honey', 'Rosemary', 'Lemon', 'invalid'],
     });
     expect(normalized.theme).toBe('moonlit');
     expect(normalized.motto).toHaveLength(80);
     expect(normalized.quest).toHaveLength(140);
+    expect(normalized.sideQuest).toHaveLength(140);
     expect(normalized.pantry).toEqual(['Garlic', 'Honey', 'Rosemary']);
   });
 

@@ -67,7 +67,7 @@ describe('kitchen sanctuary profiles', () => {
     await interaction.click(
       dialog.getByRole('button', { name: 'Enchanted grove' })
     );
-    await interaction.click(dialog.getByRole('button', { name: 'Herb Druid' }));
+    await interaction.click(dialog.getByRole('button', { name: 'Alchemist' }));
     await interaction.click(
       dialog.getByRole('button', { name: 'Foraging fox' })
     );
@@ -76,8 +76,12 @@ describe('kitchen sanctuary profiles', () => {
       'Forage. Feast. Repeat.'
     );
     await interaction.type(
-      dialog.getByLabelText('Current cooking quest'),
+      dialog.getByLabelText('Main quest'),
       'Master mushroom ramen'
+    );
+    await interaction.type(
+      dialog.getByLabelText('Side quest'),
+      'Perfect a sesame broth'
     );
     await interaction.click(dialog.getByRole('checkbox', { name: 'Rosemary' }));
     await interaction.click(dialog.getByRole('checkbox', { name: 'Honey' }));
@@ -95,6 +99,7 @@ describe('kitchen sanctuary profiles', () => {
       familiar: 'fox',
       motto: 'Forage. Feast. Repeat.',
       quest: 'Master mushroom ramen',
+      sideQuest: 'Perfect a sesame broth',
       pantry: ['Garlic', 'Rosemary', 'Honey'],
       signatureRecipeId: 'soup',
     });

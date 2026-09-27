@@ -232,10 +232,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
             {comment.author.startsWith('@') ? (
               <button
                 type="button"
-                onClick={() => onOpenProfile?.(comment.author.slice(1))}
+                onClick={() =>
+                  onOpenProfile?.(sanitizeUsername(comment.author))
+                }
                 className="text-sm font-medium text-[var(--theme-text)] hover:text-[var(--theme-accent)] hover:underline"
               >
-                {comment.author}
+                {sanitizeUsername(comment.author)}
               </button>
             ) : (
               <span className="text-sm font-medium text-[var(--theme-text)]">
@@ -1082,6 +1084,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       const normalized = sanitizeUsername(username);
       if (!normalized) return;
 
+      justClosedRecipeIdRef.current = expandedRecipeId;
       setActiveAuthor(normalized);
       setActiveTag(null);
       setActiveTagColor(randomMerlinColor());
@@ -1090,7 +1093,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       setCurrentView('Discover');
       navigate('/discover');
     },
-    [navigate]
+    [expandedRecipeId, navigate]
   );
 
   const openProfilePage = useCallback(
@@ -3119,12 +3122,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const seen = new Set<string>();
     const authors: string[] = [];
     for (const c of allComments) {
-      if (!seen.has(c.author)) {
-        seen.add(c.author);
-        authors.push(c.author);
+      const username = sanitizeUsername(c.author);
+      if (username && !seen.has(username)) {
+        seen.add(username);
+        authors.push(username);
       }
     }
-    if (!seen.has(creatorName)) authors.unshift(creatorName);
+    const creatorUsername = sanitizeUsername(creatorName);
+    if (creatorUsername && !seen.has(creatorUsername)) {
+      authors.unshift(creatorUsername);
+    }
     return authors;
   };
 
@@ -3144,9 +3151,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const insertMention = (author: string) => {
     const atIdx = commentInput.lastIndexOf('@');
     if (atIdx === -1) return;
+    const username = sanitizeUsername(author);
+    if (!username) return;
     const before = commentInput.slice(0, atIdx);
     const after = commentInput.slice(atIdx).replace(/@\w*$/, '');
-    setCommentInput(`${before}@${author} ${after}`);
+    setCommentInput(`${before}@${username} ${after}`);
     setShowMentions(false);
     setMentionQuery('');
     setTimeout(() => commentInputRef.current?.focus(), 10);
@@ -3375,9 +3384,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       <div className="grid gap-6 p-5 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="ak-eyebrow mb-2 text-[var(--theme-accent)]">
-              The recipe
-            </p>
             <h3 className="break-words text-3xl font-semibold tracking-normal sm:text-4xl">
               {expandedRecipe.name}
             </h3>
@@ -3541,9 +3547,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         </div>
 
         <section className="border-t border-[var(--theme-border)] pt-6">
-          <p className="ak-eyebrow mb-2 text-[var(--theme-text-muted)]">
-            Around the table
-          </p>
           <h4 className="text-xl font-semibold text-[var(--theme-text)] mb-4">
             Comments ({(comments[expandedRecipe.id] || []).length})
           </h4>
@@ -3582,7 +3585,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             onOpenProfile={openProfilePage}
                             onReply={(id, author) => {
                               setReplyingTo(id);
-                              setReplyingToAuthor(author || '');
+                              setReplyingToAuthor(
+                                sanitizeUsername(author) || author
+                              );
                               setEditingCommentId(null);
                               setTimeout(
                                 () => commentInputRef.current?.focus(),
