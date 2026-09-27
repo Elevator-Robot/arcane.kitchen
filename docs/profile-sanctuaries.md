@@ -17,7 +17,7 @@ labels and cooking instructions remain clear and practical.
 
 - **Birthsign:** The Lantern, The Briar, The Wyrm, The Watcher, The Sunbearer, The Drowned, The Chalice, The Pale Hart, or the unaligned omen The Moth. The selected Birthsign controls the application palette.
 - **Calling:** Hedge Witch, Ashkeeper, Alchemist, Ritualist, Root Seer, or Crypt Warden. Show the name without a workplace subtitle or description.
-- **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Thistle (rabbit).
+- **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - **Tenet:** up to 80 characters in the profile banner.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
 - Legacy pantry choices remain in stored JSON for compatibility; no pantry section is displayed or editable.

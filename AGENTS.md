@@ -109,7 +109,7 @@ Authentication submission:
 ## Profile & Avatars
 
 - Profiles are Kitchen Sanctuaries: nine Birthsign presets, six Callings (names only), six named familiars, an 80-character Tenet, separate 140-character main and side quests, and one optional pinned published recipe. Birthsigns theme the full application palette. Pantry customization/display has been removed; legacy JSON is preserved for compatibility. These are creative public details, not personal-information fields or earned ranks.
-- Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
+- Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat; Luna is the rabbit); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
 - The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.
 - `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
 - Public profiles have no collection tab bar and no edit/customization controls. Owners retain Recipes/Drafts/Saved navigation. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
@@ -138,6 +138,8 @@ Authentication submission:
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
 
 ## Sanctuary Design Language
+
+- `docs/identity-art-prompts.md` is the editable artwork prompt book for all nine Birthsigns, six Callings, and six Familiars. It records proposed compositions, shared art direction, and revision notes; generated assets and banner UI are not implemented yet.
 
 - `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets and constellation artwork across Saved, Drafts, Build, and Admin. Profile banners use the same motif.
 - Page headers, recipe placeholders, and accent/focus colors inherit the signed-in viewer’s saved `kitchenIdentity.theme` through `src/theme/sanctuaryTheme.ts`; guests use Moonlit. Visiting another cook keeps the viewer’s app theme while that cook’s profile banner retains its own atmosphere.

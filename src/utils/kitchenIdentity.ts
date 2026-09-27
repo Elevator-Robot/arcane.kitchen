@@ -222,7 +222,7 @@ export const KITCHEN_FAMILIARS = [
   },
   {
     id: 'rabbit',
-    name: 'Thistle',
+    name: 'Luna',
     symbol: '🐇',
     note: 'A pale rabbit found among the winter roots. No tracks led to its burrow.',
   },
