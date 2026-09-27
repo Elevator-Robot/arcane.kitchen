@@ -3743,7 +3743,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
       style={sanctuaryThemeStyle(
         isAuthenticated ? profileViewUser.kitchenIdentity?.theme : undefined
       )}
-      className="flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)]"
+      className="ak-page-glow flex h-screen h-dvh flex-col overflow-x-hidden overflow-y-hidden"
     >
       {profileSetupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -3854,19 +3854,24 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           {!expandedRecipeId && (
-            <>
-              <p className="ak-eyebrow mb-2 flex items-center gap-2 text-[var(--theme-text-muted)]">
-                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
-                Community recipes
-              </p>
-              <h1 className="font-heading text-2xl font-semibold text-[var(--theme-text)] sm:text-3xl">
-                Search recipes
-              </h1>
-              <div className="mx-1 mt-3 flex items-stretch gap-2">
+            <div className="ak-discover-intro">
+              <div className="relative">
+                <p className="ak-eyebrow mb-2 flex items-center gap-2 text-[var(--theme-accent-strong)]">
+                  <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                  Community grimoire
+                </p>
+                <h1 className="font-heading text-2xl font-semibold text-[var(--theme-text)] sm:text-3xl">
+                  Discover recipes
+                </h1>
+                <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--theme-text-muted)]">
+                  Search the shared table by dish, tag, or cook.
+                </p>
+              </div>
+              <div className="relative mt-4 flex items-stretch gap-2">
                 <div
                   role="search"
                   aria-label="Search and sort recipes"
-                  className="group flex min-w-0 flex-1 items-center rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm transition focus-within:border-[var(--theme-accent)] focus-within:shadow-md focus-within:ring-4 focus-within:ring-[var(--theme-focus)]"
+                  className="ak-discover-search group flex min-w-0 flex-1 items-center rounded-2xl border transition focus-within:border-[var(--theme-accent)] focus-within:shadow-md focus-within:ring-4 focus-within:ring-[var(--theme-focus)]"
                 >
                   <Search
                     className="ml-4 h-5 w-5 shrink-0 text-[var(--theme-text-muted)] transition group-focus-within:text-[var(--theme-accent)]"
@@ -3927,7 +3932,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </Button>
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="relative mt-5 space-y-4 border-t border-[var(--theme-border)] pt-4">
                 {activeAuthor && (
                   <div className="flex flex-col gap-3 rounded-2xl border border-[var(--theme-border)] bg-gradient-to-r from-[var(--theme-surface)] to-[var(--theme-surface-alt)] px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -3976,7 +3981,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   onSelect={handleFilterClick}
                 />
               </div>
-            </>
+            </div>
           )}
 
           {isLoadingFeed && (

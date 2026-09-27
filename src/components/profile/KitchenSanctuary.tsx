@@ -280,13 +280,14 @@ export function CustomizeSanctuary({
               <legend className="text-sm font-bold">
                 1. Set the atmosphere
               </legend>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {KITCHEN_THEMES.map((theme) => (
                   <Button
                     variant="image"
                     size="none"
                     key={theme.id}
                     type="button"
+                    aria-label={theme.name}
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
                     className="overflow-hidden rounded-xl text-left"
@@ -300,8 +301,13 @@ export function CustomizeSanctuary({
                         <Check className="h-5 w-5" aria-hidden="true" />
                       )}
                     </span>
-                    <span className="block px-3 py-2 text-xs font-semibold">
-                      {theme.name}
+                    <span className="block min-h-20 px-3 py-2">
+                      <span className="block text-xs font-semibold">
+                        {theme.name}
+                      </span>
+                      <span className="mt-1 block text-[10px] leading-4 text-[var(--theme-text-muted)]">
+                        {theme.note}
+                      </span>
                     </span>
                   </Button>
                 ))}

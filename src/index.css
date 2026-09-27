@@ -17,6 +17,7 @@
     --theme-sage: #5a7a4a;
     --theme-sage-strong: #4a663a;
     --theme-focus: rgba(109, 40, 217, 0.18);
+    --theme-glow: #8b5fb0;
     --theme-overlay: rgba(44, 24, 16, 0.64);
     --ak-glass-blur: blur(7px);
     --ak-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 28%);
@@ -115,19 +116,78 @@
     background:
       radial-gradient(
         circle at 18% 8%,
-        rgba(217, 119, 6, 0.1),
+        color-mix(in srgb, var(--theme-glow) 14%, transparent),
         transparent 34%
       ),
       radial-gradient(
         circle at 82% 14%,
-        rgba(90, 122, 74, 0.08),
+        color-mix(in srgb, var(--theme-accent) 9%, transparent),
         transparent 36%
       ),
       linear-gradient(
         180deg,
-        rgba(255, 250, 245, 0.9),
-        rgba(250, 240, 230, 0.95)
+        color-mix(in srgb, var(--theme-surface) 62%, transparent),
+        color-mix(in srgb, var(--theme-bg) 96%, var(--theme-bg-soft))
       );
+  }
+
+  .ak-discover-intro {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: clamp(1rem, 3vw, 1.75rem);
+    border: 1px solid color-mix(in srgb, var(--theme-border) 82%, white);
+    border-radius: 1.75rem;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--theme-surface) 94%, transparent),
+      color-mix(in srgb, var(--theme-surface-alt) 78%, transparent)
+    );
+    box-shadow:
+      0 18px 60px color-mix(in srgb, var(--theme-text) 7%, transparent),
+      inset 0 1px 0 rgb(255 255 255 / 65%);
+  }
+
+  .ak-discover-intro::before,
+  .ak-discover-intro::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    border-radius: 999px;
+    pointer-events: none;
+  }
+
+  .ak-discover-intro::before {
+    top: -7rem;
+    right: -5rem;
+    width: 18rem;
+    height: 18rem;
+    border: 1px solid color-mix(in srgb, var(--theme-accent) 14%, transparent);
+    box-shadow:
+      0 0 0 2.25rem color-mix(in srgb, var(--theme-accent) 4%, transparent),
+      0 0 0 4.5rem color-mix(in srgb, var(--theme-glow) 4%, transparent);
+  }
+
+  .ak-discover-intro::after {
+    bottom: -3rem;
+    left: 12%;
+    width: 10rem;
+    height: 5rem;
+    background: color-mix(in srgb, var(--theme-glow) 9%, transparent);
+    filter: blur(28px);
+  }
+
+  .ak-discover-search {
+    border-color: color-mix(
+      in srgb,
+      var(--theme-accent) 20%,
+      var(--theme-border)
+    );
+    background: color-mix(in srgb, var(--theme-surface) 92%, transparent);
+    box-shadow:
+      0 8px 24px color-mix(in srgb, var(--theme-text) 6%, transparent),
+      inset 0 1px 0 rgb(255 255 255 / 70%);
+    backdrop-filter: blur(12px);
   }
 
   .ak-surface {
@@ -196,7 +256,7 @@
     border: 1px solid var(--theme-border);
     border-radius: 1.5rem;
     background: var(--theme-surface);
-    box-shadow: 0 3px 12px rgba(44, 24, 16, 0.04);
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--theme-text) 4%, transparent);
     transition:
       transform 180ms ease,
       box-shadow 180ms ease,
@@ -206,7 +266,8 @@
   .ak-recipe-card:hover,
   .ak-recipe-card:focus-within {
     border-color: var(--theme-border-strong);
-    box-shadow: 0 12px 32px rgba(44, 24, 16, 0.09);
+    box-shadow: 0 12px 32px
+      color-mix(in srgb, var(--theme-text) 10%, transparent);
     transform: translateY(-2px);
   }
 

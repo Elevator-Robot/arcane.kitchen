@@ -165,7 +165,7 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     expect(await screen.findByText('Arcane Kitchen')).toBeInTheDocument();
-    expect(screen.getByText('Search recipes')).toBeInTheDocument();
+    expect(screen.getByText('Discover recipes')).toBeInTheDocument();
     expect(screen.getByTitle('Create a recipe')).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Search recipes' })
@@ -296,6 +296,9 @@ describe('RecipeBuilder Component', () => {
       expect(
         screen.getByRole('main').style.getPropertyValue('--theme-accent')
       ).toBe(kitchenTheme('grove').accent);
+      expect(
+        screen.getByRole('main').style.getPropertyValue('--theme-surface')
+      ).toBe(kitchenTheme('grove').surface);
       if (path === '/u/other_chef') {
         expect(
           await screen.findByRole('heading', { name: 'other_chef' })
@@ -632,7 +635,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
 
     expect(window.location.pathname).toBe('/discover');
-    expect(screen.getByText('Search recipes')).toBeInTheDocument();
+    expect(screen.getByText('Discover recipes')).toBeInTheDocument();
   });
 
   it('updates the post preview as recipe fields change', async () => {
