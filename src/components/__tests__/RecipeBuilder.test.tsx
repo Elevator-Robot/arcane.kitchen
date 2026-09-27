@@ -174,7 +174,7 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     expect(await screen.findByText('Arcane Kitchen')).toBeInTheDocument();
-    expect(screen.getByText('Discover recipes')).toBeInTheDocument();
+    expect(screen.getByText('Emporium')).toBeInTheDocument();
     expect(screen.getByTitle('Create a recipe')).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Search recipes' })
@@ -645,10 +645,8 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
-    await user.type(
-      screen.getByPlaceholderText('e.g., Quick, Vegetarian, Dessert'),
-      'Vege'
-    );
+    await user.click(screen.getByText('Tags', { selector: 'summary' }));
+    await user.type(screen.getByLabelText('Tags'), 'Vege');
     const suggestion = screen.getByRole('button', { name: /^Vegetarian/ });
     suggestion.focus();
     await user.keyboard('{Enter}');
@@ -690,7 +688,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
 
     expect(window.location.pathname).toBe('/discover');
-    expect(screen.getByText('Discover recipes')).toBeInTheDocument();
+    expect(screen.getByText('Emporium')).toBeInTheDocument();
   });
 
   it('updates the post preview as recipe fields change', async () => {
@@ -698,7 +696,7 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     const nameInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(nameInput, 'Roasted Corn Salad');
 
@@ -707,11 +705,36 @@ describe('RecipeBuilder Component', () => {
     ).toBeInTheDocument();
   }, 20000);
 
+  it('converts prep minutes to a saved duration and retains optional notes when collapsed', async () => {
+    window.history.replaceState({}, '', '/build');
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    const duration = screen.getByRole('spinbutton', {
+      name: 'Prep time (minutes)',
+    });
+    await user.type(duration, '90');
+    expect(screen.getByText('01:30')).toBeInTheDocument();
+    await user.clear(duration);
+    expect(screen.queryByText('01:30')).not.toBeInTheDocument();
+    const disclosure = screen.getByText('Notes & equipment');
+    await user.click(disclosure);
+    await user.type(screen.getByLabelText('Notes'), 'Keep refrigerated.');
+    await user.click(disclosure);
+    await user.click(disclosure);
+    expect(screen.getByLabelText('Notes')).toHaveValue('Keep refrigerated.');
+    expect(screen.getByLabelText('Recipe photo')).toHaveAttribute(
+      'type',
+      'file'
+    );
+  });
+
   it('allows ingredients to be added and removed', async () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
-    const addButtons = screen.getAllByRole('button', { name: 'Add' });
+    const addButtons = screen.getAllByRole('button', {
+      name: '+ Add ingredient',
+    });
     await user.click(addButtons[0]);
     const ingredientFields = screen.getAllByLabelText('Ingredient');
 
@@ -942,12 +965,12 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     const titleInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(titleInput, 'Cloudy Pie');
 
     const addIngredientButton = screen.getAllByRole('button', {
-      name: 'Add',
+      name: '+ Add ingredient',
     })[0];
     await user.click(addIngredientButton);
 
@@ -1042,7 +1065,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     const titleInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(titleInput, 'Moonlit Porridge');
 
@@ -1097,13 +1120,11 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     const titleInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(titleInput, 'Published Draft');
 
-    const descriptionInput = screen.getByPlaceholderText(
-      'A short summary of your dish'
-    );
+    const descriptionInput = screen.getByLabelText('Description');
     await user.type(descriptionInput, 'A draft that will be published');
 
     const ingredientAmount = screen.getByLabelText('Amount');

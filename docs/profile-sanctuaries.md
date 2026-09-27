@@ -5,12 +5,22 @@ social communities, with a cooking/fantasy character-sheet vocabulary.
 
 ## Personalization
 
-- **Birthsign:** The Lantern, The Greenwarden, The Wyrm, The Stargazer, The Sunbearer, The Tidecaller, The Reveler, The Pale Hart, or the unaligned omen The Moth. The selected Birthsign controls the application palette.
-- **Station:** Moon Archivist — Lamplit Archive; Hearth Steward — Grand Kitchen; House Apothecary — Lantern Dispensary; Stillhouse Alchemist — Crooked Still; Garden Herbalist — Physic Garden; or Deep Cellarer — Underpantry.
-- **Familiar:** Cauldron cat, Pocket dragon, Pantry owl, Foraging fox, Potion frog, Flour-dusted rabbit.
+Arcane Kitchen is an old culinary archive, kept alive by the people who cook from
+it. Its recipes have crossed thresholds, survived abandoned houses, and acquired
+notes in unfamiliar hands. Each cook adds a page; each sanctuary reveals something
+of its keeper.
+
+The voice is restrained and specific: ash, roots, salt, old folios, a lamp left
+burning. Unease comes from what is implied. Familiar spirits have names and
+histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
+labels and cooking instructions remain clear and practical.
+
+- **Birthsign:** The Lantern, The Briar, The Wyrm, The Watcher, The Sunbearer, The Drowned, The Chalice, The Pale Hart, or the unaligned omen The Moth. The selected Birthsign controls the application palette.
+- **Calling:** Hedge Witch, Ashkeeper, Alchemist, Ritualist, Root Seer, or Crypt Warden. Show the name without a workplace subtitle or description.
+- **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Thistle (rabbit).
 - **Tenet:** up to 80 characters in the profile banner.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
-- **Pantry:** up to three curated favorite ingredients.
+- Legacy pantry choices remain in stored JSON for compatibility; no pantry section is displayed or editable.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
 - Existing avatar presets and bio remain available; bio copy encourages kitchen lore.
 
@@ -40,7 +50,7 @@ mocked persistence tests, not a live deployment.
 ## Verification
 
 - Public/private rendering and removal of the single Recipes tab.
-- Birthsign, Station, familiar, Tenet, main and side quests, ingredient limits, and signature selection.
+- Birthsign, Calling, named familiar, Tenet, main and side quests, and signature selection; legacy pantry preservation without pantry UI.
 - Cancel/reset staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.

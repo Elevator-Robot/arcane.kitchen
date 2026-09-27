@@ -19,9 +19,6 @@ import {
   Share,
   X,
 } from 'lucide-react';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { MobileTimePicker } from '@mui/x-date-pickers/MobileTimePicker';
 import dayjs from 'dayjs';
 import 'dayjs/locale/en-gb';
 import type { Schema } from '../../amplify/data/resource';
@@ -3871,7 +3868,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   Community grimoire
                 </p>
                 <h1 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
-                  Discover recipes
+                  Emporium
                 </h1>
               </div>
               <div className="relative mt-4 flex items-stretch gap-2">
@@ -4124,12 +4121,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           <div className="shrink-0 [&>header]:rounded-none">
             <SanctuaryHeading
-              eyebrow="Recipe workshop"
+              eyebrow="From your grimoire"
               title={isEditingRecipe ? 'Edit recipe' : 'New recipe'}
               description={
                 !isAuthenticated
                   ? 'Sign in to publish recipes.'
-                  : 'Write your recipe, then review it before sharing.'
+                  : 'Record the recipe. Let the next keeper make it their own.'
               }
               actions={
                 <button
@@ -4160,7 +4157,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
           <fieldset
             disabled={!isAuthenticated}
-            className={`ak-editor-fields min-h-0 min-w-0 flex-1 gap-4 overflow-x-hidden overflow-y-auto bg-[var(--theme-bg)]/50 p-4 sm:p-5 ${!isAuthenticated ? 'hidden' : 'grid'}`}
+            className={`ak-editor-fields min-h-0 min-w-0 flex-1 content-start gap-7 overflow-x-hidden overflow-y-auto bg-[var(--theme-bg)]/50 p-4 sm:p-6 ${!isAuthenticated ? 'hidden' : 'grid'}`}
           >
             {publishMessage && (
               <div
@@ -4175,163 +4172,195 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </div>
             )}
 
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold">Recipe name</span>
-              <input
-                value={draft.name}
-                onChange={(event) => updateDraft('name', event.target.value)}
-                placeholder="e.g., Grandma's Apple Pie"
-                className="ak-input rounded px-3 py-2 outline-none transition"
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold">Description</span>
-              <textarea
-                value={draft.description}
-                onChange={(event) =>
-                  updateDraft('description', event.target.value)
-                }
-                placeholder="A short summary of your dish"
-                className="ak-input h-20 resize-none rounded px-3 py-2 outline-none transition"
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold">Notes</span>
-              <textarea
-                value={draft.notes || ''}
-                onChange={(event) => updateDraft('notes', event.target.value)}
-                placeholder="Add notes or tips for your recipe"
-                className="ak-input h-20 resize-none rounded px-3 py-2 outline-none transition"
-              />
-            </label>
-
-            <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(170px,0.5fr)_minmax(0,1fr)] md:items-end">
+            <section
+              className="ak-editor-section"
+              aria-labelledby="recipe-essentials-heading"
+            >
+              <div className="ak-editor-section-heading">
+                <h3 id="recipe-essentials-heading">The essentials</h3>
+                <p>
+                  A name, a few words, and a photograph of the finished dish.
+                </p>
+              </div>
               <label className="grid gap-2">
-                <span className="text-sm font-semibold">Prep time</span>
-                <div>
-                  <LocalizationProvider
-                    dateAdapter={AdapterDayjs}
-                    adapterLocale="en-gb"
-                  >
-                    <MobileTimePicker
-                      ampm={false}
-                      minutesStep={5}
-                      value={
-                        draft.prepTime
-                          ? dayjs(`2000-01-01T${draft.prepTime}`)
-                          : null
-                      }
-                      onChange={(value) =>
-                        updateDraft(
-                          'prepTime',
-                          value ? value.format('HH:mm') : ''
-                        )
-                      }
-                      slotProps={{
-                        textField: {
-                          size: 'small',
-                          fullWidth: true,
-                          placeholder: 'HH:MM',
-                        } as any,
-                      }}
-                    />
-                  </LocalizationProvider>
-                </div>
+                <span className="text-sm font-semibold">Recipe name</span>
+                <input
+                  value={draft.name}
+                  onChange={(event) => updateDraft('name', event.target.value)}
+                  placeholder="e.g., Black garlic & wild mushroom broth"
+                  className="ak-input rounded-xl px-4 py-3 font-heading text-xl outline-none transition"
+                />
               </label>
-            </div>
 
-            <div className="grid gap-2">
-              <span className="text-sm font-semibold">Tags</span>
-              <div className="relative grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="relative">
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">Description</span>
+                <textarea
+                  value={draft.description}
+                  onChange={(event) =>
+                    updateDraft('description', event.target.value)
+                  }
+                  placeholder="Its origins, its flavor, and what makes it worth keeping."
+                  rows={3}
+                  className="ak-input resize-y rounded-xl px-4 py-3 outline-none transition"
+                />
+              </label>
+
+              <div className="grid min-w-0 gap-4 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-end">
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold">
+                    Prep time (minutes)
+                  </span>
                   <input
-                    value={newTagValue}
-                    onChange={(event) => setNewTagValue(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter') return;
-                      event.preventDefault();
-                      addTag();
+                    type="number"
+                    min="0"
+                    max="5999"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="e.g., 30"
+                    value={
+                      draft.prepTime
+                        ? Number(draft.prepTime.split(':')[0]) * 60 +
+                          Number(draft.prepTime.split(':')[1] || 0)
+                        : ''
+                    }
+                    onChange={(event) => {
+                      const minutes = Math.min(
+                        5999,
+                        Math.max(0, Math.trunc(Number(event.target.value)))
+                      );
+                      updateDraft(
+                        'prepTime',
+                        event.target.value === ''
+                          ? ''
+                          : `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+                      );
                     }}
-                    placeholder="e.g., Quick, Vegetarian, Dessert"
-                    className="ak-input rounded px-3 py-2 text-sm outline-none w-full"
-                    disabled={draft.tags.length >= 10}
+                    className="ak-input min-w-0 rounded-xl px-4 py-3"
                   />
-                  {tagSuggestions.length > 0 && (
-                    <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-cozy-lg">
-                      {tagSuggestions.map((tag) => {
-                        const category = tagCategoryMap.get(tag.toLowerCase());
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onMouseDown={(event) => event.preventDefault()}
-                            onClick={() => {
-                              updateDraft('tags', [...draft.tags, tag]);
-                              setNewTagValue('');
-                            }}
-                            className="ak-menu-item justify-between text-left"
-                          >
-                            <span>{tag}</span>
-                            {category && (
-                              <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--theme-text-muted)]">
-                                {category}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                </label>
+                <label className="grid min-w-0 gap-2 text-sm font-semibold">
+                  Recipe photo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      updateImageFile(event.target.files?.[0])
+                    }
+                    className="ak-input w-full min-w-0 rounded-xl p-2 text-xs file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-[var(--theme-surface-alt)] file:px-3 file:py-2 file:font-semibold file:text-[var(--theme-text)]"
+                  />
+                </label>
+              </div>
+            </section>
+            <details className="ak-editor-section">
+              <summary className="cursor-pointer text-sm font-semibold">
+                Tags{' '}
+                <span className="font-normal text-[var(--theme-text-muted)]">
+                  · Optional
+                  {draft.tags.length ? ` · ${draft.tags.length} added` : ''}
+                </span>
+              </summary>
+              <div className="grid gap-2">
+                <div className="relative grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="relative">
+                    <input
+                      aria-label="Tags"
+                      value={newTagValue}
+                      onChange={(event) => setNewTagValue(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        addTag();
+                      }}
+                      placeholder="e.g., Soup — press Enter to add"
+                      className="ak-input rounded px-3 py-2 text-sm outline-none w-full"
+                      disabled={draft.tags.length >= 10}
+                    />
+                    {tagSuggestions.length > 0 && (
+                      <div className="absolute left-0 top-full z-30 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] py-1 shadow-cozy-lg">
+                        {tagSuggestions.map((tag) => {
+                          const category = tagCategoryMap.get(
+                            tag.toLowerCase()
+                          );
+                          return (
+                            <button
+                              key={tag}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                updateDraft('tags', [...draft.tags, tag]);
+                                setNewTagValue('');
+                              }}
+                              className="ak-menu-item justify-between text-left"
+                            >
+                              <span>{tag}</span>
+                              {category && (
+                                <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--theme-text-muted)]">
+                                  {category}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addTag}
+                    disabled={draft.tags.length >= 10}
+                    className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
+                  >
+                    Add tag
+                  </button>
                 </div>
+                {draft.tags.length >= 10 && (
+                  <p className="text-xs text-[var(--theme-text-muted)]">
+                    Maximum of 10 tags allowed
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {draft.tags.map((tag) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ak-button-primary inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs"
+                      style={{ backgroundColor: getTagColor(tag) }}
+                      aria-label={`Remove tag ${tag}`}
+                      title={`Remove ${tag}`}
+                    >
+                      {tag}
+                      <span aria-hidden="true">x</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
+
+            <section
+              className="ak-editor-section"
+              aria-labelledby="recipe-ingredients-heading"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <h3
+                  id="recipe-ingredients-heading"
+                  className="font-heading text-xl"
+                >
+                  Ingredients
+                </h3>
                 <button
                   type="button"
-                  onClick={addTag}
-                  disabled={draft.tags.length >= 10}
-                  className="ak-button-secondary rounded-lg px-3 py-2 text-sm font-semibold disabled:opacity-50"
-                >
-                  Add tag
-                </button>
-              </div>
-              {draft.tags.length >= 10 && (
-                <p className="text-xs text-[var(--theme-text-muted)]">
-                  Maximum of 10 tags allowed
-                </p>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {draft.tags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="ak-button-primary inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs"
-                    style={{ backgroundColor: getTagColor(tag) }}
-                    aria-label={`Remove tag ${tag}`}
-                    title={`Remove ${tag}`}
-                  >
-                    {tag}
-                    <span aria-hidden="true">x</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Ingredients</h3>
-                <button
                   onClick={addIngredient}
                   className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
                 >
-                  Add
+                  + Add ingredient
                 </button>
               </div>
               <div className="grid gap-2">
                 {draft.ingredients.map((ingredient) => (
                   <div
                     key={ingredient.id}
-                    className="ak-surface-alt grid min-w-0 gap-2 rounded border p-2"
+                    className="grid min-w-0 gap-2 rounded-xl border border-[var(--theme-border)] p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] sm:items-start"
                   >
                     <div className="grid min-w-0 grid-cols-[1fr_auto] gap-2">
                       <input
@@ -4344,10 +4373,11 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             event.target.value
                           )
                         }
-                        placeholder="e.g., All-purpose flour"
+                        placeholder="Ingredient name"
                         className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                       <button
+                        type="button"
                         onClick={() => removeIngredient(ingredient.id)}
                         className="ak-button-danger-soft h-10 w-10 rounded-lg text-sm"
                         aria-label="Remove ingredient"
@@ -4366,7 +4396,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             event.target.value
                           )
                         }
-                        placeholder="e.g., 2"
+                        placeholder="Amount"
                         className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                       <input
@@ -4379,19 +4409,25 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             event.target.value
                           )
                         }
-                        placeholder="e.g., cups"
+                        placeholder="Unit (e.g., g)"
                         className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
                       />
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
-            <div>
+            <section
+              className="ak-editor-section"
+              aria-labelledby="recipe-method-heading"
+            >
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Instructions</h3>
+                <h3 id="recipe-method-heading" className="font-heading text-xl">
+                  Method
+                </h3>
                 <button
+                  type="button"
                   onClick={addInstruction}
                   className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
                 >
@@ -4400,7 +4436,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               </div>
               <div className="grid gap-2">
                 {draft.instructions.map((instruction, index) => (
-                  <label
+                  <div
                     key={`instruction-${index}`}
                     className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-2"
                   >
@@ -4408,12 +4444,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                       {index + 1}
                     </span>
                     <textarea
+                      aria-label={`Step ${index + 1}`}
                       value={instruction}
                       onChange={(event) =>
                         updateInstruction(index, event.target.value)
                       }
-                      placeholder="e.g., Preheat oven to 375°F"
-                      className="ak-input h-16 resize-none rounded px-3 py-2 text-sm outline-none transition"
+                      placeholder={
+                        index === 0
+                          ? 'Start with the preparation. Include temperatures and timings.'
+                          : 'What happens next? Describe one clear step.'
+                      }
+                      rows={3}
+                      className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm leading-6 outline-none transition"
                     />
                     <button
                       type="button"
@@ -4423,47 +4465,67 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     >
                       x
                     </button>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Utensils Needed</h3>
-                <button
-                  onClick={addUtensil}
-                  className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="grid gap-2">
-                {draft.utensils.map((utensil, index) => (
-                  <div
-                    key={`utensil-${index}`}
-                    className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded border p-3"
-                  >
-                    <input
-                      aria-label="Utensil"
-                      value={utensil}
-                      onChange={(event) =>
-                        updateUtensil(index, event.target.value)
-                      }
-                      placeholder="e.g., Mixing bowl, Chef's knife"
-                      className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
-                    />
-                    <button
-                      onClick={() => removeUtensil(index)}
-                      className="ak-button-danger-soft h-10 w-10 rounded-lg text-sm"
-                      aria-label="Remove utensil"
-                    >
-                      x
-                    </button>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
+
+            <details className="ak-editor-section">
+              <summary className="cursor-pointer font-semibold">
+                Notes & equipment{' '}
+                <span className="text-sm font-normal text-[var(--theme-text-muted)]">
+                  · Optional
+                </span>
+              </summary>
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">Notes</span>
+                <textarea
+                  value={draft.notes || ''}
+                  onChange={(event) => updateDraft('notes', event.target.value)}
+                  placeholder="Substitutions, storage, or observations for the next cook."
+                  rows={3}
+                  className="ak-input resize-y rounded-xl px-4 py-3 text-sm"
+                />
+              </label>
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold">Equipment</h3>
+                  <button
+                    type="button"
+                    onClick={addUtensil}
+                    className="ak-button-secondary rounded-md px-3 py-1.5 text-sm font-semibold"
+                  >
+                    + Add utensil
+                  </button>
+                </div>
+                <div className="grid gap-2">
+                  {draft.utensils.map((utensil, index) => (
+                    <div
+                      key={`utensil-${index}`}
+                      className="ak-surface-alt grid min-w-0 grid-cols-[1fr_auto] gap-2 rounded border p-3"
+                    >
+                      <input
+                        aria-label="Utensil"
+                        value={utensil}
+                        onChange={(event) =>
+                          updateUtensil(index, event.target.value)
+                        }
+                        placeholder="e.g., Cast-iron pot"
+                        className="ak-input min-w-0 rounded px-3 py-2 text-sm outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeUtensil(index)}
+                        className="ak-button-danger-soft h-10 w-10 rounded-lg text-sm"
+                        aria-label="Remove utensil"
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </details>
           </fieldset>
 
           {!isAuthenticated && (
@@ -4513,7 +4575,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   }}
                   className="ak-banner-action"
                 >
-                  Back to Discover
+                  Back to the Emporium
                 </button>
               }
             />
@@ -4562,7 +4624,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   No saved recipes yet
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                  Save recipes from Discover to keep them close at hand here.
+                  Save recipes from the Emporium to keep them close at hand here.
                 </p>
                 <Link
                   to="/discover"
@@ -4596,7 +4658,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   }}
                   className="ak-banner-action"
                 >
-                  Back to Discover
+                  Back to the Emporium
                 </button>
               }
             />
@@ -4732,7 +4794,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 to="/discover"
                 className="ak-button-primary mt-5 inline-flex rounded-xl px-5 py-3 text-sm font-semibold"
               >
-                Discover recipes
+                Browse the Emporium
               </Link>
             </div>
           ) : (
@@ -4862,7 +4924,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   <p className="mt-0.5 text-xs text-[var(--theme-text-muted)]">
                     {isEditingRecipe
                       ? 'Review your updates'
-                      : 'Ready for the feed'}
+                      : 'Updates as you write'}
                   </p>
                 </div>
                 {isAuthenticated && (
@@ -5038,6 +5100,16 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                             <li key={`preview-step-${index}`}>{instruction}</li>
                           ))}
                       </ol>
+                    </div>
+                  )}
+                  {draft.notes?.trim() && (
+                    <div className="mt-4 border-t border-[var(--theme-border)] pt-4">
+                      <h4 className="text-sm font-semibold text-[var(--theme-text)]">
+                        Notes
+                      </h4>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[var(--theme-text)]">
+                        {draft.notes}
+                      </p>
                     </div>
                   )}
                   {draft.utensils.some((ut) => ut.trim()) && (

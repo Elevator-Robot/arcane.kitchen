@@ -617,7 +617,7 @@ export default function AdminDashboard({
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-1 sm:px-8">
           <button
             onClick={onBack}
-            aria-label="Go to Discover"
+            aria-label="Go to the Emporium"
             className="ak-logo-button flex items-center gap-2 p-0.5"
           >
             <img

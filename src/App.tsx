@@ -388,7 +388,7 @@ export function AppRouteAware() {
               : /^\/(u|profile)\//.test(normalized)
                 ? 'Cook profile'
                 : knownRoute
-                  ? 'Discover recipes'
+                  ? 'Emporium'
                   : 'Page not found';
     document.title = `${title} · Arcane Kitchen`;
   }, [normalized, knownRoute]);

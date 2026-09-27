@@ -72,6 +72,8 @@ Authentication submission:
 
 ## Routing (React Router)
 
+- The community recipe page is named **Emporium** in headings, document titles, navigation, and user-facing copy. Its existing `/discover` URL and internal `Discover` view key remain compatible with shared links.
+
 - Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
 - Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
 - Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
@@ -106,7 +108,9 @@ Authentication submission:
 
 ## Profile & Avatars
 
-- Profiles are Kitchen Sanctuaries: nine Birthsign presets, six Stations, six familiars, an 80-character Tenet, separate 140-character main and side quests, up to three curated pantry ingredients, and one optional pinned published recipe. Birthsigns theme the full application palette, including Discover, shared surfaces, and sanctuary banners. Stations pair a title with an occult workplace. These are creative public details, not personal-information fields or earned ranks.
+- Profiles are Kitchen Sanctuaries: nine Birthsign presets, six Callings (names only), six named familiars, an 80-character Tenet, separate 140-character main and side quests, and one optional pinned published recipe. Birthsigns theme the full application palette. Pantry customization/display has been removed; legacy JSON is preserved for compatibility. These are creative public details, not personal-information fields or earned ranks.
+- Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
+- The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.
 - `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
 - Public profiles have no collection tab bar and no edit/customization controls. Owners retain Recipes/Drafts/Saved navigation. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
 - Profile customization and avatar selection use `AccessibleDialog`; the customization form previews choices before save and Cancel discards them. Community save totals derive from published-recipe favorites, with no placeholder follower, level, or achievement counts.

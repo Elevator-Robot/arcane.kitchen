@@ -1,7 +1,7 @@
 {
   "name": "Arcane Kitchen - Where Culinary Magic Meets Ancient Wisdom",
   "short_name": "Arcane Kitchen",
-  "description": "Discover enchanted recipes, craft magical potions, and build your mystical cookbook with our AI-powered culinary companion.",
+  "description": "Explore the Emporium, Arcane Kitchen’s community recipe archive. Share your recipes, collect favorites, and preserve the traditions of your kitchen.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",

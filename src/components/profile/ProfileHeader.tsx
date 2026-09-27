@@ -240,12 +240,6 @@ export default function ProfileHeader({
                 <span aria-hidden="true">{calling.icon}</span>
                 {calling.name}
               </p>
-              <p className="max-w-md text-xs leading-6 text-[var(--theme-text-muted)]">
-                <span className="font-bold uppercase tracking-[0.12em]">
-                  {calling.place}
-                </span>{' '}
-                · {calling.description}
-              </p>
             </div>
             <div className="mt-4">
               {!isEditingBio || !isOwnProfile ? (
@@ -295,7 +289,7 @@ export default function ProfileHeader({
                     onChange={(e) => setDraftBio(e.target.value)}
                     aria-label="bio"
                     maxLength={500}
-                    placeholder="Tell a little kitchen lore: what you cook, what inspires you, and what you’re experimenting with."
+                    placeholder="Record your craft, the traditions you keep, and the recipes you seek."
                     className="ak-input w-full rounded px-3 py-2 text-left text-sm"
                   />
                   <div className="flex gap-2 justify-end">

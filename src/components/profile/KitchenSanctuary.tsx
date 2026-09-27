@@ -14,7 +14,6 @@ import {
   KITCHEN_CLASSES,
   KITCHEN_FAMILIARS,
   KITCHEN_THEMES,
-  PANTRY_CHARMS,
   kitchenCalling,
   kitchenFamiliar,
   kitchenTheme,
@@ -63,15 +62,13 @@ export function SanctuaryBanner({
         <p
           className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
         >
-          {identity.motto || 'A little magic lives here.'}
+          {identity.motto || 'The hearth remembers what the world forgets.'}
         </p>
         <p className="mt-3 flex items-center gap-2 text-xs text-white/80">
           <span aria-hidden="true">{theme.symbol}</span>
           {theme.name}
           <span aria-hidden="true">·</span>
-          {compact
-            ? `${kitchenCalling(identity.calling).name} · ${kitchenCalling(identity.calling).place}`
-            : theme.note}
+          {compact ? kitchenCalling(identity.calling).name : theme.note}
         </p>
       </div>
     </div>
@@ -80,14 +77,13 @@ export function SanctuaryBanner({
 
 export function SanctuaryDetails({
   identity,
-  isOwnProfile,
 }: {
   identity: KitchenIdentity;
   isOwnProfile: boolean;
 }) {
   const familiar = kitchenFamiliar(identity.familiar);
   return (
-    <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-3">
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           Kitchen familiar
@@ -106,41 +102,15 @@ export function SanctuaryDetails({
         </p>
       </section>
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
-        <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-          Pantry of curiosities
-        </h2>
-        {identity.pantry.length ? (
-          <ul className="mt-5 flex flex-wrap gap-2">
-            {identity.pantry.map((item) => (
-              <li
-                key={item}
-                className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-3 py-1.5 text-xs font-semibold"
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-5 text-sm leading-6 text-[var(--theme-text-muted)]">
-            {isOwnProfile
-              ? 'Choose three ingredients that feel like your kind of magic.'
-              : 'Still gathering a few favorite ingredients.'}
-          </p>
-        )}
-        <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          The ingredients this cook keeps coming back to.
-        </p>
-      </section>
-      <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
           Main quest
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
-          {identity.quest || 'Following the next delicious idea.'}
+          {identity.quest || 'Seeking a recipe lost to the ash.'}
         </p>
         <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          A small adventure, one recipe at a time.
+          The work that keeps the lamp burning.
         </p>
       </section>
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
@@ -149,10 +119,10 @@ export function SanctuaryDetails({
           Side quest
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
-          {identity.sideQuest || 'No diversion has claimed this cook just yet.'}
+          {identity.sideQuest || 'A page left unwritten.'}
         </p>
         <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          A smaller pursuit worth following along the way.
+          An inquiry kept in the margins.
         </p>
       </section>
     </div>
@@ -196,7 +166,7 @@ export function SignatureRecipe({
           </p>
           <h2 className="mt-3 break-words text-2xl">{recipe.title}</h2>
           <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-            A taste of what makes this kitchen its own.
+            Selected from this cook’s collected work.
           </p>
           <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--theme-accent)]">
             Open recipe
@@ -268,12 +238,12 @@ export function CustomizeSanctuary({
         <header className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-5 sm:px-8 sm:py-6">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-              Make yourself at home
+              The sanctuary ledger
             </p>
-            <h2 className="mt-1 text-2xl">Your kitchen. Your kind of magic.</h2>
+            <h2 className="mt-1 text-2xl">Leave your mark in the archive.</h2>
             <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-              Build a little world around what you love to cook. These details
-              are public.
+              Choose your sign, calling, and companion. These details appear on
+              your public profile.
             </p>
           </div>
           <Button
@@ -302,7 +272,7 @@ export function CustomizeSanctuary({
                     aria-label={theme.name}
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
-                    className="flex h-36 flex-col overflow-hidden rounded-xl text-left"
+                    className="flex h-44 flex-col overflow-hidden rounded-xl text-left"
                   >
                     <span
                       className="flex h-16 w-full flex-none items-center justify-between px-4 text-3xl text-white"
@@ -313,7 +283,7 @@ export function CustomizeSanctuary({
                         <Check className="h-5 w-5" aria-hidden="true" />
                       )}
                     </span>
-                    <span className="block h-20 w-full flex-none overflow-hidden px-3 py-2">
+                    <span className="block h-28 w-full flex-none px-3 py-2">
                       <span className="block text-xs font-semibold">
                         {theme.name}
                       </span>
@@ -326,7 +296,7 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">Station</legend>
+              <legend className="text-sm font-bold">Calling</legend>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
                   <Button
@@ -334,7 +304,7 @@ export function CustomizeSanctuary({
                     size="none"
                     type="button"
                     key={calling.id}
-                    aria-label={`${calling.name}, ${calling.place}`}
+                    aria-label={calling.name}
                     aria-pressed={draft.calling === calling.id}
                     onClick={() => setField('calling', calling.id)}
                     className="justify-start rounded-xl p-3 text-left text-sm"
@@ -345,9 +315,6 @@ export function CustomizeSanctuary({
                     <span className="min-w-0">
                       <span className="block font-semibold">
                         {calling.name}
-                      </span>
-                      <span className="mt-0.5 block text-[10px] font-medium text-[var(--theme-text-muted)]">
-                        {calling.place}
                       </span>
                     </span>
                   </Button>
@@ -382,7 +349,7 @@ export function CustomizeSanctuary({
                 value={draft.motto}
                 onChange={(event) => setField('motto', event.target.value)}
                 maxLength={80}
-                placeholder="A pinch of mischief, a spoonful of comfort."
+                placeholder="What is taken from the earth must be returned."
                 className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
               />
               <span className="text-right text-xs text-[var(--theme-text-muted)]">
@@ -397,7 +364,7 @@ export function CustomizeSanctuary({
                 onChange={(event) => setField('quest', event.target.value)}
                 maxLength={140}
                 rows={2}
-                placeholder="On a quest for the perfect mushroom ramen…"
+                placeholder="Recover the broth recipe from the abbey’s missing folio."
                 className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
               />
               <span className="text-right text-xs text-[var(--theme-text-muted)]">
@@ -412,47 +379,13 @@ export function CustomizeSanctuary({
                 onChange={(event) => setField('sideQuest', event.target.value)}
                 maxLength={140}
                 rows={2}
-                placeholder="Perfect a moonlit picnic loaf…"
+                placeholder="Learn what grows beneath the winter orchard."
                 className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
               />
               <span className="text-right text-xs text-[var(--theme-text-muted)]">
                 {draft.sideQuest.length}/140
               </span>
             </label>
-            <fieldset>
-              <legend className="text-sm font-bold">
-                Pantry of curiosities{' '}
-                <span className="font-normal text-[var(--theme-text-muted)]">
-                  ({draft.pantry.length}/3)
-                </span>
-              </legend>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {PANTRY_CHARMS.map((item) => (
-                  <label
-                    key={item}
-                    className={`ak-button-choice cursor-pointer rounded-full px-3 py-2 text-xs focus-within:ring-2 focus-within:ring-[var(--theme-accent)] ${draft.pantry.includes(item) ? 'ak-button-choice-active' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={draft.pantry.includes(item)}
-                      disabled={
-                        !draft.pantry.includes(item) && draft.pantry.length >= 3
-                      }
-                      onChange={(event) =>
-                        setField(
-                          'pantry',
-                          event.target.checked
-                            ? [...draft.pantry, item]
-                            : draft.pantry.filter((entry) => entry !== item)
-                        )
-                      }
-                    />
-                    {item}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
             <label className="grid gap-2">
               <span className="text-sm font-bold">
                 Pin a signature creation
@@ -494,12 +427,6 @@ export function CustomizeSanctuary({
               <p className="break-words font-heading text-xl">{user.handle}</p>
               <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">
                 {kitchenCalling(draft.calling).name}
-              </p>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--theme-text-muted)]">
-                {kitchenCalling(draft.calling).place}
-              </p>
-              <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
-                {kitchenCalling(draft.calling).description}
               </p>
               <p className="mt-4 text-sm">
                 {kitchenFamiliar(draft.familiar).symbol}{' '}

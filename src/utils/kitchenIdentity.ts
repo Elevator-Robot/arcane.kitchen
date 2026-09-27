@@ -20,8 +20,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'grove',
-    name: 'The Greenwarden',
-    note: 'Seasonal instinct & patient hands',
+    name: 'The Briar',
+    note: 'Old roots & secrets kept beneath the soil',
     accent: MERLIN_PALETTE[2],
     background: 'linear-gradient(120deg, #102c2d, #23564f 65%, #69806b)',
     page: '#f1f4eb',
@@ -54,8 +54,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'celestial',
-    name: 'The Stargazer',
-    note: 'Cosmic curiosity & precise observation',
+    name: 'The Watcher',
+    note: 'Silent vigils & signs in distant stars',
     accent: MERLIN_PALETTE[4],
     background: 'linear-gradient(120deg, #14213d, #304e78 65%, #63759e)',
     page: '#edf2f8',
@@ -88,8 +88,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'tidepool',
-    name: 'The Tidecaller',
-    note: 'Adaptable craft & salt-bright intuition',
+    name: 'The Drowned',
+    note: 'Salt, remembrance & things the sea returns',
     accent: '#087779',
     background: 'linear-gradient(120deg, #0c3840, #14747a 62%, #63a79d)',
     page: '#edf7f5',
@@ -105,8 +105,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'berry',
-    name: 'The Reveler',
-    note: 'Sweet excess, color & convivial feasts',
+    name: 'The Chalice',
+    note: 'Ancient hospitality & an unfilled cup',
     accent: '#9b275d',
     background: 'linear-gradient(120deg, #40152d, #852b59 62%, #c26682)',
     page: '#faeff3',
@@ -159,90 +159,72 @@ export const KITCHEN_THEMES = [
 export const KITCHEN_CLASSES = [
   {
     id: 'kitchen-witch',
-    name: 'Moon Archivist',
-    place: 'Lamplit Archive',
+    name: 'Hedge Witch',
     icon: '☾',
-    description:
-      'Keeps forbidden recipes, marginalia, and the quiet lore of old tables.',
   },
   {
     id: 'hearthkeeper',
-    name: 'Hearth Steward',
-    place: 'Grand Kitchen',
+    name: 'Ashkeeper',
     icon: '♨',
-    description:
-      'Commands the common fires and keeps every place at the table provisioned.',
   },
   {
     id: 'herb-druid',
-    name: 'House Apothecary',
-    place: 'Lantern Dispensary',
+    name: 'Alchemist',
     icon: '⚗',
-    description:
-      'Compounds restorative draughts, bitters, and remedies beneath warm glass.',
   },
   {
     id: 'dough-artificer',
-    name: 'Stillhouse Alchemist',
-    place: 'Crooked Still',
+    name: 'Ritualist',
     icon: '△',
-    description:
-      'Coaxes strange transformations from copper, flame, patience, and appetite.',
   },
   {
     id: 'spice-alchemist',
-    name: 'Garden Herbalist',
-    place: 'Physic Garden',
+    name: 'Root Seer',
     icon: '❧',
-    description:
-      'Tends useful roots and leaves whose virtues are not always written down.',
   },
   {
     id: 'feast-bard',
-    name: 'Deep Cellarer',
-    place: 'Underpantry',
+    name: 'Crypt Warden',
     icon: '◈',
-    description:
-      'Guards preserved harvests and older stores in the cool rooms below.',
   },
 ] as const;
 
 export const KITCHEN_FAMILIARS = [
   {
     id: 'cat',
-    name: 'Cauldron cat',
+    name: 'Salem',
     symbol: '🐈‍⬛',
-    note: 'Supervises every spell. Steals the cream.',
+    note: 'A black cat who watches the door long before anyone knocks.',
   },
   {
     id: 'dragon',
-    name: 'Pocket dragon',
+    name: 'Veyr',
     symbol: '🐉',
-    note: 'An enthusiastic assistant for anything flambéed.',
+    note: 'A small dragon curled around the last coal. The hearth never quite goes cold.',
   },
   {
     id: 'owl',
-    name: 'Pantry owl',
+    name: 'Orin',
     symbol: '🦉',
-    note: 'Remembers the recipe you forgot to write down.',
+    note: 'An owl that returns at dusk, carrying the scent of rooms long sealed.',
   },
   {
     id: 'fox',
-    name: 'Foraging fox',
+    name: 'Vesper',
     symbol: '🦊',
-    note: 'Always knows where the good ingredients grow.',
+    note: 'A fox that leads you to the forest edge, then waits for you to remember the path.',
   },
   {
     id: 'frog',
-    name: 'Potion frog',
+    name: 'Morrow',
     symbol: '🐸',
-    note: 'A patient companion for slow-simmered wonders.',
+    note: 'A frog from the well beneath the house. Its voice is older than the stones.',
   },
   {
     id: 'rabbit',
-    name: 'Flour-dusted rabbit',
+    name: 'Thistle',
     symbol: '🐇',
-    note: 'First to the bakery. Last to leave a crumb.',
+    note: 'A pale rabbit found among the winter roots. No tracks led to its burrow.',
   },
 ] as const;
 

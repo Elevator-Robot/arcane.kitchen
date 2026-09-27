@@ -48,7 +48,7 @@ describe('kitchen sanctuary profiles', () => {
     ).toBeInTheDocument();
   });
 
-  it('edits fantasy choices, limits pantry picks, and saves them together', async () => {
+  it('edits named identities without pantry controls and preserves legacy pantry data', async () => {
     const interaction = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     render(
@@ -67,17 +67,13 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       dialog.getByRole('button', { name: 'The Moth' })
     ).toBeInTheDocument();
-    await interaction.click(
-      dialog.getByRole('button', { name: 'The Greenwarden' })
-    );
+    await interaction.click(dialog.getByRole('button', { name: 'The Briar' }));
     await interaction.click(
       dialog.getByRole('button', {
-        name: 'House Apothecary, Lantern Dispensary',
+        name: 'Alchemist',
       })
     );
-    await interaction.click(
-      dialog.getByRole('button', { name: 'Foraging fox' })
-    );
+    await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
     await interaction.type(
       dialog.getByLabelText('Tenet'),
       'Forage. Feast. Repeat.'
@@ -90,9 +86,9 @@ describe('kitchen sanctuary profiles', () => {
       dialog.getByLabelText('Side quest'),
       'Perfect a sesame broth'
     );
-    await interaction.click(dialog.getByRole('checkbox', { name: 'Rosemary' }));
-    await interaction.click(dialog.getByRole('checkbox', { name: 'Honey' }));
-    expect(dialog.getByRole('checkbox', { name: 'Lemon' })).toBeDisabled();
+    expect(screen.queryByText('Pantry of curiosities')).not.toBeInTheDocument();
+    expect(dialog.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(dialog.getByRole('button', { name: 'Salem' })).toBeInTheDocument();
     await interaction.selectOptions(
       dialog.getByRole('combobox', { name: 'Pin a signature creation' }),
       'soup'
@@ -107,7 +103,7 @@ describe('kitchen sanctuary profiles', () => {
       motto: 'Forage. Feast. Repeat.',
       quest: 'Master mushroom ramen',
       sideQuest: 'Perfect a sesame broth',
-      pantry: ['Garlic', 'Rosemary', 'Honey'],
+      pantry: ['Garlic'],
       signatureRecipeId: 'soup',
     });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
