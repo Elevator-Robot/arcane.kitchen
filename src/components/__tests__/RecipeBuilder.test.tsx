@@ -560,6 +560,14 @@ describe('RecipeBuilder Component', () => {
     await user.type(commentInput, '@aph');
     await user.click(await screen.findByRole('button', { name: '@aphexlog' }));
     expect(commentInput).toHaveValue('@aphexlog ');
+
+    await user.click(screen.getByRole('button', { name: 'aphexlog' }));
+    expect(window.location.pathname).toBe('/u/aphexlog');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Test Recipe' })
+      ).not.toBeInTheDocument()
+    );
   });
 
   it('uses community tags without shortcut filters and lets guests deselect a tag', async () => {
@@ -736,7 +744,24 @@ describe('RecipeBuilder Component', () => {
   it('opens a recipe in-place from the profile page without a hard navigation', async () => {
     const user = userEvent.setup();
     mockRecipeList.mockResolvedValue({
-      data: [createMockRecipe({ name: 'Test Recipe' })],
+      data: [
+        createMockRecipe({
+          ownerId: 'testuser',
+          name: 'Test Recipe',
+          createdBy: '@test',
+        }),
+      ],
+      errors: undefined,
+    });
+    mockUserProfileList.mockResolvedValue({
+      data: [
+        {
+          id: 'own-profile',
+          userId: 'testuser',
+          username: 'test',
+          displayName: 'Test cook',
+        },
+      ],
       errors: undefined,
     });
 
@@ -754,6 +779,19 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.pathname + window.location.search).toBe(
       '/u/test?recipe=recipe-1'
     );
+    const dialog = await screen.findByRole('dialog', { name: 'Test Recipe' });
+    await user.click(within(dialog).getByRole('button', { name: 'by @test' }));
+    expect(window.location.pathname).toBe('/discover');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Test Recipe' })
+      ).not.toBeInTheDocument()
+    );
+    expect(
+      await screen.findByRole('button', {
+        name: 'Clear author collection @test',
+      })
+    ).toBeInTheDocument();
   });
 
   it('filters by recipe author before opening the public profile page', async () => {

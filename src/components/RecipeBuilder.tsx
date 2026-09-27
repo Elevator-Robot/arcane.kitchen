@@ -1079,32 +1079,55 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     ? avatarEntries.find((e) => e.file === effectiveAvatar)?.url || null
     : null;
 
+  const dismissExpandedRecipe = useCallback(() => {
+    justClosedRecipeIdRef.current = expandedRecipeId;
+    setShowRecipeImageLightbox(false);
+    setExpandedRecipeId(null);
+    setExpandedRecipeMessage('');
+    setComments((previous) => {
+      if (!expandedRecipeId) return previous;
+      const next = { ...previous };
+      delete next[expandedRecipeId];
+      return next;
+    });
+    setVisibleCommentCount((previous) => {
+      if (!expandedRecipeId) return previous;
+      const next = { ...previous };
+      delete next[expandedRecipeId];
+      return next;
+    });
+    setReplyingTo(null);
+    setReplyingToAuthor('');
+    setEditingCommentId(null);
+    setCommentInput('');
+    setShowMentions(false);
+    setMentionQuery('');
+    setMentionCursor(0);
+  }, [expandedRecipeId]);
+
   const selectAuthorFilter = useCallback(
     (username: string) => {
       const normalized = sanitizeUsername(username);
       if (!normalized) return;
 
-      justClosedRecipeIdRef.current = expandedRecipeId;
+      dismissExpandedRecipe();
       setActiveAuthor(normalized);
       setActiveTag(null);
       setActiveTagColor(randomMerlinColor());
-      setExpandedRecipeId(null);
-      setExpandedRecipeMessage('');
       setCurrentView('Discover');
       navigate('/discover');
     },
-    [expandedRecipeId, navigate]
+    [dismissExpandedRecipe, navigate]
   );
 
   const openProfilePage = useCallback(
     (username: string) => {
       const normalized = sanitizeUsername(username);
       if (!normalized) return;
-      setExpandedRecipeId(null);
-      setExpandedRecipeMessage('');
+      dismissExpandedRecipe();
       navigate(getProfileRoutePath(normalized));
     },
-    [navigate]
+    [dismissExpandedRecipe, navigate]
   );
 
   useEffect(() => {
@@ -1455,7 +1478,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
 
         if (expandedRecipeId === recipeIdFromPath || isLoadingFeed) return;
         if (justClosedRecipeIdRef.current === recipeIdFromPath) {
-          justClosedRecipeIdRef.current = null;
           return;
         }
 
@@ -2955,27 +2977,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   };
 
   const collapseExpandedRecipe = () => {
-    justClosedRecipeIdRef.current = expandedRecipeId;
-    setShowRecipeImageLightbox(false);
-    setExpandedRecipeId(null);
-    setExpandedRecipeMessage('');
-    setComments((prev) => {
-      const next = { ...prev };
-      if (expandedRecipeId) delete next[expandedRecipeId];
-      return next;
-    });
-    setVisibleCommentCount((prev) => {
-      const next = { ...prev };
-      if (expandedRecipeId) delete next[expandedRecipeId];
-      return next;
-    });
-    setReplyingTo(null);
-    setReplyingToAuthor('');
-    setEditingCommentId(null);
-    setCommentInput('');
-    setShowMentions(false);
-    setMentionQuery('');
-    setMentionCursor(0);
+    dismissExpandedRecipe();
     if (typeof window !== 'undefined') {
       const basePath = window.location.pathname.startsWith('/recipe/')
         ? '/discover'
@@ -5098,32 +5100,34 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
             </section>
           </AccessibleDialog>
         )}
-      {expandedRecipe && (
-        <AccessibleDialog
-          label={expandedRecipe.name}
-          onClose={() => {
-            if (showRecipeImageLightbox) setShowRecipeImageLightbox(false);
-            else collapseExpandedRecipe();
-          }}
-          dismissOnBackdrop
-          className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] backdrop-blur-sm"
-        >
-          <button
-            type="button"
-            onClick={collapseExpandedRecipe}
-            aria-label="Close recipe"
-            className="ak-button-secondary ak-button-on-dark fixed right-4 top-4 z-10 rounded-full p-2.5"
+      {expandedRecipe &&
+        getRecipeIdFromPath(location.pathname + location.search) ===
+          expandedRecipe.id && (
+          <AccessibleDialog
+            label={expandedRecipe.name}
+            onClose={() => {
+              if (showRecipeImageLightbox) setShowRecipeImageLightbox(false);
+              else collapseExpandedRecipe();
+            }}
+            dismissOnBackdrop
+            className="fixed inset-0 z-50 overflow-y-auto bg-[var(--theme-overlay)] backdrop-blur-sm"
           >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </button>
-          <div
-            className="mx-auto my-8 w-full max-w-4xl px-4 sm:px-6"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {expandedRecipeArticle}
-          </div>
-        </AccessibleDialog>
-      )}
+            <button
+              type="button"
+              onClick={collapseExpandedRecipe}
+              aria-label="Close recipe"
+              className="ak-button-secondary ak-button-on-dark fixed right-4 top-4 z-10 rounded-full p-2.5"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <div
+              className="mx-auto my-8 w-full max-w-4xl px-4 sm:px-6"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {expandedRecipeArticle}
+            </div>
+          </AccessibleDialog>
+        )}
       {showRecipeImageLightbox &&
         expandedRecipe &&
         !isPlaceholder(expandedRecipe.image) && (
