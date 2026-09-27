@@ -48,7 +48,8 @@ describe('kitchen identity persistence', () => {
     expect(normalizeKitchenIdentity({ theme: 'tidepool' }).theme).toBe(
       'tidepool'
     );
-    expect(kitchenTheme('berry').name).toBe('Berryglass salon');
+    expect(kitchenTheme('berry').name).toBe('The Reveler');
+    expect(kitchenTheme('moth').name).toBe('The Moth');
   });
 
   it('preserves customization through backend hydration and unrelated profile edits', () => {

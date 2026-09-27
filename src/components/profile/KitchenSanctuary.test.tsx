@@ -64,15 +64,22 @@ describe('kitchen sanctuary profiles', () => {
     const dialog = within(
       screen.getByRole('dialog', { name: 'Customize your kitchen sanctuary' })
     );
+    expect(
+      dialog.getByRole('button', { name: 'The Moth' })
+    ).toBeInTheDocument();
     await interaction.click(
-      dialog.getByRole('button', { name: 'Enchanted grove' })
+      dialog.getByRole('button', { name: 'The Greenwarden' })
     );
-    await interaction.click(dialog.getByRole('button', { name: 'Alchemist' }));
+    await interaction.click(
+      dialog.getByRole('button', {
+        name: 'House Apothecary, Lantern Dispensary',
+      })
+    );
     await interaction.click(
       dialog.getByRole('button', { name: 'Foraging fox' })
     );
     await interaction.type(
-      dialog.getByLabelText('Your kitchen motto'),
+      dialog.getByLabelText('Tenet'),
       'Forage. Feast. Repeat.'
     );
     await interaction.type(
@@ -120,29 +127,21 @@ describe('kitchen sanctuary profiles', () => {
     await interaction.click(
       screen.getByRole('button', { name: 'Customize sanctuary' })
     );
-    await interaction.type(
-      screen.getByLabelText('Your kitchen motto'),
-      'Unsaved magic'
-    );
+    await interaction.type(screen.getByLabelText('Tenet'), 'Unsaved magic');
     await interaction.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(save).not.toHaveBeenCalled();
     await interaction.click(
       screen.getByRole('button', { name: 'Customize sanctuary' })
     );
-    expect(screen.getByLabelText('Your kitchen motto')).toHaveValue('');
-    await interaction.type(
-      screen.getByLabelText('Your kitchen motto'),
-      'Keep this idea'
-    );
+    expect(screen.getByLabelText('Tenet')).toHaveValue('');
+    await interaction.type(screen.getByLabelText('Tenet'), 'Keep this idea');
     await interaction.click(
       screen.getByRole('button', { name: 'Save sanctuary' })
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'could not be saved'
     );
-    expect(screen.getByLabelText('Your kitchen motto')).toHaveValue(
-      'Keep this idea'
-    );
+    expect(screen.getByLabelText('Tenet')).toHaveValue('Keep this idea');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 

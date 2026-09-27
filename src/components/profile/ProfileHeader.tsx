@@ -241,7 +241,10 @@ export default function ProfileHeader({
                 {calling.name}
               </p>
               <p className="max-w-md text-xs leading-6 text-[var(--theme-text-muted)]">
-                {calling.description}
+                <span className="font-bold uppercase tracking-[0.12em]">
+                  {calling.place}
+                </span>{' '}
+                · {calling.description}
               </p>
             </div>
             <div className="mt-4">

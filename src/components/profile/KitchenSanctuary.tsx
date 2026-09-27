@@ -69,7 +69,9 @@ export function SanctuaryBanner({
           <span aria-hidden="true">{theme.symbol}</span>
           {theme.name}
           <span aria-hidden="true">·</span>
-          {compact ? kitchenCalling(identity.calling).name : theme.note}
+          {compact
+            ? `${kitchenCalling(identity.calling).name} · ${kitchenCalling(identity.calling).place}`
+            : theme.note}
         </p>
       </div>
     </div>
@@ -289,8 +291,8 @@ export function CustomizeSanctuary({
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_280px]">
           <fieldset disabled={pending} className="min-w-0 space-y-7">
             <fieldset>
-              <legend className="text-sm font-bold">1. Sanctuary aspect</legend>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <legend className="text-sm font-bold">Birthsign</legend>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {KITCHEN_THEMES.map((theme) => (
                   <Button
                     variant="image"
@@ -324,7 +326,7 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">2. Kitchen trade</legend>
+              <legend className="text-sm font-bold">Station</legend>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
                   <Button
@@ -332,20 +334,28 @@ export function CustomizeSanctuary({
                     size="none"
                     type="button"
                     key={calling.id}
+                    aria-label={`${calling.name}, ${calling.place}`}
                     aria-pressed={draft.calling === calling.id}
                     onClick={() => setField('calling', calling.id)}
-                    className="rounded-xl p-3 text-left text-sm"
+                    className="justify-start rounded-xl p-3 text-left text-sm"
                   >
-                    <span aria-hidden="true" className="mr-2">
+                    <span aria-hidden="true" className="shrink-0 text-lg">
                       {calling.icon}
                     </span>
-                    {calling.name}
+                    <span className="min-w-0">
+                      <span className="block font-semibold">
+                        {calling.name}
+                      </span>
+                      <span className="mt-0.5 block text-[10px] font-medium text-[var(--theme-text-muted)]">
+                        {calling.place}
+                      </span>
+                    </span>
                   </Button>
                 ))}
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">3. Familiar bond</legend>
+              <legend className="text-sm font-bold">Familiar</legend>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {KITCHEN_FAMILIARS.map((familiar) => (
                   <Button
@@ -366,9 +376,9 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <label className="grid gap-2">
-              <span className="text-sm font-bold">Your kitchen motto</span>
+              <span className="text-sm font-bold">Tenet</span>
               <input
-                aria-label="Your kitchen motto"
+                aria-label="Tenet"
                 value={draft.motto}
                 onChange={(event) => setField('motto', event.target.value)}
                 maxLength={80}
@@ -484,6 +494,9 @@ export function CustomizeSanctuary({
               <p className="break-words font-heading text-xl">{user.handle}</p>
               <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">
                 {kitchenCalling(draft.calling).name}
+              </p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--theme-text-muted)]">
+                {kitchenCalling(draft.calling).place}
               </p>
               <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
                 {kitchenCalling(draft.calling).description}

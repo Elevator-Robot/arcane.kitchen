@@ -5,10 +5,10 @@ social communities, with a cooking/fantasy character-sheet vocabulary.
 
 ## Personalization
 
-- **Sanctuary aspect:** Moonlit library, Enchanted grove, Dragon’s hearth, Celestial observatory, Sunlit conservatory, Tidepool apothecary, Berryglass salon, or Frosted great hall.
-- **Kitchen trade:** Herbalist, Cook, Alchemist, Baker, Forager, or Cellarer.
+- **Birthsign:** The Lantern, The Greenwarden, The Wyrm, The Stargazer, The Sunbearer, The Tidecaller, The Reveler, The Pale Hart, or the unaligned omen The Moth. The selected Birthsign controls the application palette.
+- **Station:** Moon Archivist — Lamplit Archive; Hearth Steward — Grand Kitchen; House Apothecary — Lantern Dispensary; Stillhouse Alchemist — Crooked Still; Garden Herbalist — Physic Garden; or Deep Cellarer — Underpantry.
 - **Familiar:** Cauldron cat, Pocket dragon, Pantry owl, Foraging fox, Potion frog, Flour-dusted rabbit.
-- **Motto:** up to 80 characters in the profile banner.
+- **Tenet:** up to 80 characters in the profile banner.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
 - **Pantry:** up to three curated favorite ingredients.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
@@ -40,7 +40,7 @@ mocked persistence tests, not a live deployment.
 ## Verification
 
 - Public/private rendering and removal of the single Recipes tab.
-- Theme, trade, familiar, motto, main and side quests, ingredient limits, and signature selection.
+- Birthsign, Station, familiar, Tenet, main and side quests, ingredient limits, and signature selection.
 - Cancel/reset staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.

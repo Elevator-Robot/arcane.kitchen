@@ -3,8 +3,8 @@ import { MERLIN_PALETTE } from '../theme/merlinPalette';
 export const KITCHEN_THEMES = [
   {
     id: 'moonlit',
-    name: 'Moonlit library',
-    note: 'Midnight recipes & a little mystery',
+    name: 'The Lantern',
+    note: 'Hidden knowledge & recipes left in margins',
     accent: MERLIN_PALETTE[0],
     background: 'linear-gradient(120deg, #17132e, #433065 65%, #77527a)',
     page: '#f5f0f8',
@@ -20,8 +20,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'grove',
-    name: 'Enchanted grove',
-    note: 'Wild herbs & woodland gatherings',
+    name: 'The Greenwarden',
+    note: 'Seasonal instinct & patient hands',
     accent: MERLIN_PALETTE[2],
     background: 'linear-gradient(120deg, #102c2d, #23564f 65%, #69806b)',
     page: '#f1f4eb',
@@ -37,8 +37,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'ember',
-    name: 'Dragon’s hearth',
-    note: 'Bold flavors & fireside feasts',
+    name: 'The Wyrm',
+    note: 'Bold appetite & a gift for flame',
     accent: MERLIN_PALETTE[5],
     background: 'linear-gradient(120deg, #30162e, #713447 65%, #b96a55)',
     page: '#fbf0e8',
@@ -54,8 +54,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'celestial',
-    name: 'Celestial observatory',
-    note: 'Cosmic curiosity & starlit suppers',
+    name: 'The Stargazer',
+    note: 'Cosmic curiosity & precise observation',
     accent: MERLIN_PALETTE[4],
     background: 'linear-gradient(120deg, #14213d, #304e78 65%, #63759e)',
     page: '#edf2f8',
@@ -71,8 +71,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'sunroom',
-    name: 'Sunlit conservatory',
-    note: 'Citrus, fresh bread & golden afternoons',
+    name: 'The Sunbearer',
+    note: 'Generosity, abundance & golden tables',
     accent: '#9a5b0a',
     background: 'linear-gradient(120deg, #5b3512, #a66b21 62%, #d6a84f)',
     page: '#fbf5e7',
@@ -88,8 +88,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'tidepool',
-    name: 'Tidepool apothecary',
-    note: 'Sea salt, bright herbs & coastal air',
+    name: 'The Tidecaller',
+    note: 'Adaptable craft & salt-bright intuition',
     accent: '#087779',
     background: 'linear-gradient(120deg, #0c3840, #14747a 62%, #63a79d)',
     page: '#edf7f5',
@@ -105,8 +105,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'berry',
-    name: 'Berryglass salon',
-    note: 'Jewel-toned sweets & candlelit company',
+    name: 'The Reveler',
+    note: 'Sweet excess, color & convivial feasts',
     accent: '#9b275d',
     background: 'linear-gradient(120deg, #40152d, #852b59 62%, #c26682)',
     page: '#faeff3',
@@ -122,8 +122,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'frost',
-    name: 'Frosted great hall',
-    note: 'Winter feasts & crystalline calm',
+    name: 'The Pale Hart',
+    note: 'Stillness, resilience & winter stores',
     accent: '#315f9b',
     background: 'linear-gradient(120deg, #26364f, #4f7297 62%, #9bb6ca)',
     page: '#f0f5f7',
@@ -137,50 +137,73 @@ export const KITCHEN_THEMES = [
     glow: '#6f9fbd',
     symbol: '❄',
   },
+  {
+    id: 'moth',
+    name: 'The Moth',
+    note: 'Forbidden curiosity & transformative hunger',
+    accent: '#a86118',
+    background: 'linear-gradient(120deg, #211a1c, #59402f 62%, #ad7635)',
+    page: '#f5f0e8',
+    pageSoft: '#e9dfcf',
+    surface: '#fcfaf5',
+    surfaceAlt: '#eee3d2',
+    text: '#30251f',
+    textMuted: '#706157',
+    border: '#d8c9b5',
+    borderStrong: '#b7a086',
+    glow: '#c1843d',
+    symbol: '✣',
+  },
 ] as const;
 
 export const KITCHEN_CLASSES = [
   {
     id: 'kitchen-witch',
-    name: 'Herbalist',
-    icon: '❧',
+    name: 'Moon Archivist',
+    place: 'Lamplit Archive',
+    icon: '☾',
     description:
-      'Keeper of garden lore, restorative broths, and fragrant leaves.',
+      'Keeps forbidden recipes, marginalia, and the quiet lore of old tables.',
   },
   {
     id: 'hearthkeeper',
-    name: 'Cook',
+    name: 'Hearth Steward',
+    place: 'Grand Kitchen',
     icon: '♨',
     description:
-      'Steady at the hearth and practiced in the craft of a generous table.',
+      'Commands the common fires and keeps every place at the table provisioned.',
   },
   {
     id: 'herb-druid',
-    name: 'Alchemist',
+    name: 'House Apothecary',
+    place: 'Lantern Dispensary',
     icon: '⚗',
     description:
-      'Transforms spice, heat, and curious ingredients through experiment.',
+      'Compounds restorative draughts, bitters, and remedies beneath warm glass.',
   },
   {
     id: 'dough-artificer',
-    name: 'Baker',
-    icon: '◇',
+    name: 'Stillhouse Alchemist',
+    place: 'Crooked Still',
+    icon: '△',
     description:
-      'Works in flour, fermentation, patience, and the measured warmth of ovens.',
+      'Coaxes strange transformations from copper, flame, patience, and appetite.',
   },
   {
     id: 'spice-alchemist',
-    name: 'Forager',
-    icon: '⌁',
+    name: 'Garden Herbalist',
+    place: 'Physic Garden',
+    icon: '❧',
     description:
-      'Reads the seasons and gathers uncommon provisions from field and forest.',
+      'Tends useful roots and leaves whose virtues are not always written down.',
   },
   {
     id: 'feast-bard',
-    name: 'Cellarer',
+    name: 'Deep Cellarer',
+    place: 'Underpantry',
     icon: '◈',
     description:
-      'Preserves the harvest and keeps a careful store for leaner seasons.',
+      'Guards preserved harvests and older stores in the cool rooms below.',
   },
 ] as const;
 

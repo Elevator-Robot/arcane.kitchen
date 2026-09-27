@@ -313,7 +313,7 @@ describe('RecipeBuilder Component', () => {
           await screen.findByRole('heading', { name: 'other_chef' })
         ).toBeInTheDocument();
         const banner = screen
-          .getByText(/Dragon’s hearth/)
+          .getByText(/The Wyrm/)
           .closest('[style]') as HTMLElement;
         expect(banner).toHaveStyle({
           background: kitchenTheme('ember').background,
@@ -352,7 +352,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Customize sanctuary' })
     );
-    await user.click(screen.getByRole('button', { name: 'Dragon’s hearth' }));
+    await user.click(screen.getByRole('button', { name: 'The Wyrm' }));
     await user.click(screen.getByRole('button', { name: 'Save sanctuary' }));
     await waitFor(() =>
       expect(
