@@ -290,10 +290,10 @@ export function CustomizeSanctuary({
                     aria-label={theme.name}
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
-                    className="overflow-hidden rounded-xl text-left"
+                    className="flex h-36 flex-col overflow-hidden rounded-xl text-left"
                   >
                     <span
-                      className="flex h-16 items-center justify-between px-4 text-3xl text-white"
+                      className="flex h-16 w-full flex-none items-center justify-between px-4 text-3xl text-white"
                       style={{ background: theme.background }}
                     >
                       <span aria-hidden="true">{theme.symbol}</span>
@@ -301,7 +301,7 @@ export function CustomizeSanctuary({
                         <Check className="h-5 w-5" aria-hidden="true" />
                       )}
                     </span>
-                    <span className="block min-h-20 px-3 py-2">
+                    <span className="block h-20 w-full flex-none overflow-hidden px-3 py-2">
                       <span className="block text-xs font-semibold">
                         {theme.name}
                       </span>

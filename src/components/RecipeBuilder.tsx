@@ -3854,18 +3854,18 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           {!expandedRecipeId && (
-            <div className="ak-discover-intro">
+            <div
+              className="ak-discover-intro"
+              style={{ background: sanctuaryBackground }}
+            >
               <div className="relative">
-                <p className="ak-eyebrow mb-2 flex items-center gap-2 text-[var(--theme-accent-strong)]">
+                <p className="ak-eyebrow mb-2 flex items-center gap-2 text-white/80">
                   <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                   Community grimoire
                 </p>
-                <h1 className="font-heading text-2xl font-semibold text-[var(--theme-text)] sm:text-3xl">
+                <h1 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
                   Discover recipes
                 </h1>
-                <p className="mt-1 max-w-xl text-sm leading-6 text-[var(--theme-text-muted)]">
-                  Search the shared table by dish, tag, or cook.
-                </p>
               </div>
               <div className="relative mt-4 flex items-stretch gap-2">
                 <div
@@ -3932,55 +3932,57 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 </Button>
               </div>
 
-              <div className="relative mt-5 space-y-4 border-t border-[var(--theme-border)] pt-4">
-                {activeAuthor && (
-                  <div className="flex flex-col gap-3 rounded-2xl border border-[var(--theme-border)] bg-gradient-to-r from-[var(--theme-surface)] to-[var(--theme-surface-alt)] px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-text-muted)]">
-                        Author collection
-                      </p>
-                      <p className="mt-0.5 font-heading text-base font-semibold text-[var(--theme-text)]">
-                        Recipes by @{activeAuthor}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        to={getProfileRoutePath(activeAuthor)}
-                        onClick={() => setActiveAuthor(null)}
-                        className="ak-button-primary inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm sm:flex-none"
-                      >
-                        View author profile
-                        <svg
-                          className="h-4 w-4"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          aria-hidden="true"
+              {(activeAuthor || availableFilterTags.length > 0) && (
+                <div className="relative mt-5 space-y-4 border-t border-white/25 pt-4">
+                  {activeAuthor && (
+                    <div className="flex flex-col gap-3 rounded-2xl border border-[var(--theme-border)] bg-gradient-to-r from-[var(--theme-surface)] to-[var(--theme-surface-alt)] px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--theme-text-muted)]">
+                          Author collection
+                        </p>
+                        <p className="mt-0.5 font-heading text-base font-semibold text-[var(--theme-text)]">
+                          Recipes by @{activeAuthor}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={getProfileRoutePath(activeAuthor)}
+                          onClick={() => setActiveAuthor(null)}
+                          className="ak-button-primary inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm sm:flex-none"
                         >
-                          <path d="M7 17 17 7M7 7h10v10" />
-                        </svg>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => setActiveAuthor(null)}
-                        aria-label={`Clear author collection @${activeAuthor}`}
-                        title="Clear author collection"
-                        className="ak-button-secondary inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                          View author profile
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            aria-hidden="true"
+                          >
+                            <path d="M7 17 17 7M7 7h10v10" />
+                          </svg>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setActiveAuthor(null)}
+                          aria-label={`Clear author collection @${activeAuthor}`}
+                          title="Clear author collection"
+                          className="ak-button-secondary inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <RecipeTagFilters
-                  tags={availableFilterTags}
-                  selected={activeTag}
-                  selectedColor={activeTagColor}
-                  onSelect={handleFilterClick}
-                />
-              </div>
+                  <RecipeTagFilters
+                    tags={availableFilterTags}
+                    selected={activeTag}
+                    selectedColor={activeTagColor}
+                    onSelect={handleFilterClick}
+                  />
+                </div>
+              )}
             </div>
           )}
 

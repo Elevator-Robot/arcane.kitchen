@@ -162,10 +162,10 @@
     right: -5rem;
     width: 18rem;
     height: 18rem;
-    border: 1px solid color-mix(in srgb, var(--theme-accent) 14%, transparent);
+    border: 1px solid rgb(255 255 255 / 14%);
     box-shadow:
-      0 0 0 2.25rem color-mix(in srgb, var(--theme-accent) 4%, transparent),
-      0 0 0 4.5rem color-mix(in srgb, var(--theme-glow) 4%, transparent);
+      0 0 0 2.25rem rgb(255 255 255 / 4%),
+      0 0 0 4.5rem rgb(255 255 255 / 3%);
   }
 
   .ak-discover-intro::after {
@@ -173,7 +173,7 @@
     left: 12%;
     width: 10rem;
     height: 5rem;
-    background: color-mix(in srgb, var(--theme-glow) 9%, transparent);
+    background: rgb(255 255 255 / 9%);
     filter: blur(28px);
   }
 
@@ -188,6 +188,11 @@
       0 8px 24px color-mix(in srgb, var(--theme-text) 6%, transparent),
       inset 0 1px 0 rgb(255 255 255 / 70%);
     backdrop-filter: blur(12px);
+  }
+
+  .ak-discover-intro .ak-tag-list + button,
+  .ak-discover-intro section[aria-label='Community recipe tags'] > p {
+    color: rgb(255 255 255 / 82%);
   }
 
   .ak-surface {
