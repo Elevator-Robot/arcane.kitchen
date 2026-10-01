@@ -139,7 +139,9 @@ Authentication submission:
 
 ## Sanctuary Design Language
 
-- `docs/identity-art-prompts.md` is the editable artwork prompt book for all nine Birthsigns, six Callings, and six Familiars. It records proposed compositions, shared art direction, and revision notes; generated assets and banner UI are not implemented yet.
+- `docs/identity-art-prompts.md` is the editable artwork prompt book for all nine Birthsigns, six Callings, and six Familiars. Each entry is one self-contained generation paragraph. The constellation-only Birthsign prompts remain a reference; the supplied artwork includes illustrated figures around the stars. Calling and Familiar artwork is not implemented yet.
+- Birthsign artwork lives in `src/assets/birthsigns/` as 1536×1024 WebP files, mapped to stable theme IDs by `src/theme/birthsignArtwork.ts`. Customization uses uncropped 3:2 image cards and a selected-image preview. Names reveal on hover/keyboard focus and stay visible on touch devices; accessible names and selected checkmarks remain available.
+- Birthsign order is The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, The Mage. Display names and descriptions use this roster; legacy theme IDs and palettes remain stable for saved profiles.
 
 - `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets and constellation artwork across Saved, Drafts, Build, and Admin. Profile banners use the same motif.
 - Page headers, recipe placeholders, and accent/focus colors inherit the signed-in viewer’s saved `kitchenIdentity.theme` through `src/theme/sanctuaryTheme.ts`; guests use Moonlit. Visiting another cook keeps the viewer’s app theme while that cook’s profile banner retains its own atmosphere.

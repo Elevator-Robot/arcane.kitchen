@@ -65,9 +65,16 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('dialog', { name: 'Customize your kitchen sanctuary' })
     );
     expect(
-      dialog.getByRole('button', { name: 'The Moth' })
+      dialog.getByRole('button', { name: 'The Mage' })
     ).toBeInTheDocument();
-    await interaction.click(dialog.getByRole('button', { name: 'The Briar' }));
+    await interaction.click(dialog.getByRole('button', { name: 'The Raven' }));
+    expect(dialog.getByRole('button', { name: 'The Raven' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(
+      dialog.getByRole('img', { name: 'The Raven birthsign' })
+    ).toHaveAttribute('src', expect.stringContaining('raven.webp'));
     await interaction.click(
       dialog.getByRole('button', {
         name: 'Alchemist',

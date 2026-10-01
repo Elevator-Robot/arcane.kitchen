@@ -24,6 +24,7 @@ import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
 import Button from '../ui/Button';
+import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
 
 export function SanctuaryBanner({
   identity,
@@ -272,24 +273,23 @@ export function CustomizeSanctuary({
                     aria-label={theme.name}
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
-                    className="flex h-44 flex-col overflow-hidden rounded-xl text-left"
+                    className="ak-birthsign-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
                   >
-                    <span
-                      className="flex h-16 w-full flex-none items-center justify-between px-4 text-3xl text-white"
-                      style={{ background: theme.background }}
-                    >
-                      <span aria-hidden="true">{theme.symbol}</span>
-                      {draft.theme === theme.id && (
-                        <Check className="h-5 w-5" aria-hidden="true" />
-                      )}
-                    </span>
-                    <span className="block h-28 w-full flex-none px-3 py-2">
-                      <span className="block text-xs font-semibold">
-                        {theme.name}
+                    <img
+                      src={BIRTHSIGN_ARTWORK[theme.id]}
+                      alt=""
+                      width={1536}
+                      height={1024}
+                      loading="lazy"
+                      className="h-full w-full object-contain"
+                    />
+                    {draft.theme === theme.id && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                        <Check className="h-4 w-4" aria-hidden="true" />
                       </span>
-                      <span className="mt-1 block text-[10px] leading-4 text-[var(--theme-text-muted)]">
-                        {theme.note}
-                      </span>
+                    )}
+                    <span className="ak-birthsign-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-4 text-xs font-semibold text-white">
+                      {theme.name}
                     </span>
                   </Button>
                 ))}
@@ -422,6 +422,13 @@ export function CustomizeSanctuary({
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
               Live preview
             </p>
+            <img
+              src={BIRTHSIGN_ARTWORK[kitchenTheme(draft.theme).id]}
+              alt={`${kitchenTheme(draft.theme).name} birthsign`}
+              width={1536}
+              height={1024}
+              className="mb-3 aspect-[3/2] w-full rounded-2xl object-contain"
+            />
             <SanctuaryBanner identity={draft} compact />
             <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
               <p className="break-words font-heading text-xl">{user.handle}</p>

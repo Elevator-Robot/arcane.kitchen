@@ -15,7 +15,8 @@ burning. Unease comes from what is implied. Familiar spirits have names and
 histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
 labels and cooking instructions remain clear and practical.
 
-- **Birthsign:** The Lantern, The Briar, The Wyrm, The Watcher, The Sunbearer, The Drowned, The Chalice, The Pale Hart, or the unaligned omen The Moth. The selected Birthsign controls the application palette.
+- **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs and palettes remain compatible; names follow this order.
+- Birthsign selection uses supplied constellation artwork in uncropped 3:2 cards, with names shown on hover or keyboard focus and always on touchscreens. The live preview includes the selected image and name. Assets are local optimized WebP files in `src/assets/birthsigns/`.
 - **Calling:** Hedge Witch, Ashkeeper, Alchemist, Ritualist, Root Seer, or Crypt Warden. Show the name without a workplace subtitle or description.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - **Tenet:** up to 80 characters in the profile banner.

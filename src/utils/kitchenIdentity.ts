@@ -3,8 +3,8 @@ import { MERLIN_PALETTE } from '../theme/merlinPalette';
 export const KITCHEN_THEMES = [
   {
     id: 'moonlit',
-    name: 'The Lantern',
-    note: 'Hidden knowledge & recipes left in margins',
+    name: 'The Wanderer',
+    note: 'Forgotten roads & recipes carried between hearths',
     accent: MERLIN_PALETTE[0],
     background: 'linear-gradient(120deg, #17132e, #433065 65%, #77527a)',
     page: '#f5f0f8',
@@ -20,8 +20,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'grove',
-    name: 'The Briar',
-    note: 'Old roots & secrets kept beneath the soil',
+    name: 'The Raven',
+    note: 'Watchful wings & tidings from abandoned places',
     accent: MERLIN_PALETTE[2],
     background: 'linear-gradient(120deg, #102c2d, #23564f 65%, #69806b)',
     page: '#f1f4eb',
@@ -71,8 +71,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'sunroom',
-    name: 'The Sunbearer',
-    note: 'Generosity, abundance & golden tables',
+    name: 'The Sage',
+    note: 'Patient study & knowledge preserved in the margins',
     accent: '#9a5b0a',
     background: 'linear-gradient(120deg, #5b3512, #a66b21 62%, #d6a84f)',
     page: '#fbf5e7',
@@ -88,8 +88,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'tidepool',
-    name: 'The Drowned',
-    note: 'Salt, remembrance & things the sea returns',
+    name: 'The Fae',
+    note: 'Hidden paths & bargains made at the woodland edge',
     accent: '#087779',
     background: 'linear-gradient(120deg, #0c3840, #14747a 62%, #63a79d)',
     page: '#edf7f5',
@@ -105,8 +105,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'berry',
-    name: 'The Chalice',
-    note: 'Ancient hospitality & an unfilled cup',
+    name: 'The Witch',
+    note: 'Old customs & the quiet keeping of forbidden craft',
     accent: '#9b275d',
     background: 'linear-gradient(120deg, #40152d, #852b59 62%, #c26682)',
     page: '#faeff3',
@@ -122,8 +122,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'frost',
-    name: 'The Pale Hart',
-    note: 'Stillness, resilience & winter stores',
+    name: 'The Sorcerer',
+    note: 'Unbidden power & an inheritance without a name',
     accent: '#315f9b',
     background: 'linear-gradient(120deg, #26364f, #4f7297 62%, #9bb6ca)',
     page: '#f0f5f7',
@@ -139,8 +139,8 @@ export const KITCHEN_THEMES = [
   },
   {
     id: 'moth',
-    name: 'The Moth',
-    note: 'Forbidden curiosity & transformative hunger',
+    name: 'The Mage',
+    note: 'Measured rites & the patient shaping of the unseen',
     accent: '#a86118',
     background: 'linear-gradient(120deg, #211a1c, #59402f 62%, #ad7635)',
     page: '#f5f0e8',

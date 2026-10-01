@@ -2,6 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Touch users always see names; precise pointers reveal them on hover/focus. */
+@media (hover: hover) and (pointer: fine) {
+  .ak-birthsign-label {
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+
+  .ak-birthsign-card:hover .ak-birthsign-label,
+  .ak-birthsign-card:focus-visible .ak-birthsign-label {
+    opacity: 1;
+  }
+}
+
 /* The editor reads as a manuscript: distinct sections, quiet borders, ample space. */
 .ak-editor-section {
   min-width: 0;
