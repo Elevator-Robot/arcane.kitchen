@@ -55,7 +55,7 @@ export function SanctuaryBanner({
             onClick={onCustomize}
           >
             <WandSparkles className="h-4 w-4" aria-hidden="true" />
-            Customize sanctuary
+            Customize profile
           </Button>
         )}
       </div>
@@ -217,7 +217,7 @@ export function CustomizeSanctuary({
       setError(
         getUserFacingErrorMessage(
           saveError,
-          'Your sanctuary could not be saved. Your choices are still here — please try again.'
+          'Your profile choices could not be saved. Please try again.'
         )
       );
     } finally {
@@ -227,7 +227,7 @@ export function CustomizeSanctuary({
 
   return (
     <AccessibleDialog
-      label="Customize your kitchen sanctuary"
+      label="Customize profile"
       onClose={() => {
         if (!pending) onClose();
       }}
@@ -239,12 +239,12 @@ export function CustomizeSanctuary({
         <header className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-5 sm:px-8 sm:py-6">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-              The sanctuary ledger
+              Profile settings
             </p>
-            <h2 className="mt-1 text-2xl">Leave your mark in the archive.</h2>
+            <h2 className="mt-1 text-2xl">Customize profile</h2>
             <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-              Choose your sign, calling, and companion. These details appear on
-              your public profile.
+              Choose your birthsign, sanctuary, and familiar. These details appear
+              on your public profile.
             </p>
           </div>
           <Button
@@ -296,7 +296,7 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">Calling</legend>
+              <legend className="text-sm font-bold">Sanctuary</legend>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
                   <Button
@@ -475,7 +475,7 @@ export function CustomizeSanctuary({
                 isLoading={pending}
                 disabled={pending || !changed}
               >
-                {pending ? 'Saving…' : 'Save sanctuary'}
+                {pending ? 'Saving…' : 'Save changes'}
               </Button>
             </div>
           </div>

@@ -15,9 +15,9 @@ burning. Unease comes from what is implied. Familiar spirits have names and
 histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
 labels and cooking instructions remain clear and practical.
 
-- **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs and palettes remain compatible; names follow this order.
+- **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs remain compatible; names follow this order. The Mage uses mulberry, the Witch muted yellow-green, and the Sorcerer crimson/deep blue with pale blue reading surfaces.
 - Birthsign selection uses supplied constellation artwork in uncropped 3:2 cards, with names shown on hover or keyboard focus and always on touchscreens. The live preview includes the selected image and name. Assets are local optimized WebP files in `src/assets/birthsigns/`.
-- **Calling:** Hedge Witch, Ashkeeper, Alchemist, Ritualist, Root Seer, or Crypt Warden. Show the name without a workplace subtitle or description.
+- **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor, in this order. Show names without numbers or subtitles. The existing `calling` field and option IDs remain compatible. The editor is titled **Customize profile**, with **Save changes** as its submit action.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - **Tenet:** up to 80 characters in the profile banner.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
@@ -51,7 +51,7 @@ mocked persistence tests, not a live deployment.
 ## Verification
 
 - Public/private rendering and removal of the single Recipes tab.
-- Birthsign, Calling, named familiar, Tenet, main and side quests, and signature selection; legacy pantry preservation without pantry UI.
+- Birthsign, Sanctuary, named familiar, Tenet, main and side quests, and signature selection; legacy pantry preservation without pantry UI.
 - Cancel/reset staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.

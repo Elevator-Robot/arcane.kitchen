@@ -350,10 +350,10 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(
-      await screen.findByRole('button', { name: 'Customize sanctuary' })
+      await screen.findByRole('button', { name: 'Customize profile' })
     );
     await user.click(screen.getByRole('button', { name: 'The Wyrm' }));
-    await user.click(screen.getByRole('button', { name: 'Save sanctuary' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
       expect(
         screen

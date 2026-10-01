@@ -119,7 +119,7 @@ export default function UserProfileView({
         </div>
         {savedNotice && (
           <p role="status" className="mt-4 text-sm text-[var(--theme-accent)]">
-            Sanctuary saved. Your kitchen has a little more you in it.
+            Profile changes saved.
           </p>
         )}
         <div className="mt-5">
