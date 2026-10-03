@@ -119,7 +119,7 @@ export default function UserProfileView({
         </div>
         {savedNotice && (
           <p role="status" className="mt-4 text-sm text-[var(--theme-accent)]">
-            Sanctuary saved. Your kitchen has a little more you in it.
+            Profile changes saved.
           </p>
         )}
         <div className="mt-5">
@@ -194,14 +194,14 @@ export default function UserProfileView({
                 <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
                   {isOwnProfile
                     ? 'Share a family favorite, a brave experiment, or your everyday comfort food.'
-                    : 'This cook hasn’t shared a recipe yet. There’s plenty more magic to discover.'}
+                    : 'This cook hasn’t shared a recipe yet. Explore the collected recipes in the Emporium.'}
                 </p>
                 {!isOwnProfile && (
                   <Link
                     to="/discover"
                     className="mt-4 inline-flex text-sm font-semibold text-[var(--theme-accent)]"
                   >
-                    Explore other kitchens →
+                    Browse the Emporium →
                   </Link>
                 )}
               </div>
@@ -255,7 +255,7 @@ export default function UserProfileView({
                     to="/discover"
                     className="mt-4 inline-flex text-sm font-semibold text-[var(--theme-accent)]"
                   >
-                    Find your next favorite →
+                    Browse the Emporium →
                   </Link>
                 </div>
               )}

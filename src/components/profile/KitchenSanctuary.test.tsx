@@ -36,7 +36,7 @@ describe('kitchen sanctuary profiles', () => {
       screen.queryByRole('button', { name: 'Recipes' })
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Customize sanctuary' })
+      screen.queryByRole('button', { name: 'Customize profile' })
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Edit Forest mushroom soup' })
@@ -48,7 +48,7 @@ describe('kitchen sanctuary profiles', () => {
     ).toBeInTheDocument();
   });
 
-  it('edits fantasy choices, limits pantry picks, and saves them together', async () => {
+  it('edits named identities without pantry controls and preserves legacy pantry data', async () => {
     const interaction = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     render(
@@ -59,35 +59,49 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
     await interaction.click(
-      screen.getByRole('button', { name: 'Customize sanctuary' })
+      screen.getByRole('button', { name: 'Customize profile' })
     );
     const dialog = within(
-      screen.getByRole('dialog', { name: 'Customize your kitchen sanctuary' })
+      screen.getByRole('dialog', { name: 'Customize profile' })
     );
+    expect(
+      dialog.getByRole('button', { name: 'The Mage' })
+    ).toBeInTheDocument();
+    await interaction.click(dialog.getByRole('button', { name: 'The Raven' }));
+    expect(dialog.getByRole('button', { name: 'The Raven' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(
+      dialog.getByRole('img', { name: 'The Raven birthsign' })
+    ).toHaveAttribute('src', expect.stringContaining('raven.webp'));
     await interaction.click(
-      dialog.getByRole('button', { name: 'Enchanted grove' })
+      dialog.getByRole('button', {
+        name: 'The Inn',
+      })
     );
-    await interaction.click(dialog.getByRole('button', { name: 'Herb Druid' }));
-    await interaction.click(
-      dialog.getByRole('button', { name: 'Foraging fox' })
-    );
+    await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
     await interaction.type(
-      dialog.getByLabelText('Your kitchen motto'),
+      dialog.getByLabelText('Tenet'),
       'Forage. Feast. Repeat.'
     );
     await interaction.type(
-      dialog.getByLabelText('Current cooking quest'),
+      dialog.getByLabelText('Main quest'),
       'Master mushroom ramen'
     );
-    await interaction.click(dialog.getByRole('checkbox', { name: 'Rosemary' }));
-    await interaction.click(dialog.getByRole('checkbox', { name: 'Honey' }));
-    expect(dialog.getByRole('checkbox', { name: 'Lemon' })).toBeDisabled();
+    await interaction.type(
+      dialog.getByLabelText('Side quest'),
+      'Perfect a sesame broth'
+    );
+    expect(screen.queryByText('Pantry of curiosities')).not.toBeInTheDocument();
+    expect(dialog.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(dialog.getByRole('button', { name: 'Salem' })).toBeInTheDocument();
     await interaction.selectOptions(
       dialog.getByRole('combobox', { name: 'Pin a signature creation' }),
       'soup'
     );
     await interaction.click(
-      dialog.getByRole('button', { name: 'Save sanctuary' })
+      dialog.getByRole('button', { name: 'Save changes' })
     );
     expect(save).toHaveBeenCalledWith({
       theme: 'grove',
@@ -95,11 +109,12 @@ describe('kitchen sanctuary profiles', () => {
       familiar: 'fox',
       motto: 'Forage. Feast. Repeat.',
       quest: 'Master mushroom ramen',
-      pantry: ['Garlic', 'Rosemary', 'Honey'],
+      sideQuest: 'Perfect a sesame broth',
+      pantry: ['Garlic'],
       signatureRecipeId: 'soup',
     });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Sanctuary saved');
+    expect(screen.getByRole('status')).toHaveTextContent('Profile changes saved');
   });
 
   it('discards canceled edits and keeps failed saves available to retry', async () => {
@@ -113,31 +128,23 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
     await interaction.click(
-      screen.getByRole('button', { name: 'Customize sanctuary' })
+      screen.getByRole('button', { name: 'Customize profile' })
     );
-    await interaction.type(
-      screen.getByLabelText('Your kitchen motto'),
-      'Unsaved magic'
-    );
+    await interaction.type(screen.getByLabelText('Tenet'), 'Unsaved magic');
     await interaction.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(save).not.toHaveBeenCalled();
     await interaction.click(
-      screen.getByRole('button', { name: 'Customize sanctuary' })
+      screen.getByRole('button', { name: 'Customize profile' })
     );
-    expect(screen.getByLabelText('Your kitchen motto')).toHaveValue('');
-    await interaction.type(
-      screen.getByLabelText('Your kitchen motto'),
-      'Keep this idea'
-    );
+    expect(screen.getByLabelText('Tenet')).toHaveValue('');
+    await interaction.type(screen.getByLabelText('Tenet'), 'Keep this idea');
     await interaction.click(
-      screen.getByRole('button', { name: 'Save sanctuary' })
+      screen.getByRole('button', { name: 'Save changes' })
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'could not be saved'
     );
-    expect(screen.getByLabelText('Your kitchen motto')).toHaveValue(
-      'Keep this idea'
-    );
+    expect(screen.getByLabelText('Tenet')).toHaveValue('Keep this idea');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 

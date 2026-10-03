@@ -72,6 +72,8 @@ Authentication submission:
 
 ## Routing (React Router)
 
+- The community recipe page is named **Emporium** in headings, document titles, navigation, and user-facing copy. Its existing `/discover` URL and internal `Discover` view key remain compatible with shared links.
+
 - Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
 - Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
 - Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
@@ -84,7 +86,7 @@ Authentication submission:
 
 - The SPA is wrapped in `BrowserRouter` (in `src/main.tsx`). `react-router-dom` is a dependency.
 - The recipe "modal" opens in-place on top of the current page: opening a recipe calls `navigate('<current-pathname>?recipe=<id>')` so the base page stays in the URL (open-from-Discover, -Saved, -Profile all work; no more `stayInView` hack).
-- Recipe attribution links (`by @username`) activate an exact author filter in Discover from every recipe view; the selected author appears only in the dismissible Author Collection banner, which includes a `View author profile` action to `/u/:username`.
+- Recipe attribution links (`by @username`) dismiss any open recipe overlay and activate an exact author filter in Discover from every recipe view; the selected author appears only in the dismissible Author Collection banner, which includes a `View author profile` action to `/u/:username`. Comment-author links also dismiss the recipe overlay before navigating to `/u/:username`.
 - Author profiles are full pages only, never popups. Comment authors and mentions navigate directly to `/u/:username`.
 - Usernames render without a leading `@` in profile/account identity and editor-preview displays; `@username` is reserved for clickable published recipe attribution and comment mentions.
 - Recipe sharing copies the recipe URL directly to the clipboard and shows temporary `Copied!` feedback; it does not open a share menu or render a green status banner.
@@ -106,7 +108,9 @@ Authentication submission:
 
 ## Profile & Avatars
 
-- Profiles are Kitchen Sanctuaries: four atmosphere presets, six culinary callings, six familiars, an 80-character motto, a 140-character cooking quest, up to three curated pantry ingredients, and one optional pinned published recipe. These are creative public details, not personal-information fields or earned ranks.
+- Profile customization includes nine Birthsign presets, six Sanctuary choices (The Library, The Cottage, The Inn, The Garden, The Observatory, The Manor; names only, no numbering), six named familiars, an 80-character Tenet, separate 140-character main and side quests, and one optional pinned published recipe. The action/dialog uses plain “Customize profile” wording and “Save changes.” Sanctuary is stored in the legacy `calling` field with stable option IDs. Birthsigns theme the full application palette. Pantry customization/display has been removed; legacy JSON is preserved for compatibility. These are creative public details, not personal-information fields or earned ranks.
+- Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat; Luna is the rabbit); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
+- The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.
 - `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
 - Public profiles have no collection tab bar and no edit/customization controls. Owners retain Recipes/Drafts/Saved navigation. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
 - Profile customization and avatar selection use `AccessibleDialog`; the customization form previews choices before save and Cancel discards them. Community save totals derive from published-recipe favorites, with no placeholder follower, level, or achievement counts.
@@ -134,6 +138,10 @@ Authentication submission:
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
 
 ## Sanctuary Design Language
+
+- `docs/identity-art-prompts.md` is the editable artwork prompt book for all nine Birthsigns, six Sanctuaries, and six Familiars. Each entry is one self-contained generation paragraph. The constellation-only Birthsign prompts remain a reference; the supplied artwork includes illustrated figures around the stars. Sanctuary and Familiar artwork is not implemented yet.
+- Birthsign artwork lives in `src/assets/birthsigns/` as 1536×1024 WebP files, mapped to stable theme IDs by `src/theme/birthsignArtwork.ts`. Customization uses uncropped 3:2 image cards and a selected-image preview. Names reveal on hover/keyboard focus and stay visible on touch devices; accessible names and selected checkmarks remain available.
+- Birthsign order is The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, The Mage. Legacy theme IDs remain stable for saved profiles. The Mage uses the former Witch mulberry palette, the Witch uses muted yellow-green, and the Sorcerer pairs crimson accents with pale blue reading surfaces and a crimson/deep-blue banner.
 
 - `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets and constellation artwork across Saved, Drafts, Build, and Admin. Profile banners use the same motif.
 - Page headers, recipe placeholders, and accent/focus colors inherit the signed-in viewer’s saved `kitchenIdentity.theme` through `src/theme/sanctuaryTheme.ts`; guests use Moonlit. Visiting another cook keeps the viewer’s app theme while that cook’s profile banner retains its own atmosphere.

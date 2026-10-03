@@ -388,7 +388,7 @@ export function AppRouteAware() {
               : /^\/(u|profile)\//.test(normalized)
                 ? 'Cook profile'
                 : knownRoute
-                  ? 'Discover recipes'
+                  ? 'Emporium'
                   : 'Page not found';
     document.title = `${title} · Arcane Kitchen`;
   }, [normalized, knownRoute]);
@@ -612,7 +612,7 @@ function App({ pathname }: AppProps = {}) {
       style={sanctuaryThemeStyle(
         isAuthenticated ? profileCache?.kitchenIdentity?.theme : undefined
       )}
-      className="h-screen h-dvh overflow-x-hidden overflow-y-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]"
+      className="ak-page-glow h-screen h-dvh overflow-x-hidden overflow-y-hidden text-[var(--theme-text)]"
     >
       <RecipeBuilder
         isAuthenticated={isAuthenticated}

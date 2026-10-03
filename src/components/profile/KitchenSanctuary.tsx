@@ -14,7 +14,6 @@ import {
   KITCHEN_CLASSES,
   KITCHEN_FAMILIARS,
   KITCHEN_THEMES,
-  PANTRY_CHARMS,
   kitchenCalling,
   kitchenFamiliar,
   kitchenTheme,
@@ -25,6 +24,7 @@ import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
 import Button from '../ui/Button';
+import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
 
 export function SanctuaryBanner({
   identity,
@@ -55,7 +55,7 @@ export function SanctuaryBanner({
             onClick={onCustomize}
           >
             <WandSparkles className="h-4 w-4" aria-hidden="true" />
-            Customize sanctuary
+            Customize profile
           </Button>
         )}
       </div>
@@ -63,7 +63,7 @@ export function SanctuaryBanner({
         <p
           className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
         >
-          {identity.motto || 'A little magic lives here.'}
+          {identity.motto || 'The hearth remembers what the world forgets.'}
         </p>
         <p className="mt-3 flex items-center gap-2 text-xs text-white/80">
           <span aria-hidden="true">{theme.symbol}</span>
@@ -78,7 +78,6 @@ export function SanctuaryBanner({
 
 export function SanctuaryDetails({
   identity,
-  isOwnProfile,
 }: {
   identity: KitchenIdentity;
   isOwnProfile: boolean;
@@ -104,41 +103,27 @@ export function SanctuaryDetails({
         </p>
       </section>
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
-        <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-          Pantry of curiosities
+        <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+          <Compass className="h-3.5 w-3.5" aria-hidden="true" />
+          Main quest
         </h2>
-        {identity.pantry.length ? (
-          <ul className="mt-5 flex flex-wrap gap-2">
-            {identity.pantry.map((item) => (
-              <li
-                key={item}
-                className="rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] px-3 py-1.5 text-xs font-semibold"
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-5 text-sm leading-6 text-[var(--theme-text-muted)]">
-            {isOwnProfile
-              ? 'Choose three ingredients that feel like your kind of magic.'
-              : 'Still gathering a few favorite ingredients.'}
-          </p>
-        )}
+        <p className="mt-5 break-words font-heading text-lg leading-7">
+          {identity.quest || 'Seeking a recipe lost to the ash.'}
+        </p>
         <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          The ingredients this cook keeps coming back to.
+          The work that keeps the lamp burning.
         </p>
       </section>
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
-          Current side quest
+          Side quest
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
-          {identity.quest || 'Following the next delicious idea.'}
+          {identity.sideQuest || 'A page left unwritten.'}
         </p>
         <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          A small adventure, one recipe at a time.
+          An inquiry kept in the margins.
         </p>
       </section>
     </div>
@@ -182,7 +167,7 @@ export function SignatureRecipe({
           </p>
           <h2 className="mt-3 break-words text-2xl">{recipe.title}</h2>
           <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-            A taste of what makes this kitchen its own.
+            Selected from this cook’s collected work.
           </p>
           <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--theme-accent)]">
             Open recipe
@@ -232,7 +217,7 @@ export function CustomizeSanctuary({
       setError(
         getUserFacingErrorMessage(
           saveError,
-          'Your sanctuary could not be saved. Your choices are still here — please try again.'
+          'Your profile choices could not be saved. Please try again.'
         )
       );
     } finally {
@@ -242,7 +227,7 @@ export function CustomizeSanctuary({
 
   return (
     <AccessibleDialog
-      label="Customize your kitchen sanctuary"
+      label="Customize profile"
       onClose={() => {
         if (!pending) onClose();
       }}
@@ -254,12 +239,12 @@ export function CustomizeSanctuary({
         <header className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-5 sm:px-8 sm:py-6">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-              Make yourself at home
+              Profile settings
             </p>
-            <h2 className="mt-1 text-2xl">Your kitchen. Your kind of magic.</h2>
+            <h2 className="mt-1 text-2xl">Customize profile</h2>
             <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-              Build a little world around what you love to cook. These details
-              are public.
+              Choose your birthsign, sanctuary, and familiar. These details appear
+              on your public profile.
             </p>
           </div>
           <Button
@@ -277,30 +262,33 @@ export function CustomizeSanctuary({
         <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_280px]">
           <fieldset disabled={pending} className="min-w-0 space-y-7">
             <fieldset>
-              <legend className="text-sm font-bold">
-                1. Set the atmosphere
-              </legend>
-              <div className="mt-3 grid grid-cols-2 gap-3">
+              <legend className="text-sm font-bold">Birthsign</legend>
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {KITCHEN_THEMES.map((theme) => (
                   <Button
                     variant="image"
                     size="none"
                     key={theme.id}
                     type="button"
+                    aria-label={theme.name}
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
-                    className="overflow-hidden rounded-xl text-left"
+                    className="ak-birthsign-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
                   >
-                    <span
-                      className="flex h-16 items-center justify-between px-4 text-3xl text-white"
-                      style={{ background: theme.background }}
-                    >
-                      <span aria-hidden="true">{theme.symbol}</span>
-                      {draft.theme === theme.id && (
-                        <Check className="h-5 w-5" aria-hidden="true" />
-                      )}
-                    </span>
-                    <span className="block px-3 py-2 text-xs font-semibold">
+                    <img
+                      src={BIRTHSIGN_ARTWORK[theme.id]}
+                      alt=""
+                      width={1536}
+                      height={1024}
+                      loading="lazy"
+                      className="h-full w-full object-contain"
+                    />
+                    {draft.theme === theme.id && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    )}
+                    <span className="ak-birthsign-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-4 text-xs font-semibold text-white">
                       {theme.name}
                     </span>
                   </Button>
@@ -308,12 +296,7 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">
-                2. Choose your culinary calling
-              </legend>
-              <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                A little roleplay, never a rank. Change it whenever you like.
-              </p>
+              <legend className="text-sm font-bold">Sanctuary</legend>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
                   <Button
@@ -321,22 +304,25 @@ export function CustomizeSanctuary({
                     size="none"
                     type="button"
                     key={calling.id}
+                    aria-label={calling.name}
                     aria-pressed={draft.calling === calling.id}
                     onClick={() => setField('calling', calling.id)}
-                    className="rounded-xl p-3 text-left text-sm"
+                    className="justify-start rounded-xl p-3 text-left text-sm"
                   >
-                    <span aria-hidden="true" className="mr-2">
+                    <span aria-hidden="true" className="shrink-0 text-lg">
                       {calling.icon}
                     </span>
-                    {calling.name}
+                    <span className="min-w-0">
+                      <span className="block font-semibold">
+                        {calling.name}
+                      </span>
+                    </span>
                   </Button>
                 ))}
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-bold">
-                3. Meet your familiar
-              </legend>
+              <legend className="text-sm font-bold">Familiar</legend>
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {KITCHEN_FAMILIARS.map((familiar) => (
                   <Button
@@ -357,13 +343,13 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <label className="grid gap-2">
-              <span className="text-sm font-bold">Your kitchen motto</span>
+              <span className="text-sm font-bold">Tenet</span>
               <input
-                aria-label="Your kitchen motto"
+                aria-label="Tenet"
                 value={draft.motto}
                 onChange={(event) => setField('motto', event.target.value)}
                 maxLength={80}
-                placeholder="A pinch of mischief, a spoonful of comfort."
+                placeholder="What is taken from the earth must be returned."
                 className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
               />
               <span className="text-right text-xs text-[var(--theme-text-muted)]">
@@ -371,54 +357,35 @@ export function CustomizeSanctuary({
               </span>
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-bold">Current cooking quest</span>
+              <span className="text-sm font-bold">Main quest</span>
               <textarea
-                aria-label="Current cooking quest"
+                aria-label="Main quest"
                 value={draft.quest}
                 onChange={(event) => setField('quest', event.target.value)}
                 maxLength={140}
                 rows={2}
-                placeholder="On a quest for the perfect mushroom ramen…"
+                placeholder="Recover the broth recipe from the abbey’s missing folio."
                 className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
               />
               <span className="text-right text-xs text-[var(--theme-text-muted)]">
                 {draft.quest.length}/140
               </span>
             </label>
-            <fieldset>
-              <legend className="text-sm font-bold">
-                Stock your pantry of curiosities{' '}
-                <span className="font-normal text-[var(--theme-text-muted)]">
-                  ({draft.pantry.length}/3)
-                </span>
-              </legend>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {PANTRY_CHARMS.map((item) => (
-                  <label
-                    key={item}
-                    className={`ak-button-choice cursor-pointer rounded-full px-3 py-2 text-xs focus-within:ring-2 focus-within:ring-[var(--theme-accent)] ${draft.pantry.includes(item) ? 'ak-button-choice-active' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={draft.pantry.includes(item)}
-                      disabled={
-                        !draft.pantry.includes(item) && draft.pantry.length >= 3
-                      }
-                      onChange={(event) =>
-                        setField(
-                          'pantry',
-                          event.target.checked
-                            ? [...draft.pantry, item]
-                            : draft.pantry.filter((entry) => entry !== item)
-                        )
-                      }
-                    />
-                    {item}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold">Side quest</span>
+              <textarea
+                aria-label="Side quest"
+                value={draft.sideQuest}
+                onChange={(event) => setField('sideQuest', event.target.value)}
+                maxLength={140}
+                rows={2}
+                placeholder="Learn what grows beneath the winter orchard."
+                className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
+              />
+              <span className="text-right text-xs text-[var(--theme-text-muted)]">
+                {draft.sideQuest.length}/140
+              </span>
+            </label>
             <label className="grid gap-2">
               <span className="text-sm font-bold">
                 Pin a signature creation
@@ -455,14 +422,18 @@ export function CustomizeSanctuary({
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
               Live preview
             </p>
+            <img
+              src={BIRTHSIGN_ARTWORK[kitchenTheme(draft.theme).id]}
+              alt={`${kitchenTheme(draft.theme).name} birthsign`}
+              width={1536}
+              height={1024}
+              className="mb-3 aspect-[3/2] w-full rounded-2xl object-contain"
+            />
             <SanctuaryBanner identity={draft} compact />
             <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
               <p className="break-words font-heading text-xl">{user.handle}</p>
               <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">
                 {kitchenCalling(draft.calling).name}
-              </p>
-              <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
-                {kitchenCalling(draft.calling).description}
               </p>
               <p className="mt-4 text-sm">
                 {kitchenFamiliar(draft.familiar).symbol}{' '}
@@ -504,7 +475,7 @@ export function CustomizeSanctuary({
                 isLoading={pending}
                 disabled={pending || !changed}
               >
-                {pending ? 'Saving…' : 'Save sanctuary'}
+                {pending ? 'Saving…' : 'Save changes'}
               </Button>
             </div>
           </div>

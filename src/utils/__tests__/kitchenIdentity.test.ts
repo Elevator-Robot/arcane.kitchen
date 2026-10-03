@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_KITCHEN_IDENTITY,
+  kitchenTheme,
   normalizeKitchenIdentity,
 } from '../kitchenIdentity';
 import {
@@ -33,12 +34,22 @@ describe('kitchen identity persistence', () => {
       familiar: 'invalid',
       motto: 'x'.repeat(100),
       quest: 'x'.repeat(200),
+      sideQuest: 'x'.repeat(180),
       pantry: ['Garlic', 'Garlic', 'Honey', 'Rosemary', 'Lemon', 'invalid'],
     });
     expect(normalized.theme).toBe('moonlit');
     expect(normalized.motto).toHaveLength(80);
     expect(normalized.quest).toHaveLength(140);
+    expect(normalized.sideQuest).toHaveLength(140);
     expect(normalized.pantry).toEqual(['Garlic', 'Honey', 'Rosemary']);
+  });
+
+  it('accepts atmospheres from the expanded collection', () => {
+    expect(normalizeKitchenIdentity({ theme: 'tidepool' }).theme).toBe(
+      'tidepool'
+    );
+    expect(kitchenTheme('berry').name).toBe('The Witch');
+    expect(kitchenTheme('moth').name).toBe('The Mage');
   });
 
   it('preserves customization through backend hydration and unrelated profile edits', () => {

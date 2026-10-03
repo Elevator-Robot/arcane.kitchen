@@ -34,6 +34,7 @@ const {
   mockFavoriteList,
   mockUserProfileList,
   mockUserProfileUpdate,
+  mockCommentList,
   mockRecipeGetUrl,
   mockRecipeUploadData,
 } = vi.hoisted(() => ({
@@ -46,6 +47,7 @@ const {
   mockUserProfileList: vi
     .fn()
     .mockResolvedValue({ data: [], errors: undefined }),
+  mockCommentList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
   mockRecipeGetUrl: vi
     .fn()
     .mockResolvedValue({ url: new URL('https://example.com/image.jpg') }),
@@ -107,6 +109,12 @@ vi.mock('aws-amplify/data', () => ({
         update: mockUserProfileUpdate,
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
       },
+      Comment: {
+        list: mockCommentList,
+        create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        update: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+        delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
+      },
     },
   }),
 }));
@@ -152,6 +160,7 @@ describe('RecipeBuilder Component', () => {
     mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
     mockFavoriteList.mockResolvedValue({ data: [], errors: undefined });
     mockUserProfileList.mockResolvedValue({ data: [], errors: undefined });
+    mockCommentList.mockResolvedValue({ data: [], errors: undefined });
     mockUserProfileUpdate
       .mockReset()
       .mockResolvedValue({ data: {}, errors: undefined });
@@ -165,7 +174,7 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     expect(await screen.findByText('Arcane Kitchen')).toBeInTheDocument();
-    expect(screen.getByText('Search recipes')).toBeInTheDocument();
+    expect(screen.getByText('Emporium')).toBeInTheDocument();
     expect(screen.getByTitle('Create a recipe')).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', { name: 'Search recipes' })
@@ -296,12 +305,15 @@ describe('RecipeBuilder Component', () => {
       expect(
         screen.getByRole('main').style.getPropertyValue('--theme-accent')
       ).toBe(kitchenTheme('grove').accent);
+      expect(
+        screen.getByRole('main').style.getPropertyValue('--theme-surface')
+      ).toBe(kitchenTheme('grove').surface);
       if (path === '/u/other_chef') {
         expect(
           await screen.findByRole('heading', { name: 'other_chef' })
         ).toBeInTheDocument();
         const banner = screen
-          .getByText(/Dragon’s hearth/)
+          .getByText(/The Wyrm/)
           .closest('[style]') as HTMLElement;
         expect(banner).toHaveStyle({
           background: kitchenTheme('ember').background,
@@ -338,10 +350,10 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(
-      await screen.findByRole('button', { name: 'Customize sanctuary' })
+      await screen.findByRole('button', { name: 'Customize profile' })
     );
-    await user.click(screen.getByRole('button', { name: 'Dragon’s hearth' }));
-    await user.click(screen.getByRole('button', { name: 'Save sanctuary' }));
+    await user.click(screen.getByRole('button', { name: 'The Wyrm' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
       expect(
         screen
@@ -512,6 +524,52 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.search).toBe('');
   });
 
+  it('renders comment usernames plainly and inserts one mention marker', async () => {
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe()],
+      errors: undefined,
+    });
+    mockCommentList.mockResolvedValue({
+      data: [
+        {
+          id: 'comment-1',
+          recipeId: 'recipe-1',
+          userId: 'commenter-1',
+          author: '@aphexlog',
+          content: 'Looks delicious',
+          parentId: null,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      errors: undefined,
+    });
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    await user.click(
+      await screen.findByRole('button', { name: 'Test Recipe' })
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'aphexlog' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '@aphexlog' })
+    ).not.toBeInTheDocument();
+
+    const commentInput = screen.getByRole('textbox', { name: 'Add a comment' });
+    await user.type(commentInput, '@aph');
+    await user.click(await screen.findByRole('button', { name: '@aphexlog' }));
+    expect(commentInput).toHaveValue('@aphexlog ');
+
+    await user.click(screen.getByRole('button', { name: 'aphexlog' }));
+    expect(window.location.pathname).toBe('/u/aphexlog');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Test Recipe' })
+      ).not.toBeInTheDocument()
+    );
+  });
+
   it('uses community tags without shortcut filters and lets guests deselect a tag', async () => {
     const onRequestAuth = vi.fn();
     const user = userEvent.setup();
@@ -587,10 +645,8 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
-    await user.type(
-      screen.getByPlaceholderText('e.g., Quick, Vegetarian, Dessert'),
-      'Vege'
-    );
+    await user.click(screen.getByText('Tags', { selector: 'summary' }));
+    await user.type(screen.getByLabelText('Tags'), 'Vege');
     const suggestion = screen.getByRole('button', { name: /^Vegetarian/ });
     suggestion.focus();
     await user.keyboard('{Enter}');
@@ -632,7 +688,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
 
     expect(window.location.pathname).toBe('/discover');
-    expect(screen.getByText('Search recipes')).toBeInTheDocument();
+    expect(screen.getByText('Emporium')).toBeInTheDocument();
   });
 
   it('updates the post preview as recipe fields change', async () => {
@@ -640,7 +696,7 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     const nameInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(nameInput, 'Roasted Corn Salad');
 
@@ -649,11 +705,36 @@ describe('RecipeBuilder Component', () => {
     ).toBeInTheDocument();
   }, 20000);
 
+  it('converts prep minutes to a saved duration and retains optional notes when collapsed', async () => {
+    window.history.replaceState({}, '', '/build');
+    const user = userEvent.setup();
+    await renderRecipeBuilder(defaultRecipeBuilderProps);
+    const duration = screen.getByRole('spinbutton', {
+      name: 'Prep time (minutes)',
+    });
+    await user.type(duration, '90');
+    expect(screen.getByText('01:30')).toBeInTheDocument();
+    await user.clear(duration);
+    expect(screen.queryByText('01:30')).not.toBeInTheDocument();
+    const disclosure = screen.getByText('Notes & equipment');
+    await user.click(disclosure);
+    await user.type(screen.getByLabelText('Notes'), 'Keep refrigerated.');
+    await user.click(disclosure);
+    await user.click(disclosure);
+    expect(screen.getByLabelText('Notes')).toHaveValue('Keep refrigerated.');
+    expect(screen.getByLabelText('Recipe photo')).toHaveAttribute(
+      'type',
+      'file'
+    );
+  });
+
   it('allows ingredients to be added and removed', async () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
-    const addButtons = screen.getAllByRole('button', { name: 'Add' });
+    const addButtons = screen.getAllByRole('button', {
+      name: '+ Add ingredient',
+    });
     await user.click(addButtons[0]);
     const ingredientFields = screen.getAllByLabelText('Ingredient');
 
@@ -686,7 +767,24 @@ describe('RecipeBuilder Component', () => {
   it('opens a recipe in-place from the profile page without a hard navigation', async () => {
     const user = userEvent.setup();
     mockRecipeList.mockResolvedValue({
-      data: [createMockRecipe({ name: 'Test Recipe' })],
+      data: [
+        createMockRecipe({
+          ownerId: 'testuser',
+          name: 'Test Recipe',
+          createdBy: '@test',
+        }),
+      ],
+      errors: undefined,
+    });
+    mockUserProfileList.mockResolvedValue({
+      data: [
+        {
+          id: 'own-profile',
+          userId: 'testuser',
+          username: 'test',
+          displayName: 'Test cook',
+        },
+      ],
       errors: undefined,
     });
 
@@ -704,6 +802,19 @@ describe('RecipeBuilder Component', () => {
     expect(window.location.pathname + window.location.search).toBe(
       '/u/test?recipe=recipe-1'
     );
+    const dialog = await screen.findByRole('dialog', { name: 'Test Recipe' });
+    await user.click(within(dialog).getByRole('button', { name: 'by @test' }));
+    expect(window.location.pathname).toBe('/discover');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Test Recipe' })
+      ).not.toBeInTheDocument()
+    );
+    expect(
+      await screen.findByRole('button', {
+        name: 'Clear author collection @test',
+      })
+    ).toBeInTheDocument();
   });
 
   it('filters by recipe author before opening the public profile page', async () => {
@@ -783,6 +894,34 @@ describe('RecipeBuilder Component', () => {
     const discoverSection = document.getElementById('discover');
     expect(discoverSection).not.toBeNull();
     await user.click(
+      within(discoverSection!).getByRole('button', { name: 'Test Recipe' })
+    );
+    const recipeDialog = await screen.findByRole('dialog', {
+      name: 'Test Recipe',
+    });
+    expect(
+      within(recipeDialog).queryByText('The recipe')
+    ).not.toBeInTheDocument();
+    expect(
+      within(recipeDialog).queryByText('Around the table')
+    ).not.toBeInTheDocument();
+    await user.click(
+      within(recipeDialog).getByRole('button', { name: 'by @recipe_author' })
+    );
+    expect(
+      screen.queryByRole('dialog', { name: 'Test Recipe' })
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {
+        name: 'Clear author collection @recipe_author',
+      })
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Clear author collection @recipe_author',
+      })
+    );
+    await user.click(
       within(discoverSection!).getByRole('button', {
         name: 'by @recipe_author',
       })
@@ -826,12 +965,12 @@ describe('RecipeBuilder Component', () => {
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
     const titleInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(titleInput, 'Cloudy Pie');
 
     const addIngredientButton = screen.getAllByRole('button', {
-      name: 'Add',
+      name: '+ Add ingredient',
     })[0];
     await user.click(addIngredientButton);
 
@@ -926,7 +1065,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     const titleInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(titleInput, 'Moonlit Porridge');
 
@@ -981,13 +1120,11 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     const titleInput = screen.getAllByPlaceholderText(
-      "e.g., Grandma's Apple Pie"
+      'e.g., Black garlic & wild mushroom broth'
     )[0];
     await user.type(titleInput, 'Published Draft');
 
-    const descriptionInput = screen.getByPlaceholderText(
-      'A short summary of your dish'
-    );
+    const descriptionInput = screen.getByLabelText('Description');
     await user.type(descriptionInput, 'A draft that will be published');
 
     const ingredientAmount = screen.getByLabelText('Amount');

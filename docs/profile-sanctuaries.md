@@ -5,12 +5,23 @@ social communities, with a cooking/fantasy character-sheet vocabulary.
 
 ## Personalization
 
-- **Atmosphere:** Moonlit library, Enchanted grove, Dragon’s hearth, Celestial observatory.
-- **Calling:** Kitchen Witch, Hearthkeeper, Herb Druid, Dough Artificer, Spice Alchemist, Feast Bard. These are self-selected identities, not ranks.
-- **Familiar:** Cauldron cat, Pocket dragon, Pantry owl, Foraging fox, Potion frog, Flour-dusted rabbit.
-- **Motto:** up to 80 characters in the profile banner.
-- **Side quest:** up to 140 characters about a current cooking adventure.
-- **Pantry:** up to three curated favorite ingredients.
+Arcane Kitchen is an old culinary archive, kept alive by the people who cook from
+it. Its recipes have crossed thresholds, survived abandoned houses, and acquired
+notes in unfamiliar hands. Each cook adds a page; each sanctuary reveals something
+of its keeper.
+
+The voice is restrained and specific: ash, roots, salt, old folios, a lamp left
+burning. Unease comes from what is implied. Familiar spirits have names and
+histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
+labels and cooking instructions remain clear and practical.
+
+- **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs remain compatible; names follow this order. The Mage uses mulberry, the Witch muted yellow-green, and the Sorcerer crimson/deep blue with pale blue reading surfaces.
+- Birthsign selection uses supplied constellation artwork in uncropped 3:2 cards, with names shown on hover or keyboard focus and always on touchscreens. The live preview includes the selected image and name. Assets are local optimized WebP files in `src/assets/birthsigns/`.
+- **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor, in this order. Show names without numbers or subtitles. The existing `calling` field and option IDs remain compatible. The editor is titled **Customize profile**, with **Save changes** as its submit action.
+- **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
+- **Tenet:** up to 80 characters in the profile banner.
+- **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
+- Legacy pantry choices remain in stored JSON for compatibility; no pantry section is displayed or editable.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
 - Existing avatar presets and bio remain available; bio copy encourages kitchen lore.
 
@@ -40,7 +51,7 @@ mocked persistence tests, not a live deployment.
 ## Verification
 
 - Public/private rendering and removal of the single Recipes tab.
-- Theme, calling, familiar, motto, quest, ingredient limits, and signature selection.
+- Birthsign, Sanctuary, named familiar, Tenet, main and side quests, and signature selection; legacy pantry preservation without pantry UI.
 - Cancel/reset staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.

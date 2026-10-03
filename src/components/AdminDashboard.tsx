@@ -583,7 +583,7 @@ export default function AdminDashboard({
     return (
       <main
         style={sanctuaryThemeStyle(isAuthenticated ? profileTheme : undefined)}
-        className="flex min-h-screen items-center justify-center bg-[var(--theme-bg)] p-6 text-[var(--theme-text)]"
+        className="ak-page-glow flex min-h-screen items-center justify-center p-6 text-[var(--theme-text)]"
       >
         <section className="ak-panel w-full max-w-lg p-8 text-center">
           <p className="ak-eyebrow text-[var(--theme-accent)]">
@@ -611,13 +611,13 @@ export default function AdminDashboard({
   return (
     <main
       style={sanctuaryThemeStyle(profileTheme)}
-      className="min-h-screen bg-[var(--theme-bg)] text-[var(--theme-text)]"
+      className="ak-page-glow min-h-screen text-[var(--theme-text)]"
     >
       <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-1 sm:px-8">
           <button
             onClick={onBack}
-            aria-label="Go to Discover"
+            aria-label="Go to the Emporium"
             className="ak-logo-button flex items-center gap-2 p-0.5"
           >
             <img
