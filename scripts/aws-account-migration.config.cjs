@@ -1,0 +1,41 @@
+module.exports = {
+  region: 'us-east-1',
+  adminGroup: 'Admins',
+  models: [
+    'Ingredient',
+    'Recipe',
+    'UserProfile',
+    'RecipeIngredient',
+    'Favorite',
+    'Comment',
+  ],
+  source: {
+    accountId: '431515038332',
+    profile: 'opencode-brain',
+    userPoolId: 'us-east-1_7FQKmE9yN',
+    bucket: 'amplify-d22utsjgryn9pw-ma-recipeimagesbucket390b81-o17lj1aowgcj',
+    tables: {
+      Ingredient: 'Ingredient-mjs5ycxmbbgplagkglo6qbp5mi-NONE',
+      Recipe: 'Recipe-mjs5ycxmbbgplagkglo6qbp5mi-NONE',
+      UserProfile: 'UserProfile-mjs5ycxmbbgplagkglo6qbp5mi-NONE',
+      RecipeIngredient: 'RecipeIngredient-mjs5ycxmbbgplagkglo6qbp5mi-NONE',
+      Favorite: 'Favorite-mjs5ycxmbbgplagkglo6qbp5mi-NONE',
+      Comment: 'Comment-mjs5ycxmbbgplagkglo6qbp5mi-NONE',
+    },
+  },
+  destination: {
+    accountId: '617394174030',
+    profile: 'opencode-arcane.kitchen',
+    userPoolId: 'us-east-1_T6z6xYsDI',
+    bucket: 'amplify-d230098t91lnqf-ma-recipeimagesbucket390b81-26qphwdfgphn',
+    cloudFrontDomain: 'd2amwo1w9xhqix.cloudfront.net',
+    tables: {
+      Ingredient: 'Ingredient-q5jgs5fojfdbfjxpiu46rqggxm-NONE',
+      Recipe: 'Recipe-q5jgs5fojfdbfjxpiu46rqggxm-NONE',
+      UserProfile: 'UserProfile-q5jgs5fojfdbfjxpiu46rqggxm-NONE',
+      RecipeIngredient: 'RecipeIngredient-q5jgs5fojfdbfjxpiu46rqggxm-NONE',
+      Favorite: 'Favorite-q5jgs5fojfdbfjxpiu46rqggxm-NONE',
+      Comment: 'Comment-q5jgs5fojfdbfjxpiu46rqggxm-NONE',
+    },
+  },
+};

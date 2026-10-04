@@ -1,5 +1,18 @@
 import { defineAuth, secret } from '@aws-amplify/backend';
 
+const amplifyBranchUrl =
+  process.env.AWS_APP_ID && process.env.AWS_BRANCH === 'main'
+    ? `https://main.${process.env.AWS_APP_ID}.amplifyapp.com/`
+    : undefined;
+
+const applicationUrls = [
+  'https://arcane.kitchen/',
+  'https://www.arcane.kitchen/',
+  ...(amplifyBranchUrl ? [amplifyBranchUrl] : []),
+  'http://localhost:5173/',
+  'http://127.0.0.1:5173/',
+];
+
 export const auth = defineAuth({
   groups: ['Admins'],
   loginWith: {
@@ -14,18 +27,8 @@ export const auth = defineAuth({
         },
         scopes: ['email', 'profile', 'openid'],
       },
-      callbackUrls: [
-        'https://arcane.kitchen/',
-        'https://www.arcane.kitchen/',
-        'http://localhost:5173/',
-        'http://127.0.0.1:5173/',
-      ],
-      logoutUrls: [
-        'https://arcane.kitchen/',
-        'https://www.arcane.kitchen/',
-        'http://localhost:5173/',
-        'http://127.0.0.1:5173/',
-      ],
+      callbackUrls: applicationUrls,
+      logoutUrls: applicationUrls,
     },
   },
   userAttributes: {

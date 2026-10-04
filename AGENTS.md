@@ -61,6 +61,7 @@ Authentication submission:
 
 - The production `main-branch` stack owns the `arcanekitchen` Cognito domain prefix.
 - Other Amplify branch stacks retain Amplify-managed unique domains; do not reuse the production prefix across branch deployments.
+- Production OAuth callbacks include the generated `main.<app-id>.amplifyapp.com` origin when `AWS_APP_ID` is available, so Google sign-in can be tested before the custom-domain cutover.
 
 ## Recipe Save Counts
 
@@ -201,6 +202,15 @@ Authentication submission:
 2. If yes, update AGNET.md before opening or merging the PR.
 3. Keep updates short, factual, and specific.
 4. Update related docs (`README.md`, `docs/*`) when needed.
+
+## AWS Account Migration Tool
+
+- `scripts/migrate-aws-account.cjs` migrates production Cognito identities, application records, and recipe images from the Brain account to the dedicated Arcane.Kitchen account; configuration is in `scripts/aws-account-migration.config.cjs`.
+- Migration artifacts belong under ignored `.migration/`; they contain user data and must never be committed.
+- AWS-mutating commands are dry-run-only unless given the exact `--apply --confirm-account 617394174030` guard.
+- The final source export must be created after writes are frozen with `--confirm-source-frozen`; rehearsal exports cannot be applied.
+- Three native-plus-Google duplicate pairs merge into 11 destination users. Profile conflicts and administrator grants require explicit approval in `identity-review.json`; four duplicate favorites are intentionally collapsed.
+- Run `node --test scripts/migrate-aws-account.test.cjs` in addition to the existing Node CLI test. See `docs/aws-account-migration-runbook.md` for the ordered workflow.
 
 ## Writing style
 
