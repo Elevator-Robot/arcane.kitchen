@@ -25,6 +25,36 @@ import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
 import Button from '../ui/Button';
 import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
+import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
+
+type SanctuaryId = (typeof KITCHEN_CLASSES)[number]['id'];
+
+function SanctuaryArtwork({
+  callingId,
+  pictureClassName,
+  imageClassName,
+}: {
+  callingId: SanctuaryId;
+  pictureClassName?: string;
+  imageClassName?: string;
+}) {
+  const artwork = SANCTUARY_ARTWORK[callingId];
+  if (!artwork) return null;
+
+  return (
+    <picture className={pictureClassName} aria-hidden="true">
+      <source media="(prefers-color-scheme: dark)" srcSet={artwork.dark} />
+      <img
+        src={artwork.light}
+        alt=""
+        width={2172}
+        height={724}
+        loading="lazy"
+        className={imageClassName}
+      />
+    </picture>
+  );
+}
 
 export function SanctuaryBanner({
   identity,
@@ -36,12 +66,28 @@ export function SanctuaryBanner({
   compact?: boolean;
 }) {
   const theme = kitchenTheme(identity.theme);
+  const calling = kitchenCalling(identity.calling);
+  const hasArtwork = Boolean(SANCTUARY_ARTWORK[calling.id]);
   return (
     <div
       className={`relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
       style={{ background: theme.background }}
     >
-      <SanctuaryMotif />
+      {hasArtwork ? (
+        <>
+          <SanctuaryArtwork
+            callingId={calling.id}
+            pictureClassName="absolute inset-0"
+            imageClassName="h-full w-full object-cover"
+          />
+          <div
+            className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"
+            aria-hidden="true"
+          />
+        </>
+      ) : (
+        <SanctuaryMotif />
+      )}
       <div className="relative flex flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Kitchen
@@ -69,7 +115,7 @@ export function SanctuaryBanner({
           <span aria-hidden="true">{theme.symbol}</span>
           {theme.name}
           <span aria-hidden="true">·</span>
-          {compact ? kitchenCalling(identity.calling).name : theme.note}
+          {compact ? calling.name : theme.note}
         </p>
       </div>
     </div>
@@ -243,8 +289,8 @@ export function CustomizeSanctuary({
             </p>
             <h2 className="mt-1 text-2xl">Customize profile</h2>
             <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-              Choose your birthsign, sanctuary, and familiar. These details appear
-              on your public profile.
+              Choose your birthsign, sanctuary, and familiar. These details
+              appear on your public profile.
             </p>
           </div>
           <Button
@@ -273,7 +319,7 @@ export function CustomizeSanctuary({
                     aria-label={theme.name}
                     aria-pressed={draft.theme === theme.id}
                     onClick={() => setField('theme', theme.id)}
-                    className="ak-birthsign-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
+                    className="ak-identity-art-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
                   >
                     <img
                       src={BIRTHSIGN_ARTWORK[theme.id]}
@@ -288,7 +334,7 @@ export function CustomizeSanctuary({
                         <Check className="h-4 w-4" aria-hidden="true" />
                       </span>
                     )}
-                    <span className="ak-birthsign-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-4 text-xs font-semibold text-white">
+                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-4 text-xs font-semibold text-white">
                       {theme.name}
                     </span>
                   </Button>
@@ -297,25 +343,39 @@ export function CustomizeSanctuary({
             </fieldset>
             <fieldset>
               <legend className="text-sm font-bold">Sanctuary</legend>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {KITCHEN_CLASSES.map((calling) => (
                   <Button
-                    variant="choice"
+                    variant="image"
                     size="none"
                     type="button"
                     key={calling.id}
                     aria-label={calling.name}
                     aria-pressed={draft.calling === calling.id}
                     onClick={() => setField('calling', calling.id)}
-                    className="justify-start rounded-xl p-3 text-left text-sm"
+                    className="ak-identity-art-card relative block aspect-[3/1] overflow-hidden rounded-xl text-left"
                   >
-                    <span aria-hidden="true" className="shrink-0 text-lg">
-                      {calling.icon}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-semibold">
-                        {calling.name}
+                    {SANCTUARY_ARTWORK[calling.id] ? (
+                      <SanctuaryArtwork
+                        callingId={calling.id}
+                        pictureClassName="block h-full w-full"
+                        imageClassName="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="grid h-full w-full place-items-center bg-[var(--theme-surface-alt)] text-3xl text-[var(--theme-accent)]"
+                      >
+                        {calling.icon}
                       </span>
+                    )}
+                    {draft.calling === calling.id && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    )}
+                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-xs font-semibold text-white">
+                      {calling.name}
                     </span>
                   </Button>
                 ))}

@@ -75,11 +75,25 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       dialog.getByRole('img', { name: 'The Raven birthsign' })
     ).toHaveAttribute('src', expect.stringContaining('raven.webp'));
-    await interaction.click(
-      dialog.getByRole('button', {
-        name: 'The Inn',
-      })
+    const innChoice = dialog.getByRole('button', { name: 'The Inn' });
+    expect(innChoice.querySelector('source')).toHaveAttribute(
+      'media',
+      '(prefers-color-scheme: dark)'
     );
+    expect(innChoice.querySelector('source')).toHaveAttribute(
+      'srcset',
+      expect.stringContaining('inn-dark.webp')
+    );
+    expect(innChoice.querySelector('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('inn-light.webp')
+    );
+    expect(
+      dialog
+        .getByRole('button', { name: 'The Garden' })
+        .querySelector('picture')
+    ).not.toBeInTheDocument();
+    await interaction.click(innChoice);
     await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
     await interaction.type(
       dialog.getByLabelText('Tenet'),
@@ -114,7 +128,9 @@ describe('kitchen sanctuary profiles', () => {
       signatureRecipeId: 'soup',
     });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Profile changes saved');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Profile changes saved'
+    );
   });
 
   it('discards canceled edits and keeps failed saves available to retry', async () => {

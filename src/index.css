@@ -4,13 +4,13 @@
 
 /* Touch users always see names; precise pointers reveal them on hover/focus. */
 @media (hover: hover) and (pointer: fine) {
-  .ak-birthsign-label {
+  .ak-identity-art-label {
     opacity: 0;
     transition: opacity 160ms ease;
   }
 
-  .ak-birthsign-card:hover .ak-birthsign-label,
-  .ak-birthsign-card:focus-visible .ak-birthsign-label {
+  .ak-identity-art-card:hover .ak-identity-art-label,
+  .ak-identity-art-card:focus-visible .ak-identity-art-label {
     opacity: 1;
   }
 }
