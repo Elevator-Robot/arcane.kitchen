@@ -1,12 +1,12 @@
 # Arcane Kitchen — Identity Art Prompts
 
-Working draft · Revision 5 · Supplied Birthsign artwork and three Sanctuary pairs integrated; Familiar artwork pending.
+Working draft · Revision 6 · Supplied Birthsign artwork and all six Sanctuary pairs integrated; Familiar artwork pending.
 
 ## Copy-and-paste instructions
 
 Each paragraph below is a complete prompt. Copy the paragraph beneath the name directly into your image generator; nothing else needs to be appended. Each includes its own dimensions, composition, style, and exclusions. Set the generator to **1536 × 1024 / 3:2 landscape** where supported.
 
-The Birthsign prompts below request **constellations only**: arrangements of bright stars joined by faint straight lines, recognizable through their simple geometry like the Big Dipper. They remain an editable reference. The subsequently supplied images include illustrated figures around the stars and are used as provided in the app. Sanctuaries are atmospheric places to call home; light/dark pairs for The Library, The Cottage, and The Inn are used as provided, while the remaining Sanctuary and Familiar images are still proposed.
+The Birthsign prompts below request **constellations only**: arrangements of bright stars joined by faint straight lines, recognizable through their simple geometry like the Big Dipper. They remain an editable reference. The subsequently supplied images include illustrated figures around the stars and are used as provided in the app. Sanctuaries are atmospheric places to call home; all six light/dark pairs are used as provided, while Familiar images are still proposed.
 
 ## Supplied Birthsign assets
 
@@ -16,7 +16,7 @@ Use an approved image as a reference for later images in the same category where
 
 ## Supplied Sanctuary assets
 
-The supplied 2172 × 724 light/dark PNG pairs for The Library, The Cottage, and The Inn were converted to WebP at quality 85 without cropping or resizing and stored in `src/assets/sanctuaries/`. `src/theme/sanctuaryArtwork.ts` maps them to existing profile `calling` IDs. Customization cards and profile banners select the dark image through `prefers-color-scheme: dark` and otherwise use the light image. The Garden, Observatory, and Manor retain icon fallbacks until their pairs are supplied.
+The supplied 2172 × 724 light/dark PNG pairs for all six Sanctuaries were converted to WebP at quality 85 without cropping or resizing and stored in `src/assets/sanctuaries/`. `src/theme/sanctuaryArtwork.ts` maps them to existing profile `calling` IDs. Customization cards and profile banners select the dark image through `prefers-color-scheme: dark` and otherwise use the light image.
 
 ## Birthsigns
 
@@ -117,5 +117,6 @@ Create a 1536 × 1024 landscape portrait of Luna, a pale ivory rabbit familiar b
 | R3 | Adopted the new nine-sign roster in the supplied order and redesigned the renamed constellation patterns; Callings and Familiars retained | Superseded by R4 |
 | R4 | Replaced Callings with six Sanctuaries: The Library, The Cottage, The Inn, The Garden, The Observatory, The Manor; rewrote their standalone prompts | Awaiting image review |
 | R5 | Integrated system-responsive light/dark artwork pairs for The Library, The Cottage, and The Inn | Partial Sanctuary set approved |
+| R6 | Integrated system-responsive light/dark artwork pairs for The Garden, The Observatory, and The Manor | Complete Sanctuary set approved |
 
 Record future feedback by entry name, candidate image, what works, and what to change. Suggested first reference images: **The Wanderer**, **The Library**, and **Salem**. Review small-card readability and cropping before using an approved image to guide the rest of its category.

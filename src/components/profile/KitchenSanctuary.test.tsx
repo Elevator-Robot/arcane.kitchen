@@ -75,24 +75,30 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       dialog.getByRole('img', { name: 'The Raven birthsign' })
     ).toHaveAttribute('src', expect.stringContaining('raven.webp'));
+    const sanctuaries = [
+      ['The Library', 'library'],
+      ['The Cottage', 'cottage'],
+      ['The Inn', 'inn'],
+      ['The Garden', 'garden'],
+      ['The Observatory', 'observatory'],
+      ['The Manor', 'manor'],
+    ] as const;
+    sanctuaries.forEach(([name, filename]) => {
+      const choice = dialog.getByRole('button', { name });
+      expect(choice.querySelector('source')).toHaveAttribute(
+        'media',
+        '(prefers-color-scheme: dark)'
+      );
+      expect(choice.querySelector('source')).toHaveAttribute(
+        'srcset',
+        expect.stringContaining(`${filename}-dark.webp`)
+      );
+      expect(choice.querySelector('img')).toHaveAttribute(
+        'src',
+        expect.stringContaining(`${filename}-light.webp`)
+      );
+    });
     const innChoice = dialog.getByRole('button', { name: 'The Inn' });
-    expect(innChoice.querySelector('source')).toHaveAttribute(
-      'media',
-      '(prefers-color-scheme: dark)'
-    );
-    expect(innChoice.querySelector('source')).toHaveAttribute(
-      'srcset',
-      expect.stringContaining('inn-dark.webp')
-    );
-    expect(innChoice.querySelector('img')).toHaveAttribute(
-      'src',
-      expect.stringContaining('inn-light.webp')
-    );
-    expect(
-      dialog
-        .getByRole('button', { name: 'The Garden' })
-        .querySelector('picture')
-    ).not.toBeInTheDocument();
     await interaction.click(innChoice);
     await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
     await interaction.type(
