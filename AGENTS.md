@@ -140,7 +140,7 @@ Authentication submission:
 
 ## Sanctuary Design Language
 
-- `docs/identity-art-prompts.md` is the editable artwork prompt book for all nine Birthsigns, six Sanctuaries, and six Familiars. Each entry is one self-contained generation paragraph. The constellation-only Birthsign prompts remain a reference; the supplied artwork includes illustrated figures around the stars. All six Sanctuaries use 3:1 light/dark artwork pairs selected by system color scheme; Familiar artwork is not implemented yet.
+- `docs/identity-art-prompts.md` is the editable artwork prompt book for all nine Birthsigns, six Sanctuaries, and six Familiars. Each entry is one self-contained generation paragraph. The constellation-only Birthsign prompts remain a reference; the supplied artwork includes illustrated figures around the stars. All six Sanctuaries and Familiars use light/dark artwork pairs selected by system color scheme.
 - Birthsign artwork lives in `src/assets/birthsigns/` as 1536×1024 WebP files, mapped to stable theme IDs by `src/theme/birthsignArtwork.ts`. Customization uses uncropped 3:2 image cards and a selected-image preview. Names reveal on hover/keyboard focus and stay visible on touch devices; accessible names and selected checkmarks remain available.
 - Birthsign order is The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, The Mage. Legacy theme IDs remain stable for saved profiles. The Mage uses the former Witch mulberry palette, the Witch uses muted yellow-green, and the Sorcerer pairs crimson accents with pale blue reading surfaces and a crimson/deep-blue banner.
 

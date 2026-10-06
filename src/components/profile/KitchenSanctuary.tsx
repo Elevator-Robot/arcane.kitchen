@@ -25,9 +25,11 @@ import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
 import Button from '../ui/Button';
 import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
+import { FAMILIAR_ARTWORK } from '../../theme/familiarArtwork';
 import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
 
 type SanctuaryId = (typeof KITCHEN_CLASSES)[number]['id'];
+type FamiliarId = (typeof KITCHEN_FAMILIARS)[number]['id'];
 
 export function SanctuaryArtwork({
   callingId,
@@ -49,6 +51,32 @@ export function SanctuaryArtwork({
         alt=""
         width={2172}
         height={724}
+        loading="lazy"
+        className={imageClassName}
+      />
+    </picture>
+  );
+}
+
+function FamiliarArtwork({
+  familiarId,
+  pictureClassName,
+  imageClassName,
+}: {
+  familiarId: FamiliarId;
+  pictureClassName?: string;
+  imageClassName?: string;
+}) {
+  const artwork = FAMILIAR_ARTWORK[familiarId];
+
+  return (
+    <picture className={pictureClassName} aria-hidden="true">
+      <source media="(prefers-color-scheme: dark)" srcSet={artwork.dark} />
+      <img
+        src={artwork.light}
+        alt=""
+        width={1536}
+        height={1024}
         loading="lazy"
         className={imageClassName}
       />
@@ -135,15 +163,12 @@ export function SanctuaryDetails({
         <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           Kitchen familiar
         </h2>
-        <div className="mt-4 flex items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--theme-surface-alt)] text-2xl"
-          >
-            {familiar.symbol}
-          </span>
-          <p className="font-heading text-lg">{familiar.name}</p>
-        </div>
+        <FamiliarArtwork
+          familiarId={familiar.id}
+          pictureClassName="mt-4 block overflow-hidden rounded-2xl"
+          imageClassName="aspect-[3/2] w-full object-cover"
+        />
+        <p className="mt-4 font-heading text-lg">{familiar.name}</p>
         <p className="mt-3 text-xs leading-6 text-[var(--theme-text-muted)]">
           {familiar.note}
         </p>
@@ -383,21 +408,31 @@ export function CustomizeSanctuary({
             </fieldset>
             <fieldset>
               <legend className="text-sm font-bold">Familiar</legend>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {KITCHEN_FAMILIARS.map((familiar) => (
                   <Button
-                    variant="choice"
+                    variant="image"
                     size="none"
                     key={familiar.id}
                     type="button"
+                    aria-label={familiar.name}
                     aria-pressed={draft.familiar === familiar.id}
                     onClick={() => setField('familiar', familiar.id)}
-                    className="flex-col rounded-xl p-3 text-center"
+                    className="ak-identity-art-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
                   >
-                    <span className="block text-2xl" aria-hidden="true">
-                      {familiar.symbol}
+                    <FamiliarArtwork
+                      familiarId={familiar.id}
+                      pictureClassName="block h-full w-full"
+                      imageClassName="h-full w-full object-cover"
+                    />
+                    {draft.familiar === familiar.id && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    )}
+                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-xs font-semibold text-white">
+                      {familiar.name}
                     </span>
-                    <span className="mt-2 block text-xs">{familiar.name}</span>
                   </Button>
                 ))}
               </div>
@@ -495,10 +530,16 @@ export function CustomizeSanctuary({
               <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">
                 {kitchenCalling(draft.calling).name}
               </p>
-              <p className="mt-4 text-sm">
-                {kitchenFamiliar(draft.familiar).symbol}{' '}
-                {kitchenFamiliar(draft.familiar).name}
-              </p>
+              <div className="relative mt-4 overflow-hidden rounded-xl">
+                <FamiliarArtwork
+                  familiarId={kitchenFamiliar(draft.familiar).id}
+                  pictureClassName="block"
+                  imageClassName="aspect-[3/2] w-full object-cover"
+                />
+                <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-transparent px-3 pb-2 pt-8 text-sm font-semibold text-white">
+                  {kitchenFamiliar(draft.familiar).name}
+                </p>
+              </div>
             </div>
           </aside>
         </div>

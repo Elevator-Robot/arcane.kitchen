@@ -58,6 +58,17 @@ describe('kitchen sanctuary profiles', () => {
       expect.stringContaining('garden-light.webp')
     );
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
+    const familiarSection = screen
+      .getByRole('heading', { name: 'Kitchen familiar' })
+      .closest('section');
+    expect(familiarSection?.querySelector('source')).toHaveAttribute(
+      'srcset',
+      expect.stringContaining('salem-dark.webp')
+    );
+    expect(familiarSection?.querySelector('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('salem-light.webp')
+    );
   });
 
   it('edits named identities without pantry controls and preserves legacy pantry data', async () => {
@@ -112,6 +123,25 @@ describe('kitchen sanctuary profiles', () => {
     });
     const innChoice = dialog.getByRole('button', { name: 'The Inn' });
     await interaction.click(innChoice);
+    const familiars = [
+      ['Salem', 'salem'],
+      ['Veyr', 'veyr'],
+      ['Orin', 'orin'],
+      ['Vesper', 'vesper'],
+      ['Morrow', 'morrow'],
+      ['Luna', 'luna'],
+    ] as const;
+    familiars.forEach(([name, filename]) => {
+      const choice = dialog.getByRole('button', { name });
+      expect(choice.querySelector('source')).toHaveAttribute(
+        'srcset',
+        expect.stringContaining(`${filename}-dark.webp`)
+      );
+      expect(choice.querySelector('img')).toHaveAttribute(
+        'src',
+        expect.stringContaining(`${filename}-light.webp`)
+      );
+    });
     await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
     await interaction.type(
       dialog.getByLabelText('Tenet'),

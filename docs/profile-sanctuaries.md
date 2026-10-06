@@ -21,6 +21,7 @@ labels and cooking instructions remain clear and practical.
 - Sanctuary selection uses local 3:1 light/dark artwork pairs. `<picture>` follows the device's `prefers-color-scheme`. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
 - The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover uses the signed-in viewer's Sanctuary artwork behind the Emporium search banner.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
+- Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover or keyboard focus and always on touchscreens. The selected portrait appears in the live preview and public profile details. Assets live in `src/assets/familiars/` and map to stable familiar IDs through `src/theme/familiarArtwork.ts`.
 - **Tenet:** up to 80 characters in the profile banner.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
 - Legacy pantry choices remain in stored JSON for compatibility; no pantry section is displayed or editable.
