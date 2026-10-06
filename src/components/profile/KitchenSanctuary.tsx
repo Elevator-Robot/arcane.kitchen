@@ -95,6 +95,7 @@ export function SanctuaryBanner({
   const theme = kitchenTheme(identity.theme);
   const calling = kitchenCalling(identity.calling);
   const hasArtwork = Boolean(SANCTUARY_ARTWORK[calling.id]);
+  const bannerTenet = identity.motto || 'Good food, made often.';
   return (
     <div
       className={`relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
@@ -129,18 +130,12 @@ export function SanctuaryBanner({
         </div>
       )}
       <div className={`relative max-w-2xl ${compact ? 'mt-4' : 'mt-7'}`}>
-        {identity.motto && (
-          <p
-            className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
-          >
-            {identity.motto}
-          </p>
-        )}
         <p
-          className={`text-xs text-white/80 ${identity.motto ? 'mt-3' : compact ? 'mt-10' : 'mt-16'}`}
+          className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
         >
-          {theme.name}
+          {bannerTenet}
         </p>
+        <p className="mt-3 text-xs text-white/80">{theme.name}</p>
       </div>
     </div>
   );
