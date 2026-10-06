@@ -20,7 +20,7 @@ labels and cooking instructions remain clear and practical.
 - **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor, in this order. Show names without numbers or subtitles. The existing `calling` field and option IDs remain compatible. The editor is titled **Customize profile**, with **Save changes** as its submit action.
 - Sanctuary selection uses local 3:1 light/dark artwork pairs. `<picture>` follows the device's `prefers-color-scheme`. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
 - The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover uses the signed-in viewer's Sanctuary artwork behind the Emporium search banner.
-- Profile banners omit generic Sanctuary headings and lore lines. They show the user-entered Tenet when present, otherwise “Good food, made often.”, and identify only the selected Birthsign beneath it.
+- Profile banners omit generic Sanctuary headings, Birthsign names, symbols, and lore lines. They show the user-entered Tenet when present, otherwise “Good food, made often.”
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover or keyboard focus and always on touchscreens. The selected portrait appears in the live preview and public profile details. Assets live in `src/assets/familiars/` and map to stable familiar IDs through `src/theme/familiarArtwork.ts`.
 - **Tenet:** up to 80 characters in the profile banner.

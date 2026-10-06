@@ -58,6 +58,7 @@ describe('kitchen sanctuary profiles', () => {
       screen.queryByText('The hearth remembers what the world forgets.')
     ).not.toBeInTheDocument();
     expect(screen.getByText('Good food, made often.')).toBeInTheDocument();
+    expect(screen.queryByText('The Wanderer')).not.toBeInTheDocument();
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
     expect(screen.queryByText('From this kitchen')).not.toBeInTheDocument();
     const familiarSection = screen

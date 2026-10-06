@@ -335,12 +335,18 @@ describe('RecipeBuilder Component', () => {
         expect(
           await screen.findByRole('heading', { name: 'other_chef' })
         ).toBeInTheDocument();
-        const banner = screen
-          .getByText(/The Wyrm/)
-          .closest('[style]') as HTMLElement;
+        await waitFor(() =>
+          expect(
+            document.querySelector('img[src*="manor-light.webp"]')
+          ).toBeInTheDocument()
+        );
+        const banner = document
+          .querySelector('img[src*="manor-light.webp"]')
+          ?.closest('[style]') as HTMLElement;
         expect(banner).toHaveStyle({
           background: kitchenTheme('ember').background,
         });
+        expect(screen.queryByText('The Wyrm')).not.toBeInTheDocument();
       }
     }
   );

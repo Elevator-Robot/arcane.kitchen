@@ -135,7 +135,6 @@ export function SanctuaryBanner({
         >
           {bannerTenet}
         </p>
-        <p className="mt-3 text-xs text-white/80">{theme.name}</p>
       </div>
     </div>
   );
