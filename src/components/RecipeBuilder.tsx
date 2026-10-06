@@ -11,7 +11,6 @@ import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
   ArrowDownUp,
-  BookOpen,
   Heart,
   Maximize2,
   Plus,
@@ -3883,10 +3882,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 aria-hidden="true"
               />
               <div className="relative">
-                <p className="ak-eyebrow mb-2 flex items-center gap-2 text-white/80">
-                  <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
-                  Community grimoire
-                </p>
                 <h1 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
                   Emporium
                 </h1>
@@ -4097,13 +4092,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <div className="ak-empty-state">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   {discoverQuery || activeTag !== null || activeAuthor
-                    ? 'No recipes match just yet'
-                    : 'Every collection starts with one recipe'}
+                    ? 'No recipes match these filters'
+                    : 'No recipes have been shared yet'}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                   {discoverQuery || activeTag !== null || activeAuthor
-                    ? 'Try a different title, tag, or cook — or clear your filters to explore.'
-                    : 'Share something you love to cook and help this kitchen grow.'}
+                    ? 'Try a different search or clear the filters.'
+                    : 'Create a recipe to add it to the Emporium.'}
                 </p>
                 {discoverQuery || activeTag !== null || activeAuthor ? (
                   <button
@@ -4123,7 +4118,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     onClick={startCreateRecipe}
                     className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
                   >
-                    Share your first recipe
+                    Create recipe
                   </button>
                 )}
               </div>

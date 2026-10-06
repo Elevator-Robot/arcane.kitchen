@@ -5,7 +5,7 @@ import RecipeCard from './profile/RecipeCard';
 import DraftCard from './profile/DraftCard';
 import type { User, Recipe, Draft } from '../types/profile';
 import { Link } from 'react-router-dom';
-import { BookOpen, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Button from './ui/Button';
 import {
   CustomizeSanctuary,
@@ -132,18 +132,12 @@ export default function UserProfileView({
         )}
         <div className="mb-5 mt-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-              <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+            <h2 className="text-2xl">
               {visibleTab === 'recipes'
-                ? 'From this kitchen'
-                : 'Only visible to you'}
-            </p>
-            <h2 className="mt-2 text-2xl">
-              {visibleTab === 'recipes'
-                ? 'The recipe grimoire'
+                ? 'Recipes'
                 : visibleTab === 'drafts'
-                  ? 'Works in progress'
-                  : 'Treasures worth keeping'}
+                  ? 'Drafts'
+                  : 'Saved recipes'}
             </h2>
             <p className="mt-2 text-xs text-[var(--theme-text-muted)]">
               {visibleTab === 'recipes' &&
@@ -153,8 +147,8 @@ export default function UserProfileView({
                 : visibleTab === 'recipes'
                   ? `${publishedRecipes.length} shared ${publishedRecipes.length === 1 ? 'recipe' : 'recipes'} · ${publishedRecipes.reduce((sum, recipe) => sum + (recipe.saves || 0), 0)} community saves`
                   : visibleTab === 'drafts'
-                    ? 'Unfinished ideas have a home here.'
-                    : 'A collection of inspiration from other kitchens.'}
+                    ? `${draftRecipes.length} ${draftRecipes.length === 1 ? 'draft' : 'drafts'}`
+                    : `${savedRecipes.length} saved ${savedRecipes.length === 1 ? 'recipe' : 'recipes'}`}
             </p>
           </div>
           {isOwnProfile && onNewRecipe && visibleTab !== 'saved' && (

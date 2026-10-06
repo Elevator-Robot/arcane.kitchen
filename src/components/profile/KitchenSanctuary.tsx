@@ -4,7 +4,6 @@ import {
   Check,
   Compass,
   Feather,
-  Sparkles,
   WandSparkles,
   X,
 } from 'lucide-react';
@@ -116,12 +115,8 @@ export function SanctuaryBanner({
       ) : (
         <SanctuaryMotif />
       )}
-      <div className="relative flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
-          <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Kitchen
-          sanctuary
-        </p>
-        {onCustomize && (
+      {onCustomize && (
+        <div className="relative flex justify-end">
           <Button
             variant="banner"
             size="none"
@@ -131,19 +126,20 @@ export function SanctuaryBanner({
             <WandSparkles className="h-4 w-4" aria-hidden="true" />
             Customize profile
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       <div className={`relative max-w-2xl ${compact ? 'mt-4' : 'mt-7'}`}>
+        {identity.motto && (
+          <p
+            className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+          >
+            {identity.motto}
+          </p>
+        )}
         <p
-          className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+          className={`text-xs text-white/80 ${identity.motto ? 'mt-3' : compact ? 'mt-10' : 'mt-16'}`}
         >
-          {identity.motto || 'The hearth remembers what the world forgets.'}
-        </p>
-        <p className="mt-3 flex items-center gap-2 text-xs text-white/80">
-          <span aria-hidden="true">{theme.symbol}</span>
           {theme.name}
-          <span aria-hidden="true">·</span>
-          {compact ? calling.name : theme.note}
         </p>
       </div>
     </div>

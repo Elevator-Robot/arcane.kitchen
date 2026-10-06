@@ -327,20 +327,6 @@
     text-align: center;
   }
 
-  .ak-empty-state::before {
-    content: '✧' / '';
-    display: grid;
-    place-items: center;
-    width: 3rem;
-    height: 3rem;
-    margin: 0 auto 1rem;
-    border: 1px solid var(--theme-border);
-    border-radius: 1rem;
-    color: var(--theme-accent);
-    background: var(--theme-surface-alt);
-    font-size: 1.5rem;
-  }
-
   .ak-editor-fields > label,
   .ak-editor-fields > div:not([role='status']) {
     padding: 1.25rem;

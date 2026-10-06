@@ -421,7 +421,7 @@ describe('RecipeBuilder Component', () => {
     await user.clear(search);
     await user.type(search, 'zzzzzz');
     expect(
-      await screen.findByText('No recipes match just yet')
+      await screen.findByText('No recipes match these filters')
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
     expect(
@@ -447,7 +447,7 @@ describe('RecipeBuilder Component', () => {
       '@test'
     );
     expect(
-      await screen.findByText('No recipes match just yet')
+      await screen.findByText('No recipes match these filters')
     ).toBeInTheDocument();
   });
 

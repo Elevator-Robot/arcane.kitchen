@@ -50,14 +50,15 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       screen.getByText('2 shared recipes · 11 community saves')
     ).toBeInTheDocument();
-    const banner = screen
-      .getByText('The hearth remembers what the world forgets.')
-      .closest('[style]');
-    expect(banner?.querySelector('img')).toHaveAttribute(
-      'src',
-      expect.stringContaining('garden-light.webp')
-    );
+    expect(
+      document.querySelector('img[src*="garden-light.webp"]')
+    ).toHaveAttribute('src', expect.stringContaining('garden-light.webp'));
+    expect(screen.queryByText('Kitchen sanctuary')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('The hearth remembers what the world forgets.')
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
+    expect(screen.queryByText('From this kitchen')).not.toBeInTheDocument();
     const familiarSection = screen
       .getByRole('heading', { name: 'Kitchen familiar' })
       .closest('section');
