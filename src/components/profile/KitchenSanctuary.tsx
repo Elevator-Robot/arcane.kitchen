@@ -29,7 +29,7 @@ import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
 
 type SanctuaryId = (typeof KITCHEN_CLASSES)[number]['id'];
 
-function SanctuaryArtwork({
+export function SanctuaryArtwork({
   callingId,
   pictureClassName,
   imageClassName,

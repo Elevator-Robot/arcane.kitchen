@@ -19,6 +19,7 @@ labels and cooking instructions remain clear and practical.
 - Birthsign selection uses supplied constellation artwork in uncropped 3:2 cards, with names shown on hover or keyboard focus and always on touchscreens. The live preview includes the selected image and name. Assets are local optimized WebP files in `src/assets/birthsigns/`.
 - **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor, in this order. Show names without numbers or subtitles. The existing `calling` field and option IDs remain compatible. The editor is titled **Customize profile**, with **Save changes** as its submit action.
 - Sanctuary selection uses local 3:1 light/dark artwork pairs. `<picture>` follows the device's `prefers-color-scheme`. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
+- The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover uses the signed-in viewer's Sanctuary artwork behind the Emporium search banner.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - **Tenet:** up to 80 characters in the profile banner.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.

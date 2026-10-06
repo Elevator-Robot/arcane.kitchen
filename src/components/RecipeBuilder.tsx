@@ -61,6 +61,7 @@ import ProfileDropdown from './ProfileDropdown';
 import RecipeTagFilters from './RecipeTagFilters';
 import Button from './ui/Button';
 import ProfileSkeleton from './profile/ProfileSkeleton';
+import { SanctuaryArtwork } from './profile/KitchenSanctuary';
 import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
 import SanctuaryHeading from './ui/SanctuaryHeading';
@@ -69,7 +70,11 @@ import {
   sanctuaryBackground,
   sanctuaryThemeStyle,
 } from '../theme/sanctuaryTheme';
-import type { KitchenIdentity } from '../utils/kitchenIdentity';
+import {
+  kitchenCalling,
+  normalizeKitchenIdentity,
+  type KitchenIdentity,
+} from '../utils/kitchenIdentity';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
@@ -3742,6 +3747,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     </article>
   ) : null;
 
+  const discoverCalling = kitchenCalling(
+    normalizeKitchenIdentity(
+      isAuthenticated ? profileViewUser.kitchenIdentity : undefined
+    ).calling
+  );
+
   return (
     <main
       style={sanctuaryThemeStyle(
@@ -3862,6 +3873,15 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               className="ak-discover-intro"
               style={{ background: sanctuaryBackground }}
             >
+              <SanctuaryArtwork
+                callingId={discoverCalling.id}
+                pictureClassName="absolute inset-0"
+                imageClassName="h-full w-full object-cover"
+              />
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"
+                aria-hidden="true"
+              />
               <div className="relative">
                 <p className="ak-eyebrow mb-2 flex items-center gap-2 text-white/80">
                   <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />

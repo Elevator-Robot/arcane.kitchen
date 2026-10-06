@@ -9,7 +9,11 @@ const user = {
   id: 'cook-1',
   name: 'Moon cook',
   handle: 'moon_cook',
-  kitchenIdentity: { ...DEFAULT_KITCHEN_IDENTITY, pantry: ['Garlic'] },
+  kitchenIdentity: {
+    ...DEFAULT_KITCHEN_IDENTITY,
+    calling: 'dough-artificer' as const,
+    pantry: ['Garlic'],
+  },
 };
 const recipes = [
   { id: 'soup', title: 'Forest mushroom soup', saves: 7 },
@@ -46,6 +50,14 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       screen.getByText('2 shared recipes · 11 community saves')
     ).toBeInTheDocument();
+    const banner = screen
+      .getByText('The hearth remembers what the world forgets.')
+      .closest('[style]');
+    expect(banner?.querySelector('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('garden-light.webp')
+    );
+    expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
   });
 
   it('edits named identities without pantry controls and preserves legacy pantry data', async () => {

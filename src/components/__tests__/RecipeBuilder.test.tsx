@@ -265,7 +265,7 @@ describe('RecipeBuilder Component', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each(['/saved', '/drafts', '/build', '/u/other_chef'])(
+  it.each(['/discover', '/saved', '/drafts', '/build', '/u/other_chef'])(
     'uses the viewer’s saved atmosphere on %s',
     async (path) => {
       window.history.replaceState({}, '', path);
@@ -276,14 +276,20 @@ describe('RecipeBuilder Component', () => {
             userId: 'testuser',
             username: 'test',
             displayName: 'Test cook',
-            kitchenIdentity: JSON.stringify({ theme: 'grove' }),
+            kitchenIdentity: JSON.stringify({
+              theme: 'grove',
+              calling: 'dough-artificer',
+            }),
           },
           {
             id: 'other-profile',
             userId: 'other-user',
             username: 'other_chef',
             displayName: 'Other cook',
-            kitchenIdentity: JSON.stringify({ theme: 'ember' }),
+            kitchenIdentity: JSON.stringify({
+              theme: 'ember',
+              calling: 'feast-bard',
+            }),
           },
         ],
       };
@@ -308,6 +314,23 @@ describe('RecipeBuilder Component', () => {
       expect(
         screen.getByRole('main').style.getPropertyValue('--theme-surface')
       ).toBe(kitchenTheme('grove').surface);
+      const discoverBanner = screen
+        .getByRole('heading', { name: 'Emporium' })
+        .closest('.ak-discover-intro');
+      await waitFor(() =>
+        expect(discoverBanner?.querySelector('source')).toHaveAttribute(
+          'srcset',
+          expect.stringContaining('garden-dark.webp')
+        )
+      );
+      expect(discoverBanner?.querySelector('source')).toHaveAttribute(
+        'media',
+        '(prefers-color-scheme: dark)'
+      );
+      expect(discoverBanner?.querySelector('img')).toHaveAttribute(
+        'src',
+        expect.stringContaining('garden-light.webp')
+      );
       if (path === '/u/other_chef') {
         expect(
           await screen.findByRole('heading', { name: 'other_chef' })

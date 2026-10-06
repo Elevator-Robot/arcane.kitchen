@@ -1,11 +1,6 @@
 import { useState } from 'react';
 import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
-import {
-  kitchenCalling,
-  kitchenTheme,
-  normalizeKitchenIdentity,
-} from '../../utils/kitchenIdentity';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import {
@@ -43,8 +38,6 @@ export default function ProfileHeader({
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [copied, setCopied] = useState(false);
-  const identity = normalizeKitchenIdentity(user.kitchenIdentity);
-  const calling = kitchenCalling(identity.calling);
   const existingProfile = isOwnProfile
     ? loadUserProfiles()[String(user.id || 'current')]
     : null;
@@ -231,15 +224,6 @@ export default function ProfileHeader({
                   </button>
                 </div>
               )}
-            </div>
-            <div className="mt-3 flex flex-col items-center gap-2 sm:items-start">
-              <p
-                className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
-                style={{ backgroundColor: kitchenTheme(identity.theme).accent }}
-              >
-                <span aria-hidden="true">{calling.icon}</span>
-                {calling.name}
-              </p>
             </div>
             <div className="mt-4">
               {!isEditingBio || !isOwnProfile ? (
