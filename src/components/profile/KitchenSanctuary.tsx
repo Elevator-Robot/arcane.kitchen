@@ -20,6 +20,7 @@ import {
   type KitchenIdentity,
 } from '../../utils/kitchenIdentity';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
+import { DEFAULT_PROFILE_TENET } from '../../utils/profileQuotes';
 import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
 import Button from '../ui/Button';
@@ -86,16 +87,18 @@ function FamiliarArtwork({
 export function SanctuaryBanner({
   identity,
   onCustomize,
+  placeholderTenet = DEFAULT_PROFILE_TENET,
   compact = false,
 }: {
   identity: KitchenIdentity;
   onCustomize?: () => void;
+  placeholderTenet?: string;
   compact?: boolean;
 }) {
   const theme = kitchenTheme(identity.theme);
   const calling = kitchenCalling(identity.calling);
   const hasArtwork = Boolean(SANCTUARY_ARTWORK[calling.id]);
-  const bannerTenet = identity.motto || 'Good food, made often.';
+  const bannerTenet = identity.motto || placeholderTenet;
   return (
     <div
       className={`relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
@@ -246,11 +249,13 @@ export function SignatureRecipe({
 export function CustomizeSanctuary({
   user,
   recipes,
+  placeholderTenet = DEFAULT_PROFILE_TENET,
   onClose,
   onSave,
 }: {
   user: User;
   recipes: Recipe[];
+  placeholderTenet?: string;
   onClose: () => void;
   onSave: (identity: KitchenIdentity) => Promise<void>;
 }) {
@@ -434,7 +439,7 @@ export function CustomizeSanctuary({
                 value={draft.motto}
                 onChange={(event) => setField('motto', event.target.value)}
                 maxLength={80}
-                placeholder="What is taken from the earth must be returned."
+                placeholder={placeholderTenet}
                 className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
               />
               <span className="text-right text-xs text-[var(--theme-text-muted)]">
@@ -514,7 +519,11 @@ export function CustomizeSanctuary({
               height={1024}
               className="mb-3 aspect-[3/2] w-full rounded-2xl object-contain"
             />
-            <SanctuaryBanner identity={draft} compact />
+            <SanctuaryBanner
+              identity={draft}
+              placeholderTenet={placeholderTenet}
+              compact
+            />
             <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
               <p className="break-words font-heading text-xl">{user.handle}</p>
               <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">

@@ -7,6 +7,7 @@ import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adminActions } from '../functions/admin-actions/resource';
+import { randomProfileQuote } from '../functions/random-profile-quote/resource';
 
 export const listAdminUsers = defineFunction((scope) => {
   const lambda = new NodejsFunction(scope, 'ListAdminUsers', {
@@ -39,6 +40,18 @@ const schema = a.schema({
     .returns(a.ref('AdminUser').array())
     .authorization((allow) => [allow.group('Admins')])
     .handler(a.handler.function(listAdminUsers)),
+
+  ProfileQuote: a.customType({
+    quote: a.string().required(),
+    author: a.string(),
+    category: a.string().required(),
+  }),
+
+  randomProfileQuote: a
+    .query()
+    .returns(a.ref('ProfileQuote'))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(randomProfileQuote)),
 
   AdminActionResult: a.customType({
     success: a.boolean().required(),

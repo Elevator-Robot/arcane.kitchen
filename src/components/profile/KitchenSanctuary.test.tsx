@@ -5,6 +5,17 @@ import { render } from '../../test/test-utils';
 import UserProfileView from '../UserProfileView';
 import { DEFAULT_KITCHEN_IDENTITY } from '../../utils/kitchenIdentity';
 
+const { mockLoadProfilePlaceholderQuote } = vi.hoisted(() => ({
+  mockLoadProfilePlaceholderQuote: vi
+    .fn()
+    .mockResolvedValue('Begin where you are.'),
+}));
+
+vi.mock('../../utils/profileQuotes', () => ({
+  DEFAULT_PROFILE_TENET: 'Good food, made often.',
+  loadProfilePlaceholderQuote: mockLoadProfilePlaceholderQuote,
+}));
+
 const user = {
   id: 'cook-1',
   name: 'Moon cook',
@@ -84,11 +95,16 @@ describe('kitchen sanctuary profiles', () => {
         onSaveKitchenIdentity={save}
       />
     );
+    expect(await screen.findByText('Begin where you are.')).toBeInTheDocument();
     await interaction.click(
       screen.getByRole('button', { name: 'Customize profile' })
     );
     const dialog = within(
       screen.getByRole('dialog', { name: 'Customize profile' })
+    );
+    expect(dialog.getByLabelText('Tenet')).toHaveAttribute(
+      'placeholder',
+      'Begin where you are.'
     );
     expect(
       dialog.getByRole('button', { name: 'The Mage' })

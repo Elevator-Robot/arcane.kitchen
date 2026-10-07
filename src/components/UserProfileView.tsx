@@ -17,6 +17,10 @@ import {
   normalizeKitchenIdentity,
   type KitchenIdentity,
 } from '../utils/kitchenIdentity';
+import {
+  DEFAULT_PROFILE_TENET,
+  loadProfilePlaceholderQuote,
+} from '../utils/profileQuotes';
 
 type Props = {
   user: User;
@@ -68,6 +72,9 @@ export default function UserProfileView({
   >('recipes');
   const [customizing, setCustomizing] = React.useState(false);
   const [savedNotice, setSavedNotice] = React.useState(false);
+  const [placeholderTenet, setPlaceholderTenet] = React.useState(
+    DEFAULT_PROFILE_TENET
+  );
   const identity = normalizeKitchenIdentity(user.kitchenIdentity);
   const signature = publishedRecipes.find(
     (recipe) => String(recipe.id) === identity.signatureRecipeId
@@ -84,12 +91,28 @@ export default function UserProfileView({
     setSavedNotice(false);
   }, [isOwnProfile, user.id]);
 
+  React.useEffect(() => {
+    setPlaceholderTenet(DEFAULT_PROFILE_TENET);
+    if (!isOwnProfile || identity.motto) return;
+
+    let active = true;
+    void loadProfilePlaceholderQuote(String(user.id || 'current')).then(
+      (quote) => {
+        if (active) setPlaceholderTenet(quote);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [identity.motto, isOwnProfile, user.id]);
+
   return (
     <div className="mx-auto w-full max-w-6xl pb-6">
       <div className="w-full">
         <div className="overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-sm">
           <SanctuaryBanner
             identity={identity}
+            placeholderTenet={placeholderTenet}
             onCustomize={
               isOwnProfile && onSaveKitchenIdentity
                 ? () => {
@@ -273,6 +296,7 @@ export default function UserProfileView({
         <CustomizeSanctuary
           user={user}
           recipes={publishedRecipes}
+          placeholderTenet={placeholderTenet}
           onClose={() => setCustomizing(false)}
           onSave={async (next) => {
             await onSaveKitchenIdentity(next);

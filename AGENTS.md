@@ -113,6 +113,7 @@ Authentication submission:
 - Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat; Luna is the rabbit); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
 - The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.
 - `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
+- Empty owner Tenets request one random API Ninjas quote through the authenticated `randomProfileQuote` data query. The Lambda chooses randomly from all supported categories and reads `API_NINJAS_API_KEY` from an Amplify secret. Placeholder quotes are cached in memory only, never persisted; failures use “Good food, made often.” Public viewers also use the local fallback.
 - Public profiles have no collection tab bar and no edit/customization controls. Owners retain Recipes/Drafts/Saved navigation. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
 - Profile customization and avatar selection use `AccessibleDialog`; the customization form previews choices before save and Cancel discards them. Community save totals derive from published-recipe favorites, with no placeholder follower, level, or achievement counts.
 - Deploy the updated Amplify data schema and regenerate outputs before using Kitchen Sanctuary persistence in a live environment.
@@ -146,7 +147,7 @@ Authentication submission:
 
 - `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets and constellation artwork across Saved, Drafts, Build, and Admin.
 - Profile and Discover banners use the selected Sanctuary's responsive artwork. Profiles do not repeat the Sanctuary icon or name beside the identity; the banner image is the public indicator. Discover uses the signed-in viewer's Sanctuary image behind Emporium and search controls.
-- Profile banners show only the user-entered Tenet, or the neutral default “Good food, made often.”, over the artwork; do not add a generic Sanctuary heading, Birthsign name, symbol, or lore line. Discover has no eyebrow label above Emporium, and shared empty states have no decorative pseudo-icon.
+- Profile banners show only the user-entered Tenet, or the in-memory random quote placeholder with “Good food, made often.” as its failure fallback, over the artwork; do not add a generic Sanctuary heading, Birthsign name, symbol, or lore line. Discover has no eyebrow label above Emporium, and shared empty states have no decorative pseudo-icon.
 - Page headers, recipe placeholders, and accent/focus colors inherit the signed-in viewer’s saved `kitchenIdentity.theme` through `src/theme/sanctuaryTheme.ts`; guests use Moonlit. Visiting another cook keeps the viewer’s app theme while that cook’s profile banner retains its own atmosphere.
 - The login modal uses the original `/images/member-kitchen-hero.webp` as an edge-to-edge 3:2 tabletop for its initial choice screen. Compact email/recovery views grow only to fit their content, capped by the visible viewport; secondary email actions share a row. There is no wood-extension asset, added image band, or white/stacked fallback; scrolling is reserved for constrained screens.
 - Initial and desktop artwork uses `object-fit: contain` in a matching 3:2 frame. Compact expanded forms use a centered `cover` fit so the original image fills the content-sized frame without stretching or margins; some outer scenery is cropped in that mode.
@@ -198,7 +199,7 @@ Authentication submission:
 
 ## Agent checklist for every PR
 
-- Vitest runs `src/**/*.{test,spec}.{ts,tsx}`; run the Node CLI test separately with `node --test scripts/resolve-ampx-entry.test.cjs`.
+- Vitest runs `src/**/*.{test,spec}.{ts,tsx}`; run the Node CLI test separately with `node --test scripts/resolve-ampx-entry.test.cjs`, and run the quote Lambda test with `node --import tsx --test amplify/functions/random-profile-quote/handler.test.ts`.
 
 1. Check whether any change made AGNET.md inaccurate.
 2. If yes, update AGNET.md before opening or merging the PR.

@@ -20,7 +20,7 @@ labels and cooking instructions remain clear and practical.
 - **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor, in this order. Show names without numbers or subtitles. The existing `calling` field and option IDs remain compatible. The editor is titled **Customize profile**, with **Save changes** as its submit action.
 - Sanctuary selection uses local 3:1 light/dark artwork pairs. `<picture>` follows the device's `prefers-color-scheme`. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
 - The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover uses the signed-in viewer's Sanctuary artwork behind the Emporium search banner.
-- Profile banners omit generic Sanctuary headings, Birthsign names, symbols, and lore lines. They show the user-entered Tenet when present, otherwise “Good food, made often.”
+- Profile banners omit generic Sanctuary headings, Birthsign names, symbols, and lore lines. They show the user-entered Tenet when present. For an authenticated owner with no Tenet, the app requests an in-memory random quote placeholder; public viewers and failed requests use “Good food, made often.”
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover or keyboard focus and always on touchscreens. The selected portrait appears in the live preview and public profile details. Assets live in `src/assets/familiars/` and map to stable familiar IDs through `src/theme/familiarArtwork.ts`.
 - **Tenet:** up to 80 characters in the profile banner.
@@ -51,6 +51,18 @@ The new field requires an Amplify backend deployment and refreshed outputs. Cogn
 immutable attribute schema is unchanged. Local browser visual checks use fixture data
 while the configured Identity Pool is unavailable; backend behavior is covered by
 mocked persistence tests, not a live deployment.
+
+## Quote placeholder
+
+`randomProfileQuote` is an authenticated Amplify Data query backed by `amplify/functions/random-profile-quote`. The function randomly selects one of API Ninjas' supported categories: wisdom, philosophy, life, truth, inspirational, relationships, love, faith, humor, success, courage, happiness, art, writing, fear, nature, time, freedom, death, or leadership. It calls `/v2/randomquotes` with the API key kept in the `API_NINJAS_API_KEY` Amplify secret.
+
+Set the secret independently in every deployed environment before deploying the schema:
+
+```sh
+npx ampx sandbox secret set API_NINJAS_API_KEY
+```
+
+The returned quote is cached only in the current JavaScript session and is passed to both the banner and Tenet input as placeholder copy. It is never written to `UserProfile`, Cognito, localStorage, or sessionStorage. API errors and missing deployment support fall back locally without blocking profiles. API Ninjas states that commercial use requires a premium subscription; confirm the deployed application's plan complies with its terms.
 
 ## Verification
 
