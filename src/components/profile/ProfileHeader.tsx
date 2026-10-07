@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
 import type { User } from '../../types/profile';
@@ -14,6 +14,10 @@ import {
   USERNAME_CHANGE_COOLDOWN_DAYS,
 } from '../../utils/userProfiles';
 import { randomMerlinColor } from '../../theme/merlinPalette';
+
+const PROFILE_BIO_LIMIT = 500;
+const BIO_EDITOR_MIN_HEIGHT = 112;
+const BIO_EDITOR_MAX_HEIGHT = 288;
 
 type Props = {
   user: User;
@@ -38,6 +42,7 @@ export default function ProfileHeader({
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [copied, setCopied] = useState(false);
+  const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const existingProfile = isOwnProfile
     ? loadUserProfiles()[String(user.id || 'current')]
     : null;
@@ -53,6 +58,26 @@ export default function ProfileHeader({
   const usernameCooldownMessage = usernameAvailableDate
     ? `Username changes are locked until ${usernameAvailableDate}.`
     : '';
+
+  useEffect(() => {
+    if (!isEditingBio || !bioInputRef.current) return;
+    const input = bioInputRef.current;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, [isEditingBio]);
+
+  useLayoutEffect(() => {
+    if (!isEditingBio || !bioInputRef.current) return;
+    const input = bioInputRef.current;
+    input.style.height = '0px';
+    const nextHeight = Math.min(
+      BIO_EDITOR_MAX_HEIGHT,
+      Math.max(BIO_EDITOR_MIN_HEIGHT, input.scrollHeight)
+    );
+    input.style.height = `${nextHeight}px`;
+    input.style.overflowY =
+      input.scrollHeight > BIO_EDITOR_MAX_HEIGHT ? 'auto' : 'hidden';
+  }, [draftBio, isEditingBio]);
 
   const handleShareProfile = async () => {
     if (typeof window === 'undefined') return;
@@ -147,7 +172,9 @@ export default function ProfileHeader({
                   <div>
                     {user.bio ? (
                       <div className="flex items-start gap-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                        <p className="whitespace-pre-wrap">{user.bio}</p>
+                        <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">
+                          {user.bio}
+                        </p>
                         {isOwnProfile && (
                           <button
                             type="button"
@@ -186,45 +213,51 @@ export default function ProfileHeader({
                     )}
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-3">
                     <textarea
+                      ref={bioInputRef}
                       value={draftBio}
                       onChange={(e) => setDraftBio(e.target.value)}
                       aria-label="bio"
-                      maxLength={500}
+                      maxLength={PROFILE_BIO_LIMIT}
                       placeholder="Record your craft, the traditions you keep, and the recipes you seek."
-                      className="ak-input w-full rounded px-3 py-2 text-left text-sm"
+                      className="ak-input w-full resize-none rounded-xl px-3.5 py-3 text-left text-sm leading-6 shadow-inner"
                     />
-                    <div className="flex gap-2 justify-end">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingBio(false);
-                          setDraftBio(user.bio || '');
-                        }}
-                        className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const userId = String(user.id || 'current');
-                          const profiles = loadUserProfiles();
-                          const updated = upsertUserProfile(profiles, {
-                            userId,
-                            bio: draftBio,
-                          });
-                          saveUserProfiles(updated);
-                          setIsEditingBio(false);
-                          if (onProfileUpdated)
-                            onProfileUpdated({ bio: draftBio });
-                        }}
-                        style={{ backgroundColor: actionColor }}
-                        className="ak-button-primary rounded-xl px-4 py-2 text-sm"
-                      >
-                        Save
-                      </button>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="text-xs tabular-nums text-[var(--theme-text-muted)]">
+                        {draftBio.length}/{PROFILE_BIO_LIMIT}
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingBio(false);
+                            setDraftBio(user.bio || '');
+                          }}
+                          className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const userId = String(user.id || 'current');
+                            const profiles = loadUserProfiles();
+                            const updated = upsertUserProfile(profiles, {
+                              userId,
+                              bio: draftBio,
+                            });
+                            saveUserProfiles(updated);
+                            setIsEditingBio(false);
+                            if (onProfileUpdated)
+                              onProfileUpdated({ bio: draftBio });
+                          }}
+                          style={{ backgroundColor: actionColor }}
+                          className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

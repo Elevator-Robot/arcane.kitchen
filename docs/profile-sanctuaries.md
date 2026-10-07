@@ -26,7 +26,7 @@ labels and cooking instructions remain clear and practical.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
 - Legacy Tenet and pantry values remain in stored JSON for compatibility; neither is displayed or editable.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
-- Existing avatar presets and bio remain available; bio copy encourages kitchen lore.
+- Existing avatar presets and the 500-character bio remain available. The About editor auto-grows for existing text, then scrolls internally while its count and actions remain visible; bio copy encourages kitchen lore.
 
 ## Public and owner views
 
