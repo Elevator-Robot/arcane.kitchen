@@ -16,7 +16,7 @@ histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
 labels and cooking instructions remain clear and practical.
 
 - **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs remain compatible; names follow this order. The Mage uses mulberry, the Witch muted yellow-green, and the Sorcerer crimson/deep blue with pale blue reading surfaces.
-- Birthsign selection uses uncropped 3:2 cards with names on hover/focus and always on touchscreens. Click the feathered artwork behind the profile portrait to choose a Birthsign.
+- Birthsign selection uses uncropped 3:2 cards with names on hover/focus and always on touchscreens. The complete rectangular artwork behind the portrait uses contain sizing without an oval mask or faded edges. Click that background to choose a Birthsign; click the portrait itself to open “Who are you?” without a separate camera button.
 - **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor. Click the profile banner to open its focused picker; Share remains an independent action. The existing `calling` field and option IDs remain compatible.
 - Sanctuary selection uses local 3:1 light/dark artwork pairs. Overlapping image layers follow the device's `prefers-color-scheme` and crossfade when it changes. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
 - The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover and Build use the signed-in viewer's Sanctuary artwork in their banners.

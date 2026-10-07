@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Edit2, Calendar, Camera, X, Lock } from 'lucide-react';
+import { Edit2, Calendar, X, Lock } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
@@ -82,14 +82,14 @@ export default function ProfileHeader({
               }
               alt=""
               aria-hidden="true"
-              className="ak-birthsign-backdrop pointer-events-none absolute inset-0 h-full w-full object-cover"
+              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
             />
             {isOwnProfile && onEditBirthsign && (
               <button
                 type="button"
                 aria-label="Change birthsign"
                 onClick={onEditBirthsign}
-                className="ak-artwork-trigger absolute inset-0 rounded-xl"
+                className="ak-artwork-trigger absolute inset-0"
               >
                 <span className="ak-artwork-hint absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--theme-surface)]/90 px-3 py-1 text-xs text-[var(--theme-text)]">
                   Change birthsign
@@ -114,14 +114,17 @@ export default function ProfileHeader({
               )}
               {isOwnProfile && (
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedPreset(null);
                     setShowAvatarModal(true);
                   }}
-                  className="ak-button-secondary pointer-events-auto absolute bottom-2 right-2 rounded-full p-2.5"
+                  className="ak-artwork-trigger pointer-events-auto absolute inset-0 rounded-full"
                   aria-label="update avatar"
                 >
-                  <Camera className="w-4 h-4" style={{ color: actionColor }} />
+                  <span className="ak-artwork-hint absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/65 px-2 py-1 text-xs text-white">
+                    Change portrait
+                  </span>
                 </button>
               )}
             </div>
