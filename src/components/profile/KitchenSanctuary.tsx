@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import {
   ArrowUpRight,
   Check,
+  Camera,
   Compass,
   Feather,
   WandSparkles,
@@ -139,11 +140,18 @@ export function SanctuaryBanner({
 
 export function SanctuaryDetails({
   identity,
+  isOwnProfile,
+  onSave,
 }: {
   identity: KitchenIdentity;
   isOwnProfile: boolean;
+  onSave?: (identity: KitchenIdentity) => Promise<void>;
 }) {
   const familiar = kitchenFamiliar(identity.familiar);
+  const [choosing, setChoosing] = useState(false);
+  const [selected, setSelected] = useState(identity.familiar);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
   return (
     <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-3">
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
@@ -155,10 +163,116 @@ export function SanctuaryDetails({
           pictureClassName="mt-4 block overflow-hidden rounded-2xl"
           imageClassName="aspect-[3/2] w-full object-cover"
         />
-        <p className="mt-4 font-heading text-lg">{familiar.name}</p>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="font-heading text-lg">{familiar.name}</p>
+          {isOwnProfile && onSave && (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Change familiar"
+              onClick={() => {
+                setSelected(identity.familiar);
+                setError('');
+                setChoosing(true);
+              }}
+            >
+              <Camera className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+        </div>
         <p className="mt-3 text-xs leading-6 text-[var(--theme-text-muted)]">
           {familiar.note}
         </p>
+        {choosing && isOwnProfile && onSave && (
+          <AccessibleDialog
+            label="Choose your familiar"
+            onClose={() => {
+              if (!pending) setChoosing(false);
+            }}
+          >
+            <div className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-2xl">Choose your familiar</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Close familiar picker"
+                  disabled={pending}
+                  onClick={() => setChoosing(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {KITCHEN_FAMILIARS.map((option) => (
+                  <Button
+                    key={option.id}
+                    variant="image"
+                    size="none"
+                    disabled={pending}
+                    aria-label={option.name}
+                    aria-pressed={selected === option.id}
+                    onClick={() => setSelected(option.id)}
+                    className="ak-identity-art-card relative aspect-[3/2] overflow-hidden rounded-xl"
+                  >
+                    <FamiliarArtwork
+                      familiarId={option.id}
+                      pictureClassName="h-full w-full"
+                      imageClassName="h-full w-full object-cover"
+                    />
+                    {selected === option.id && (
+                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                    )}
+                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-sm font-semibold text-white">
+                      {option.name}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+              {error && (
+                <p role="alert" className="mt-4 text-sm text-red-700">
+                  {error}
+                </p>
+              )}
+              <div className="mt-5 flex justify-end gap-3">
+                <Button
+                  variant="secondary"
+                  disabled={pending}
+                  onClick={() => setChoosing(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={pending || selected === identity.familiar}
+                  isLoading={pending}
+                  onClick={async () => {
+                    if (pending) return;
+                    setPending(true);
+                    setError('');
+                    try {
+                      await onSave({ ...identity, familiar: selected });
+                      setChoosing(false);
+                    } catch (saveError) {
+                      console.error('Failed to save familiar:', saveError);
+                      setError(
+                        getUserFacingErrorMessage(
+                          saveError,
+                          'Your familiar could not be saved. Please try again.'
+                        )
+                      );
+                    } finally {
+                      setPending(false);
+                    }
+                  }}
+                >
+                  Save changes
+                </Button>
+              </div>
+            </div>
+          </AccessibleDialog>
+        )}
       </section>
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
@@ -301,8 +415,8 @@ export function CustomizeSanctuary({
             </p>
             <h2 className="mt-1 text-2xl">Customize profile</h2>
             <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-              Choose your birthsign, sanctuary, and familiar. These details
-              appear on your public profile.
+              Choose your birthsign and sanctuary. These details appear on your
+              public profile.
             </p>
           </div>
           <Button
@@ -388,37 +502,6 @@ export function CustomizeSanctuary({
                     )}
                     <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-xs font-semibold text-white">
                       {calling.name}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </fieldset>
-            <fieldset>
-              <legend className="text-sm font-bold">Familiar</legend>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {KITCHEN_FAMILIARS.map((familiar) => (
-                  <Button
-                    variant="image"
-                    size="none"
-                    key={familiar.id}
-                    type="button"
-                    aria-label={familiar.name}
-                    aria-pressed={draft.familiar === familiar.id}
-                    onClick={() => setField('familiar', familiar.id)}
-                    className="ak-identity-art-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
-                  >
-                    <FamiliarArtwork
-                      familiarId={familiar.id}
-                      pictureClassName="block h-full w-full"
-                      imageClassName="h-full w-full object-cover"
-                    />
-                    {draft.familiar === familiar.id && (
-                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
-                        <Check className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                    )}
-                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-xs font-semibold text-white">
-                      {familiar.name}
                     </span>
                   </Button>
                 ))}
@@ -534,7 +617,10 @@ export function CustomizeSanctuary({
               type="button"
               disabled={pending}
               onClick={() =>
-                setDraft(normalizeKitchenIdentity(DEFAULT_KITCHEN_IDENTITY))
+                setDraft({
+                  ...normalizeKitchenIdentity(DEFAULT_KITCHEN_IDENTITY),
+                  familiar: initial.familiar,
+                })
               }
               className="rounded-lg text-xs"
             >

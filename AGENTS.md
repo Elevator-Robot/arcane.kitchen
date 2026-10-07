@@ -109,6 +109,9 @@ Authentication submission:
 
 ## Profile & Avatars
 
+- The portrait dialog is titled “Who are you?” and expands to show its responsive preset grid without an internal scroll area. Character names reveal on hover/focus and remain visible on touch devices. Only the outer overlay scrolls on constrained screens.
+- Familiar selection lives in a separate owner-only dialog opened by the icon beside the familiar, not in Customize profile. Cancel discards selection; Save waits for backend success and failures retain the selection for retry. Resetting profile choices preserves the familiar.
+
 - Profile customization includes nine Birthsign presets, six Sanctuary choices (The Library, The Cottage, The Inn, The Garden, The Observatory, The Manor; names only, no numbering), six named familiars, separate 140-character main and side quests, and one optional pinned published recipe. The action/dialog uses plain “Customize profile” wording and “Save changes.” Sanctuary is stored in the legacy `calling` field with stable option IDs. Birthsigns theme the full application palette. Tenet and pantry customization/display have been removed; legacy JSON is preserved for compatibility. These are creative public details, not personal-information fields or earned ranks.
 - Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat; Luna is the rabbit); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
 - The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.

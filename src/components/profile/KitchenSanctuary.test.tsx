@@ -131,30 +131,9 @@ describe('kitchen sanctuary profiles', () => {
     });
     const innChoice = dialog.getByRole('button', { name: 'The Inn' });
     await interaction.click(innChoice);
-    const familiars = [
-      ['Salem', 'salem'],
-      ['Veyr', 'veyr'],
-      ['Orin', 'orin'],
-      ['Vesper', 'vesper'],
-      ['Morrow', 'morrow'],
-      ['Luna', 'luna'],
-    ] as const;
-    familiars.forEach(([name, filename]) => {
-      const choice = dialog.getByRole('button', { name });
-      expect(
-        choice.querySelector('.ak-color-scheme-image-dark')
-      ).toHaveAttribute(
-        'src',
-        expect.stringContaining(`${filename}-dark.webp`)
-      );
-      expect(
-        choice.querySelector('.ak-color-scheme-image-light')
-      ).toHaveAttribute(
-        'src',
-        expect.stringContaining(`${filename}-light.webp`)
-      );
-    });
-    await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
+    expect(
+      dialog.queryByRole('button', { name: 'Vesper' })
+    ).not.toBeInTheDocument();
     await interaction.type(
       dialog.getByLabelText('Main quest'),
       'Master mushroom ramen'
@@ -165,7 +144,9 @@ describe('kitchen sanctuary profiles', () => {
     );
     expect(screen.queryByText('Pantry of curiosities')).not.toBeInTheDocument();
     expect(dialog.queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(dialog.getByRole('button', { name: 'Salem' })).toBeInTheDocument();
+    expect(
+      dialog.queryByRole('button', { name: 'Salem' })
+    ).not.toBeInTheDocument();
     await interaction.selectOptions(
       dialog.getByRole('combobox', { name: 'Pin a signature creation' }),
       'soup'
@@ -176,7 +157,7 @@ describe('kitchen sanctuary profiles', () => {
     expect(save).toHaveBeenCalledWith({
       theme: 'grove',
       calling: 'herb-druid',
-      familiar: 'fox',
+      familiar: 'cat',
       motto: '',
       quest: 'Master mushroom ramen',
       sideQuest: 'Perfect a sesame broth',
@@ -187,6 +168,57 @@ describe('kitchen sanctuary profiles', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'Profile changes saved'
     );
+  });
+
+  it('changes familiars from their own picker and retains failed selections for retry', async () => {
+    const interaction = userEvent.setup();
+    const save = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('failed'))
+      .mockResolvedValue(undefined);
+    render(
+      <UserProfileView
+        user={user}
+        publishedRecipes={recipes}
+        onSaveKitchenIdentity={save}
+      />
+    );
+    await interaction.click(
+      screen.getByRole('button', { name: 'Change familiar' })
+    );
+    const dialog = within(
+      screen.getByRole('dialog', { name: 'Choose your familiar' })
+    );
+    for (const name of ['Salem', 'Veyr', 'Orin', 'Vesper', 'Morrow', 'Luna']) {
+      expect(dialog.getByRole('button', { name })).toBeInTheDocument();
+    }
+    await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
+    await interaction.click(dialog.getByRole('button', { name: 'Cancel' }));
+    expect(save).not.toHaveBeenCalled();
+    await interaction.click(
+      screen.getByRole('button', { name: 'Change familiar' })
+    );
+    expect(screen.getByRole('button', { name: 'Salem' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await interaction.click(screen.getByRole('button', { name: 'Vesper' }));
+    await interaction.click(
+      screen.getByRole('button', { name: 'Save changes' })
+    );
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vesper' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await interaction.click(
+      screen.getByRole('button', { name: 'Save changes' })
+    );
+    expect(save).toHaveBeenLastCalledWith({
+      ...user.kitchenIdentity,
+      familiar: 'fox',
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('keeps a long bio usable while editing', async () => {

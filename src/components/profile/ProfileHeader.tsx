@@ -353,13 +353,13 @@ export default function ProfileHeader({
       </div>
       {showAvatarModal && isOwnProfile && (
         <AccessibleDialog
-          label="Update Profile Picture"
+          label="Who are you?"
           onClose={() => setShowAvatarModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
         >
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
+          <div className="my-auto w-full max-w-3xl shrink-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Update Profile Picture</h3>
+              <h3 className="text-lg font-semibold">Who are you?</h3>
               <button
                 onClick={() => setShowAvatarModal(false)}
                 aria-label="Close avatar picker"

@@ -124,7 +124,12 @@ export default function UserProfileView({
           </p>
         )}
         <div className="mt-5">
-          <SanctuaryDetails identity={identity} isOwnProfile={isOwnProfile} />
+          <SanctuaryDetails
+            key={user.id || user.handle}
+            identity={identity}
+            isOwnProfile={isOwnProfile}
+            onSave={onSaveKitchenIdentity}
+          />
         </div>
         {visibleTab === 'recipes' && signature && (
           <div className="mt-5">

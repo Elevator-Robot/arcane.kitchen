@@ -1240,7 +1240,7 @@ describe('RecipeBuilder Component', () => {
       await screen.findByRole('button', { name: /update avatar/i })
     );
 
-    const modal = (await screen.findByText('Update Profile Picture')).closest(
+    const modal = (await screen.findByText('Who are you?')).closest(
       'div.fixed'
     );
     expect(modal).not.toBeNull();
@@ -1332,7 +1332,7 @@ describe('RecipeBuilder Component', () => {
       await screen.findByRole('button', { name: /update avatar/i })
     );
 
-    const modal = (await screen.findByText('Update Profile Picture')).closest(
+    const modal = (await screen.findByText('Who are you?')).closest(
       'div.fixed'
     );
     const presetImg = within(modal as HTMLElement)

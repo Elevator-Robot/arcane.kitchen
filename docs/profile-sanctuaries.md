@@ -22,6 +22,8 @@ labels and cooking instructions remain clear and practical.
 - The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover and Build use the signed-in viewer's Sanctuary artwork in their banners.
 - Profile banners omit generic Sanctuary headings, Birthsign names, symbols, and lore lines. They show the username on one truncated line over the artwork without repeating it below. The profile section uses the former username space for the bio.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
+- Change familiars through the owner-only icon beside the familiar on the profile. Its separate picker saves only the familiar choice, keeps other identity fields, and supports Cancel and retry after errors.
+- The portrait picker is titled “Who are you?” and shows character names on hover/focus (always on touch). Its grid expands without internal scrolling; the outer overlay remains scrollable when the viewport cannot fit all portraits.
 - Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover or keyboard focus and always on touchscreens. The selected portrait appears in the live preview and public profile details. Assets live in `src/assets/familiars/` and map to stable familiar IDs through `src/theme/familiarArtwork.ts`.
 - **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
 - Legacy Tenet and pantry values remain in stored JSON for compatibility; neither is displayed or editable.
