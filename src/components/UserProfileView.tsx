@@ -4,7 +4,7 @@ import NavigationTabs from './profile/NavigationTabs';
 import RecipeCard from './profile/RecipeCard';
 import ShareProfileButton from './profile/ShareProfileButton';
 import type { User, Recipe, Draft } from '../types/profile';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import Button from './ui/Button';
 import {
@@ -12,6 +12,7 @@ import {
   SanctuaryBanner,
   SanctuaryDetails,
   SignatureRecipe,
+  type ProfileEditSection,
 } from './profile/KitchenSanctuary';
 import {
   normalizeKitchenIdentity,
@@ -60,10 +61,20 @@ export default function UserProfileView({
   onNewRecipe,
   onSaveKitchenIdentity,
 }: Props) {
-  const [activeTab, setActiveTab] = React.useState<'recipes' | 'saved'>(
-    'recipes'
-  );
-  const [customizing, setCustomizing] = React.useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab =
+    new URLSearchParams(location.search).get('collection') === 'saved'
+      ? 'saved'
+      : 'recipes';
+  const setActiveTab = (tab: 'recipes' | 'saved') => {
+    const params = new URLSearchParams(location.search);
+    if (tab === 'saved') params.set('collection', 'saved');
+    else params.delete('collection');
+    navigate({ pathname: location.pathname, search: params.toString() });
+  };
+  const [customizing, setCustomizing] =
+    React.useState<ProfileEditSection | null>(null);
   const [savedNotice, setSavedNotice] = React.useState(false);
   const identity = normalizeKitchenIdentity(user.kitchenIdentity);
   const signature = publishedRecipes.find(
@@ -76,8 +87,7 @@ export default function UserProfileView({
   };
 
   React.useEffect(() => {
-    setActiveTab('recipes');
-    setCustomizing(false);
+    setCustomizing(null);
     setSavedNotice(false);
   }, [isOwnProfile, user.id]);
 
@@ -98,7 +108,7 @@ export default function UserProfileView({
               isOwnProfile && onSaveKitchenIdentity
                 ? () => {
                     setSavedNotice(false);
-                    setCustomizing(true);
+                    setCustomizing('calling');
                   }
                 : undefined
             }
@@ -108,6 +118,11 @@ export default function UserProfileView({
             user={user}
             isOwnProfile={isOwnProfile}
             onSelectPreset={onSelectPreset}
+            onEditBirthsign={
+              isOwnProfile && onSaveKitchenIdentity
+                ? () => setCustomizing('theme')
+                : undefined
+            }
             onProfileUpdated={onProfileUpdated}
           />
         </div>
@@ -122,6 +137,9 @@ export default function UserProfileView({
             identity={identity}
             isOwnProfile={isOwnProfile}
             onSave={onSaveKitchenIdentity}
+            onEdit={
+              isOwnProfile && onSaveKitchenIdentity ? setCustomizing : undefined
+            }
           />
         </div>
         {isOwnProfile && (
@@ -152,12 +170,24 @@ export default function UserProfileView({
                   : `${savedRecipes.length} saved ${savedRecipes.length === 1 ? 'recipe' : 'recipes'}`}
             </p>
           </div>
-          {isOwnProfile && onNewRecipe && visibleTab !== 'saved' && (
-            <Button type="button" onClick={onNewRecipe}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              Create recipe
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {isOwnProfile &&
+              onSaveKitchenIdentity &&
+              visibleTab === 'recipes' && (
+                <Button
+                  variant="secondary"
+                  onClick={() => setCustomizing('signatureRecipeId')}
+                >
+                  {signature ? 'Change pinned recipe' : 'Pin recipe'}
+                </Button>
+              )}
+            {isOwnProfile && onNewRecipe && visibleTab !== 'saved' && (
+              <Button type="button" onClick={onNewRecipe}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                Create recipe
+              </Button>
+            )}
+          </div>
         </div>
         <div>
           {visibleTab === 'recipes' &&
@@ -253,9 +283,11 @@ export default function UserProfileView({
       </div>
       {customizing && isOwnProfile && onSaveKitchenIdentity && (
         <CustomizeSanctuary
+          key={customizing}
+          section={customizing}
           user={user}
           recipes={publishedRecipes}
-          onClose={() => setCustomizing(false)}
+          onClose={() => setCustomizing(null)}
           onSave={async (next) => {
             await onSaveKitchenIdentity(next);
             setSavedNotice(true);

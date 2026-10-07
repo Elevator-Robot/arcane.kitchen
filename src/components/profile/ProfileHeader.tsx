@@ -13,6 +13,11 @@ import {
   USERNAME_CHANGE_COOLDOWN_DAYS,
 } from '../../utils/userProfiles';
 import { randomMerlinColor } from '../../theme/merlinPalette';
+import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
+import {
+  kitchenTheme,
+  normalizeKitchenIdentity,
+} from '../../utils/kitchenIdentity';
 
 const PROFILE_BIO_LIMIT = 500;
 
@@ -20,6 +25,7 @@ type Props = {
   user: User;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
+  onEditBirthsign?: () => void;
   onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
 };
 
@@ -27,6 +33,7 @@ export default function ProfileHeader({
   user,
   isOwnProfile = true,
   onSelectPreset,
+  onEditBirthsign,
   onProfileUpdated,
 }: Props) {
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -63,35 +70,61 @@ export default function ProfileHeader({
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <div className="flex flex-col items-stretch gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
-          <div className="relative shrink-0">
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.handle}
-                loading="lazy"
-                className="h-32 w-32 rounded-full border-4 border-[var(--theme-surface)] object-cover shadow-md sm:h-40 sm:w-40"
-              />
-            ) : (
-              <div
-                aria-label={user.handle}
-                className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-[var(--theme-surface)] bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md sm:h-40 sm:w-40"
-              >
-                {(user.handle || user.name || 'C').charAt(0).toUpperCase()}
-              </div>
-            )}
-            {isOwnProfile && (
+        <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-0">
+          <div className="relative isolate flex min-h-60 w-full shrink-0 items-center justify-center self-stretch sm:w-64">
+            <img
+              src={
+                BIRTHSIGN_ARTWORK[
+                  kitchenTheme(
+                    normalizeKitchenIdentity(user.kitchenIdentity).theme
+                  ).id
+                ]
+              }
+              alt=""
+              aria-hidden="true"
+              className="ak-birthsign-backdrop pointer-events-none absolute inset-0 h-full w-full object-cover"
+            />
+            {isOwnProfile && onEditBirthsign && (
               <button
-                onClick={() => {
-                  setSelectedPreset(null);
-                  setShowAvatarModal(true);
-                }}
-                className="ak-button-secondary absolute bottom-2 right-2 rounded-full p-2.5"
-                aria-label="update avatar"
+                type="button"
+                aria-label="Change birthsign"
+                onClick={onEditBirthsign}
+                className="ak-artwork-trigger absolute inset-0 rounded-xl"
               >
-                <Camera className="w-4 h-4" style={{ color: actionColor }} />
+                <span className="ak-artwork-hint absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--theme-surface)]/90 px-3 py-1 text-xs text-[var(--theme-text)]">
+                  Change birthsign
+                </span>
               </button>
             )}
+            <div className="pointer-events-none relative">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.handle}
+                  loading="lazy"
+                  className="pointer-events-none relative h-32 w-32 rounded-full border-4 border-[var(--theme-surface)] object-cover shadow-md sm:h-40 sm:w-40"
+                />
+              ) : (
+                <div
+                  aria-label={user.handle}
+                  className="pointer-events-none relative flex h-32 w-32 items-center justify-center rounded-full border-4 border-[var(--theme-surface)] bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md sm:h-40 sm:w-40"
+                >
+                  {(user.handle || user.name || 'C').charAt(0).toUpperCase()}
+                </div>
+              )}
+              {isOwnProfile && (
+                <button
+                  onClick={() => {
+                    setSelectedPreset(null);
+                    setShowAvatarModal(true);
+                  }}
+                  className="ak-button-secondary pointer-events-auto absolute bottom-2 right-2 rounded-full p-2.5"
+                  aria-label="update avatar"
+                >
+                  <Camera className="w-4 h-4" style={{ color: actionColor }} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="min-w-0 w-full text-left">

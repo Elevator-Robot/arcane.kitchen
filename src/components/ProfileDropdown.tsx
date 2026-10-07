@@ -134,7 +134,7 @@ export default function ProfileDropdown({
             Profile
           </Button>
           <Link
-            to="/saved"
+            to={`${profilePath}?collection=saved`}
             onClick={() => setOpen(false)}
             className="ak-menu-item"
           >
@@ -147,7 +147,7 @@ export default function ProfileDropdown({
             className="ak-menu-item"
           >
             <FilePenLine className="h-4 w-4" aria-hidden="true" />
-            Recipe drafts
+            Drafts
           </Link>
           {isAdmin && (
             <Button

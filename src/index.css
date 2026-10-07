@@ -2,12 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+.ak-birthsign-backdrop {
+  mask-image: radial-gradient(ellipse at center, #000 28%, transparent 72%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    #000 28%,
+    transparent 72%
+  );
+}
+
+.ak-artwork-trigger {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.ak-artwork-trigger:hover {
+  box-shadow: inset 0 0 0 2px var(--theme-border-strong);
+  background-color: rgb(255 255 255 / 6%);
+}
+
+.ak-artwork-trigger:active {
+  transform: scale(0.985);
+}
+
+.ak-artwork-trigger:focus-visible {
+  outline-offset: -4px;
+}
+
+.ak-artwork-hint {
+  transition: opacity 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ak-artwork-hint {
+    opacity: 0;
+  }
+  .ak-artwork-trigger:hover .ak-artwork-hint,
+  .ak-artwork-trigger:focus-visible .ak-artwork-hint {
+    opacity: 1;
+  }
+}
+
 /* Identical text metrics keep the full bio in place when editing begins. */
 .ak-bio-text {
   margin: 0;
   padding: 0;
   min-height: 3rem;
-  font: 400 0.875rem/1.5rem Nunito, ui-sans-serif, system-ui, sans-serif;
+  font:
+    400 0.875rem/1.5rem Nunito,
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
   color: var(--theme-text-muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;

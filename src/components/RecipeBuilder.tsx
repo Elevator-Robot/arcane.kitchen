@@ -1449,6 +1449,26 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   const previousAuthenticatedRef = useRef(isAuthenticated);
 
   useEffect(() => {
+    if (
+      !/^\/saved\/?$/.test(location.pathname) ||
+      !isAuthenticated ||
+      !activeUsername
+    )
+      return;
+    const params = new URLSearchParams(location.search);
+    params.set('collection', 'saved');
+    navigate(`${getProfileRoutePath(activeUsername)}?${params.toString()}`, {
+      replace: true,
+    });
+  }, [
+    location.pathname,
+    location.search,
+    isAuthenticated,
+    activeUsername,
+    navigate,
+  ]);
+
+  useEffect(() => {
     if (previousAuthenticatedRef.current && !isAuthenticated) {
       setExpandedRecipeId(null);
       setCurrentView('Discover');
@@ -2882,7 +2902,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         : window.location.pathname === '/'
           ? '/discover'
           : window.location.pathname || '/discover';
-      navigate(`${basePath}?recipe=${encodeURIComponent(recipe.id)}`);
+      const params = new URLSearchParams(window.location.search);
+      params.set('recipe', recipe.id);
+      navigate(`${basePath}?${params.toString()}`);
     }
 
     if (isAuthenticated) {
@@ -2982,7 +3004,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         : window.location.pathname === '/'
           ? '/discover'
           : window.location.pathname || '/discover';
-      navigate(basePath);
+      const params = new URLSearchParams(window.location.search);
+      params.delete('recipe');
+      navigate(`${basePath}${params.size ? `?${params.toString()}` : ''}`);
     }
   };
 
@@ -4572,24 +4596,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-6xl">
-            <SanctuaryHeading
-              eyebrow="Your personal collection"
-              title="Saved recipes"
-              description="Recipes you want to come back to, gathered from the community."
-              actions={
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('Discover');
-                    navigate('/discover');
-                  }}
-                  className="ak-banner-action"
-                >
-                  Back to the Emporium
-                </button>
-              }
-            />
-
             {!isAuthenticated ? (
               <div className="ak-empty-state">
                 <h2 className="text-2xl">Keep your next favorite close</h2>
@@ -4604,47 +4610,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   Sign in to save recipes
                 </button>
               </div>
-            ) : savedRecipes.length ? (
-              <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {savedRecipes.map((recipe) => (
-                  <FeedRecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    isFavorited={favoriteRecipeIds.has(recipe.id)}
-                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
-                    saveCount={recipeSaves[recipe.id] ?? 0}
-                    onOpenRecipe={(selectedRecipe) => {
-                      void expandRecipe(selectedRecipe);
-                    }}
-                    onToggleFavorite={toggleFavoriteRecipe}
-                    onEditRecipe={startEditRecipe}
-                    onDeleteRecipe={deleteRecipe}
-                    loadingEditRecipeId={loadingEditRecipeId}
-                    deletingRecipeIds={deletingRecipeIds}
-                    armedDeleteRecipeIds={armedDeleteRecipeIds}
-                    currentUserId={currentUserId}
-                    isAuthenticated={isAuthenticated}
-                    onOpenProfile={selectAuthorFilter}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="ak-empty-state">
-                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  No saved recipes yet
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                  Save recipes from the Emporium to keep them close at hand
-                  here.
-                </p>
-                <Link
-                  to="/discover"
-                  className="ak-button-primary mt-5 inline-flex rounded-xl px-5 py-3 text-sm font-semibold"
-                >
-                  Find recipes to save
-                </Link>
-              </div>
-            )}
+            ) : null}
           </div>
         </section>
 
@@ -4657,8 +4623,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           <div className="mx-auto w-full max-w-6xl">
             <SanctuaryHeading
-              eyebrow="Notes from your workshop"
               title="Drafts"
+              callingId={discoverCalling.id}
               description="Unfinished ideas, experiments, and recipes in the making. Only visible to you."
               actions={
                 <button

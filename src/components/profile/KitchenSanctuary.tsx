@@ -1,13 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import {
-  ArrowUpRight,
-  Check,
-  Camera,
-  Compass,
-  Feather,
-  WandSparkles,
-  X,
-} from 'lucide-react';
+import { ArrowUpRight, Check, Pencil, Compass, Feather, X } from 'lucide-react';
 import type { Recipe, User } from '../../types/profile';
 import {
   DEFAULT_KITCHEN_IDENTITY,
@@ -31,6 +23,19 @@ import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
 
 type SanctuaryId = (typeof KITCHEN_CLASSES)[number]['id'];
 type FamiliarId = (typeof KITCHEN_FAMILIARS)[number]['id'];
+export type ProfileEditSection =
+  | 'theme'
+  | 'calling'
+  | 'quest'
+  | 'sideQuest'
+  | 'signatureRecipeId';
+const EDIT_TITLES: Record<ProfileEditSection, string> = {
+  theme: 'Choose your birthsign',
+  calling: 'Choose your sanctuary',
+  quest: 'Edit main quest',
+  sideQuest: 'Edit side quest',
+  signatureRecipeId: 'Pin a recipe',
+};
 
 export function SanctuaryArtwork({
   callingId,
@@ -115,23 +120,26 @@ export function SanctuaryBanner({
       ) : (
         <SanctuaryMotif />
       )}
-      {(onCustomize || actions) && (
-        <div className="relative flex flex-wrap justify-end gap-2">
+      {onCustomize && (
+        <button
+          type="button"
+          onClick={onCustomize}
+          aria-label="Change sanctuary"
+          className="ak-artwork-trigger absolute inset-0 z-10 rounded-none"
+        >
+          <span className="ak-artwork-hint absolute bottom-3 right-4 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
+            Change sanctuary
+          </span>
+        </button>
+      )}
+      {actions && (
+        <div className="pointer-events-none relative z-20 flex flex-wrap justify-end gap-2 [&>*]:pointer-events-auto">
           {actions}
-          {onCustomize && (
-            <Button
-              variant="banner"
-              size="none"
-              type="button"
-              onClick={onCustomize}
-            >
-              <WandSparkles className="h-4 w-4" aria-hidden="true" />
-              Customize profile
-            </Button>
-          )}
         </div>
       )}
-      <div className={`relative min-w-0 ${compact ? 'mt-4' : 'mt-7'}`}>
+      <div
+        className={`pointer-events-none relative min-w-0 ${compact ? 'mt-4' : 'mt-7'}`}
+      >
         <h1
           className={`ak-banner-title truncate whitespace-nowrap leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
           title={username}
@@ -147,10 +155,12 @@ export function SanctuaryDetails({
   identity,
   isOwnProfile,
   onSave,
+  onEdit,
 }: {
   identity: KitchenIdentity;
   isOwnProfile: boolean;
   onSave?: (identity: KitchenIdentity) => Promise<void>;
+  onEdit?: (section: ProfileEditSection) => void;
 }) {
   const familiar = kitchenFamiliar(identity.familiar);
   const [choosing, setChoosing] = useState(false);
@@ -163,27 +173,35 @@ export function SanctuaryDetails({
         <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           Kitchen familiar
         </h2>
-        <FamiliarArtwork
-          familiarId={familiar.id}
-          pictureClassName="mt-4 block overflow-hidden rounded-2xl"
-          imageClassName="aspect-[3/2] w-full object-cover"
-        />
+        {isOwnProfile && onSave ? (
+          <button
+            type="button"
+            aria-label="Change familiar"
+            className="ak-artwork-trigger relative mt-4 block w-full overflow-hidden rounded-2xl"
+            onClick={() => {
+              setSelected(identity.familiar);
+              setError('');
+              setChoosing(true);
+            }}
+          >
+            <FamiliarArtwork
+              familiarId={familiar.id}
+              pictureClassName="block"
+              imageClassName="aspect-[3/2] w-full object-cover"
+            />
+            <span className="ak-artwork-hint absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-6 text-sm text-white">
+              Change familiar
+            </span>
+          </button>
+        ) : (
+          <FamiliarArtwork
+            familiarId={familiar.id}
+            pictureClassName="mt-4 block overflow-hidden rounded-2xl"
+            imageClassName="aspect-[3/2] w-full object-cover"
+          />
+        )}
         <div className="mt-4 flex items-center justify-between gap-3">
           <p className="font-heading text-lg">{familiar.name}</p>
-          {isOwnProfile && onSave && (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Change familiar"
-              onClick={() => {
-                setSelected(identity.familiar);
-                setError('');
-                setChoosing(true);
-              }}
-            >
-              <Camera className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
         </div>
         <p className="mt-3 text-xs leading-6 text-[var(--theme-text-muted)]">
           {familiar.note}
@@ -283,6 +301,17 @@ export function SanctuaryDetails({
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
           Main quest
+          {isOwnProfile && onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Edit main quest"
+              onClick={() => onEdit('quest')}
+              className="ml-auto"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
           {identity.quest || 'Seeking a recipe lost to the ash.'}
@@ -295,6 +324,17 @@ export function SanctuaryDetails({
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
           Side quest
+          {isOwnProfile && onEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Edit side quest"
+              onClick={() => onEdit('sideQuest')}
+              className="ml-auto"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
           {identity.sideQuest || 'A page left unwritten.'}
@@ -362,11 +402,13 @@ export function SignatureRecipe({
 export function CustomizeSanctuary({
   user,
   recipes,
+  section,
   onClose,
   onSave,
 }: {
   user: User;
   recipes: Recipe[];
+  section: ProfileEditSection;
   onClose: () => void;
   onSave: (identity: KitchenIdentity) => Promise<void>;
 }) {
@@ -376,7 +418,7 @@ export function CustomizeSanctuary({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const initial = normalizeKitchenIdentity(user.kitchenIdentity);
-  const changed = JSON.stringify(draft) !== JSON.stringify(initial);
+  const changed = draft[section] !== initial[section];
   const setField = <K extends keyof KitchenIdentity>(
     key: K,
     value: KitchenIdentity[K]
@@ -387,7 +429,9 @@ export function CustomizeSanctuary({
     setPending(true);
     setError('');
     try {
-      await onSave(normalizeKitchenIdentity(draft));
+      await onSave(
+        normalizeKitchenIdentity({ ...initial, [section]: draft[section] })
+      );
       onClose();
     } catch (saveError) {
       console.error('Failed to save kitchen sanctuary:', saveError);
@@ -404,25 +448,18 @@ export function CustomizeSanctuary({
 
   return (
     <AccessibleDialog
-      label="Customize profile"
+      label={EDIT_TITLES[section]}
       onClose={() => {
         if (!pending) onClose();
       }}
     >
       <form
         onSubmit={submit}
-        className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-2xl"
+        className="mx-auto w-full max-w-3xl overflow-hidden rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] shadow-2xl"
       >
         <header className="flex items-start justify-between gap-4 border-b border-[var(--theme-border)] p-5 sm:px-8 sm:py-6">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-              Profile settings
-            </p>
-            <h2 className="mt-1 text-2xl">Customize profile</h2>
-            <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-              Choose your birthsign and sanctuary. These details appear on your
-              public profile.
-            </p>
+            <h2 className="text-2xl">{EDIT_TITLES[section]}</h2>
           </div>
           <Button
             variant="secondary"
@@ -436,178 +473,156 @@ export function CustomizeSanctuary({
             <X className="h-5 w-5" />
           </Button>
         </header>
-        <div className="grid gap-8 p-5 sm:p-8 lg:grid-cols-[1fr_280px]">
+        <div className="p-5 sm:p-8">
           <fieldset disabled={pending} className="min-w-0 space-y-7">
-            <fieldset>
-              <legend className="text-sm font-bold">Birthsign</legend>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {KITCHEN_THEMES.map((theme) => (
-                  <Button
-                    variant="image"
-                    size="none"
-                    key={theme.id}
-                    type="button"
-                    aria-label={theme.name}
-                    aria-pressed={draft.theme === theme.id}
-                    onClick={() => setField('theme', theme.id)}
-                    className="ak-identity-art-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
-                  >
-                    <img
-                      src={BIRTHSIGN_ARTWORK[theme.id]}
-                      alt=""
-                      width={1536}
-                      height={1024}
-                      loading="lazy"
-                      className="h-full w-full object-contain"
-                    />
-                    {draft.theme === theme.id && (
-                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
-                        <Check className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                    )}
-                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-4 text-xs font-semibold text-white">
-                      {theme.name}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </fieldset>
-            <fieldset>
-              <legend className="text-sm font-bold">Sanctuary</legend>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {KITCHEN_CLASSES.map((calling) => (
-                  <Button
-                    variant="image"
-                    size="none"
-                    type="button"
-                    key={calling.id}
-                    aria-label={calling.name}
-                    aria-pressed={draft.calling === calling.id}
-                    onClick={() => setField('calling', calling.id)}
-                    className="ak-identity-art-card relative block aspect-[3/1] overflow-hidden rounded-xl text-left"
-                  >
-                    {SANCTUARY_ARTWORK[calling.id] ? (
-                      <SanctuaryArtwork
-                        callingId={calling.id}
-                        pictureClassName="block h-full w-full"
-                        imageClassName="h-full w-full object-cover"
+            {section === 'theme' && (
+              <fieldset>
+                <legend className="text-sm font-bold">Birthsign</legend>
+                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {KITCHEN_THEMES.map((theme) => (
+                    <Button
+                      variant="image"
+                      size="none"
+                      key={theme.id}
+                      type="button"
+                      aria-label={theme.name}
+                      aria-pressed={draft.theme === theme.id}
+                      onClick={() => setField('theme', theme.id)}
+                      className="ak-identity-art-card relative block aspect-[3/2] overflow-hidden rounded-xl text-left"
+                    >
+                      <img
+                        src={BIRTHSIGN_ARTWORK[theme.id]}
+                        alt=""
+                        width={1536}
+                        height={1024}
+                        loading="lazy"
+                        className="h-full w-full object-contain"
                       />
-                    ) : (
-                      <span
-                        aria-hidden="true"
-                        className="grid h-full w-full place-items-center bg-[var(--theme-surface-alt)] text-3xl text-[var(--theme-accent)]"
-                      >
-                        {calling.icon}
+                      {draft.theme === theme.id && (
+                        <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                      )}
+                      <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-4 text-xs font-semibold text-white">
+                        {theme.name}
                       </span>
-                    )}
-                    {draft.calling === calling.id && (
-                      <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
-                        <Check className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            {section === 'calling' && (
+              <fieldset>
+                <legend className="text-sm font-bold">Sanctuary</legend>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {KITCHEN_CLASSES.map((calling) => (
+                    <Button
+                      variant="image"
+                      size="none"
+                      type="button"
+                      key={calling.id}
+                      aria-label={calling.name}
+                      aria-pressed={draft.calling === calling.id}
+                      onClick={() => setField('calling', calling.id)}
+                      className="ak-identity-art-card relative block aspect-[3/1] overflow-hidden rounded-xl text-left"
+                    >
+                      {SANCTUARY_ARTWORK[calling.id] ? (
+                        <SanctuaryArtwork
+                          callingId={calling.id}
+                          pictureClassName="block h-full w-full"
+                          imageClassName="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          className="grid h-full w-full place-items-center bg-[var(--theme-surface-alt)] text-3xl text-[var(--theme-accent)]"
+                        >
+                          {calling.icon}
+                        </span>
+                      )}
+                      {draft.calling === calling.id && (
+                        <span className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white">
+                          <Check className="h-4 w-4" aria-hidden="true" />
+                        </span>
+                      )}
+                      <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-xs font-semibold text-white">
+                        {calling.name}
                       </span>
-                    )}
-                    <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-3 pb-2 pt-5 text-xs font-semibold text-white">
-                      {calling.name}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </fieldset>
-            <label className="grid gap-2">
-              <span className="text-sm font-bold">Main quest</span>
-              <textarea
-                aria-label="Main quest"
-                value={draft.quest}
-                onChange={(event) => setField('quest', event.target.value)}
-                maxLength={140}
-                rows={2}
-                placeholder="Recover the broth recipe from the abbey’s missing folio."
-                className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
-              />
-              <span className="text-right text-xs text-[var(--theme-text-muted)]">
-                {draft.quest.length}/140
-              </span>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-bold">Side quest</span>
-              <textarea
-                aria-label="Side quest"
-                value={draft.sideQuest}
-                onChange={(event) => setField('sideQuest', event.target.value)}
-                maxLength={140}
-                rows={2}
-                placeholder="Learn what grows beneath the winter orchard."
-                className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
-              />
-              <span className="text-right text-xs text-[var(--theme-text-muted)]">
-                {draft.sideQuest.length}/140
-              </span>
-            </label>
-            <label className="grid gap-2">
-              <span className="text-sm font-bold">
-                Pin a signature creation
-              </span>
-              <select
-                aria-label="Pin a signature creation"
-                value={
-                  recipes.some(
-                    (recipe) => String(recipe.id) === draft.signatureRecipeId
-                  )
-                    ? draft.signatureRecipeId
-                    : ''
-                }
-                onChange={(event) =>
-                  setField('signatureRecipeId', event.target.value)
-                }
-                className="ak-input w-full min-w-0 rounded-xl px-3 py-3 text-sm"
-              >
-                <option value="">No pinned recipe</option>
-                {recipes.map((recipe) => (
-                  <option key={recipe.id} value={String(recipe.id)}>
-                    {recipe.title}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs text-[var(--theme-text-muted)]">
-                {recipes.length
-                  ? 'Choose one of your published recipes to welcome visitors.'
-                  : 'Publish your first recipe to give it pride of place here.'}
-              </span>
-            </label>
-          </fieldset>
-          <aside className="min-w-0 self-start lg:sticky lg:top-0">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-              Live preview
-            </p>
-            <img
-              src={BIRTHSIGN_ARTWORK[kitchenTheme(draft.theme).id]}
-              alt={`${kitchenTheme(draft.theme).name} birthsign`}
-              width={1536}
-              height={1024}
-              className="mb-3 aspect-[3/2] w-full rounded-2xl object-contain"
-            />
-            <SanctuaryBanner identity={draft} username={user.handle} compact />
-            <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
-              <p className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                A note from the cook
-              </p>
-              <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                {user.bio || 'Add a little lore about your kitchen.'}
-              </p>
-              <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">
-                {kitchenCalling(draft.calling).name}
-              </p>
-              <div className="relative mt-4 overflow-hidden rounded-xl">
-                <FamiliarArtwork
-                  familiarId={kitchenFamiliar(draft.familiar).id}
-                  pictureClassName="block"
-                  imageClassName="aspect-[3/2] w-full object-cover"
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            {section === 'quest' && (
+              <label className="grid gap-2">
+                <span className="text-sm font-bold">Main quest</span>
+                <textarea
+                  aria-label="Main quest"
+                  value={draft.quest}
+                  onChange={(event) => setField('quest', event.target.value)}
+                  maxLength={140}
+                  rows={2}
+                  placeholder="Recover the broth recipe from the abbey’s missing folio."
+                  className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
                 />
-                <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-transparent px-3 pb-2 pt-8 text-sm font-semibold text-white">
-                  {kitchenFamiliar(draft.familiar).name}
-                </p>
-              </div>
-            </div>
-          </aside>
+                <span className="text-right text-xs text-[var(--theme-text-muted)]">
+                  {draft.quest.length}/140
+                </span>
+              </label>
+            )}
+            {section === 'sideQuest' && (
+              <label className="grid gap-2">
+                <span className="text-sm font-bold">Side quest</span>
+                <textarea
+                  aria-label="Side quest"
+                  value={draft.sideQuest}
+                  onChange={(event) =>
+                    setField('sideQuest', event.target.value)
+                  }
+                  maxLength={140}
+                  rows={2}
+                  placeholder="Learn what grows beneath the winter orchard."
+                  className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
+                />
+                <span className="text-right text-xs text-[var(--theme-text-muted)]">
+                  {draft.sideQuest.length}/140
+                </span>
+              </label>
+            )}
+            {section === 'signatureRecipeId' && (
+              <label className="grid gap-2">
+                <span className="text-sm font-bold">
+                  Pin a signature creation
+                </span>
+                <select
+                  aria-label="Pin a signature creation"
+                  value={
+                    recipes.some(
+                      (recipe) => String(recipe.id) === draft.signatureRecipeId
+                    )
+                      ? draft.signatureRecipeId
+                      : ''
+                  }
+                  onChange={(event) =>
+                    setField('signatureRecipeId', event.target.value)
+                  }
+                  className="ak-input w-full min-w-0 rounded-xl px-3 py-3 text-sm"
+                >
+                  <option value="">No pinned recipe</option>
+                  {recipes.map((recipe) => (
+                    <option key={recipe.id} value={String(recipe.id)}>
+                      {recipe.title}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-xs text-[var(--theme-text-muted)]">
+                  {recipes.length
+                    ? 'Choose one of your published recipes to welcome visitors.'
+                    : 'Publish your first recipe to give it pride of place here.'}
+                </span>
+              </label>
+            )}
+          </fieldset>
         </div>
         <footer className="sticky bottom-0 border-t border-[var(--theme-border)] bg-[var(--theme-surface)] p-5 sm:px-8">
           {error && (
@@ -623,13 +638,13 @@ export function CustomizeSanctuary({
               disabled={pending}
               onClick={() =>
                 setDraft({
-                  ...normalizeKitchenIdentity(DEFAULT_KITCHEN_IDENTITY),
-                  familiar: initial.familiar,
+                  ...draft,
+                  [section]: DEFAULT_KITCHEN_IDENTITY[section],
                 })
               }
               className="rounded-lg text-xs"
             >
-              Reset choices
+              Reset
             </Button>
             <div className="flex gap-2">
               <Button

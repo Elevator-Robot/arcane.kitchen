@@ -373,7 +373,7 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(
-      await screen.findByRole('button', { name: 'Customize profile' })
+      await screen.findByRole('button', { name: 'Change birthsign' })
     );
     await user.click(screen.getByRole('button', { name: 'The Wyrm' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -691,8 +691,8 @@ describe('RecipeBuilder Component', () => {
     await user.click(
       within(dialog).getByRole('button', { name: 'Back to collection' })
     );
-    expect(window.location.pathname).toBe('/saved');
-    expect(window.location.search).toBe('');
+    expect(window.location.pathname).toBe('/u/test');
+    expect(window.location.search).toBe('?collection=saved');
   });
 
   it('opens the editor from search and returns contextually', async () => {
@@ -903,10 +903,14 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
-    const savedSection = document.getElementById('saved-recipes');
+    await screen.findByRole('heading', { name: 'Saved recipes' });
+    const savedSection = document.getElementById('profile');
     expect(savedSection).not.toBeNull();
+    await user.click(await within(savedSection!).findByText('Test Recipe'));
     await user.click(
-      await within(savedSection!).findByRole('button', {
+      await within(
+        await screen.findByRole('dialog', { name: 'Test Recipe' })
+      ).findByRole('button', {
         name: 'by @recipe_author',
       })
     );
@@ -1105,14 +1109,17 @@ describe('RecipeBuilder Component', () => {
     await user.type(titleInput, 'Moonlit Porridge');
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Recipe drafts' })
-    );
+    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
 
     const draftsHeading = await screen.findByRole('heading', {
       name: 'Drafts',
     });
     expect(draftsHeading).toBeInTheDocument();
+    expect(
+      draftsHeading
+        .closest('header')
+        ?.querySelector('.ak-color-scheme-image-dark')
+    ).toBeInTheDocument();
 
     const draftsSection = draftsHeading.closest('section');
     expect(draftsSection).not.toBeNull();
@@ -1128,7 +1135,7 @@ describe('RecipeBuilder Component', () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(screen.getByRole('link', { name: 'Recipe drafts' }));
+    await user.click(screen.getByRole('link', { name: 'Drafts' }));
     await user.click(
       within(document.getElementById('drafts')!).getByRole('button', {
         name: 'Delete',
@@ -1181,9 +1188,7 @@ describe('RecipeBuilder Component', () => {
     await user.upload(fileInput as HTMLInputElement, imageFile);
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Recipe drafts' })
-    );
+    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
     const draftsHeading = await screen.findByRole('heading', {
       name: 'Drafts',
     });
@@ -1197,9 +1202,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Publish' }));
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Recipe drafts' })
-    );
+    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
     const refreshedDraftsHeading = await screen.findByRole('heading', {
       name: 'Drafts',
     });
