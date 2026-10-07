@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
 import type { User } from '../../types/profile';
@@ -16,8 +16,6 @@ import {
 import { randomMerlinColor } from '../../theme/merlinPalette';
 
 const PROFILE_BIO_LIMIT = 500;
-const BIO_EDITOR_MIN_HEIGHT = 112;
-const BIO_EDITOR_MAX_HEIGHT = 288;
 
 type Props = {
   user: User;
@@ -62,22 +60,9 @@ export default function ProfileHeader({
   useEffect(() => {
     if (!isEditingBio || !bioInputRef.current) return;
     const input = bioInputRef.current;
-    input.focus();
+    input.focus({ preventScroll: true });
     input.setSelectionRange(input.value.length, input.value.length);
   }, [isEditingBio]);
-
-  useLayoutEffect(() => {
-    if (!isEditingBio || !bioInputRef.current) return;
-    const input = bioInputRef.current;
-    input.style.height = '0px';
-    const nextHeight = Math.min(
-      BIO_EDITOR_MAX_HEIGHT,
-      Math.max(BIO_EDITOR_MIN_HEIGHT, input.scrollHeight)
-    );
-    input.style.height = `${nextHeight}px`;
-    input.style.overflowY =
-      input.scrollHeight > BIO_EDITOR_MAX_HEIGHT ? 'auto' : 'hidden';
-  }, [draftBio, isEditingBio]);
 
   const handleShareProfile = async () => {
     if (typeof window === 'undefined') return;
@@ -127,7 +112,7 @@ export default function ProfileHeader({
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <div className="flex flex-col items-stretch gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex w-full flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6 md:w-auto">
+        <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
           <div className="relative shrink-0">
             {user.avatarUrl ? (
               <img
@@ -164,100 +149,85 @@ export default function ProfileHeader({
                 aria-hidden="true"
                 className="absolute inset-y-0 left-0 w-1 bg-[var(--theme-accent)]"
               />
-              <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                About this cook
-              </h2>
+              <div className="flex min-h-9 items-center justify-between gap-3">
+                <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                  About this cook
+                </h2>
+                {isOwnProfile && !isEditingBio && (
+                  <button
+                    type="button"
+                    aria-label="edit bio"
+                    className="ak-button-ghost inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
+                    onClick={() => {
+                      setDraftBio(user.bio || '');
+                      setIsEditingBio(true);
+                    }}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Edit
+                  </button>
+                )}
+              </div>
               <div className="mt-3">
-                {!isEditingBio || !isOwnProfile ? (
-                  <div>
-                    {user.bio ? (
-                      <div className="flex items-start gap-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                        <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">
-                          {user.bio}
-                        </p>
-                        {isOwnProfile && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDraftBio(user.bio || '');
-                              setIsEditingBio(true);
-                            }}
-                            aria-label="edit bio"
-                            className="ak-button-ghost -ml-1 shrink-0 rounded-full p-2"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                        <span>
-                          {isOwnProfile
-                            ? 'Add a little lore about your kitchen.'
-                            : 'Letting the recipes tell the story.'}
-                        </span>
-                        {isOwnProfile && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDraftBio(user.bio || '');
-                              setIsEditingBio(true);
-                            }}
-                            aria-label="edit bio"
-                            className="ak-button-ghost shrink-0 rounded-full p-2"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-3">
+                <div className="relative">
+                  <p
+                    aria-hidden={
+                      isEditingBio && isOwnProfile ? true : undefined
+                    }
+                    className={`ak-bio-text ${isEditingBio && isOwnProfile ? 'invisible' : ''}`}
+                  >
+                    {(isEditingBio && isOwnProfile ? draftBio : user.bio) ||
+                      (isOwnProfile
+                        ? 'Add a little lore about your kitchen.'
+                        : 'Letting the recipes tell the story.')}
+                  </p>
+                  {isEditingBio && isOwnProfile && (
                     <textarea
                       ref={bioInputRef}
                       value={draftBio}
                       onChange={(e) => setDraftBio(e.target.value)}
                       aria-label="bio"
                       maxLength={PROFILE_BIO_LIMIT}
-                      placeholder="Record your craft, the traditions you keep, and the recipes you seek."
-                      className="ak-input w-full resize-none rounded-xl px-3.5 py-3 text-left text-sm leading-6 shadow-inner"
+                      placeholder="Add a little lore about your kitchen."
+                      className="ak-bio-text absolute inset-0 h-full w-full resize-none overflow-hidden border-0 bg-transparent outline-none"
                     />
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="text-xs tabular-nums text-[var(--theme-text-muted)]">
-                        {draftBio.length}/{PROFILE_BIO_LIMIT}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsEditingBio(false);
-                            setDraftBio(user.bio || '');
-                          }}
-                          className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const userId = String(user.id || 'current');
-                            const profiles = loadUserProfiles();
-                            const updated = upsertUserProfile(profiles, {
-                              userId,
-                              bio: draftBio,
-                            });
-                            saveUserProfiles(updated);
-                            setIsEditingBio(false);
-                            if (onProfileUpdated)
-                              onProfileUpdated({ bio: draftBio });
-                          }}
-                          style={{ backgroundColor: actionColor }}
-                          className="ak-button-primary rounded-xl px-4 py-2 text-sm"
-                        >
-                          Save
-                        </button>
-                      </div>
+                  )}
+                </div>
+                {isEditingBio && isOwnProfile && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-3">
+                    <span className="text-xs tabular-nums text-[var(--theme-text-muted)]">
+                      {draftBio.length}/{PROFILE_BIO_LIMIT}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingBio(false);
+                          setDraftBio(user.bio || '');
+                        }}
+                        className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const userId = String(user.id || 'current');
+                          const profiles = loadUserProfiles();
+                          const updated = upsertUserProfile(profiles, {
+                            userId,
+                            bio: draftBio,
+                          });
+                          saveUserProfiles(updated);
+                          setIsEditingBio(false);
+                          if (onProfileUpdated)
+                            onProfileUpdated({ bio: draftBio });
+                        }}
+                        style={{ backgroundColor: actionColor }}
+                        className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                      >
+                        Save
+                      </button>
                     </div>
                   </div>
                 )}

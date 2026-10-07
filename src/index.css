@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Identical text metrics keep the full bio in place when editing begins. */
+.ak-bio-text {
+  margin: 0;
+  padding: 0;
+  min-height: 3rem;
+  font: 400 0.875rem/1.5rem Nunito, ui-sans-serif, system-ui, sans-serif;
+  color: var(--theme-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  letter-spacing: normal;
+}
+
+p.ak-bio-text::after {
+  content: '\200b';
+}
+
+textarea.ak-bio-text:focus-visible {
+  outline: 1px solid var(--theme-border-strong);
+  outline-offset: 6px;
+  border-radius: 2px;
+}
+
 /* Touch users always see names; precise pointers reveal them on hover/focus. */
 @media (hover: hover) and (pointer: fine) {
   .ak-identity-art-label {

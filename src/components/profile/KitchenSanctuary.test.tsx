@@ -192,9 +192,6 @@ describe('kitchen sanctuary profiles', () => {
   it('keeps a long bio usable while editing', async () => {
     const interaction = userEvent.setup();
     const longBio = 'A record of kitchen lore. '.repeat(19).trim();
-    const scrollHeight = vi
-      .spyOn(HTMLTextAreaElement.prototype, 'scrollHeight', 'get')
-      .mockReturnValue(360);
     render(
       <UserProfileView
         user={{ ...user, bio: longBio }}
@@ -207,10 +204,17 @@ describe('kitchen sanctuary profiles', () => {
     expect(bio).toHaveValue(longBio);
     expect(bio).toHaveAttribute('maxlength', '500');
     expect(bio).toHaveFocus();
-    expect(bio).toHaveStyle({ height: '288px', overflowY: 'auto' });
+    expect(bio).toHaveClass('ak-bio-text', 'h-full');
+    expect(bio.parentElement?.querySelector('p')).toHaveTextContent(longBio);
     expect(screen.getByText(`${longBio.length}/500`)).toBeInTheDocument();
-
-    scrollHeight.mockRestore();
+    await interaction.clear(bio);
+    await interaction.type(bio, 'A new chapter');
+    expect(bio.parentElement?.querySelector('p')).toHaveTextContent(
+      'A new chapter'
+    );
+    await interaction.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('bio')).not.toBeInTheDocument();
+    expect(screen.getByText(longBio, { exact: false })).toBeInTheDocument();
   });
 
   it('discards canceled edits and keeps failed saves available to retry', async () => {
