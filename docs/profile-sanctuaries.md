@@ -34,7 +34,9 @@ labels and cooking instructions remain clear and practical.
 
 - Visitors see the sanctuary, identity, creative details, optional signature recipe,
   and published recipe grimoire. The redundant single Recipes tab is removed.
-- Owners additionally see Customize sanctuary and private Recipes/Drafts/Saved navigation.
+- Owners switch between two collection panels: Recipes (their published work) and Saved (private inspiration), with counts and descriptive labels. Drafts stay in the account menu at `/drafts`.
+- Sharing lives in the artwork banner. The bio is a quiet “A note from the cook” section beside the portrait, with seamless full-length inline editing.
+- The Witch portrait is retired from the picker and random signup assignment; existing saved portraits remain compatible.
 - Saved collections and draft titles are never rendered for visitors. Public recipe
   cards have no inert edit menu. Recipe titles support keyboard activation.
 - Public totals are published-recipe counts and their real community saves; no fake

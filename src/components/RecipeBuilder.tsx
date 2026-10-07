@@ -38,6 +38,7 @@ import {
   findProfileByUsername,
   getDisplayNameFromAuth,
   getProfileRoutePath,
+  randomDefaultAvatar,
   getProfileUsernameFromPath,
   getRecipeIdFromPath,
   getRecipeRoutePath,
@@ -1178,11 +1179,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const nextProfile: Record<string, UserProfile> = existing
       ? { ...profiles, [currentUserId]: existing }
       : (() => {
-          const avatar =
-            profileAvatar ||
-            avatarEntries[Math.floor(Math.random() * avatarEntries.length)]
-              ?.file ||
-            null;
+          const avatar = profileAvatar || randomDefaultAvatar();
 
           return upsertUserProfile(profiles, {
             userId: currentUserId,

@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
+import { Edit2, Calendar, Camera, X, Lock } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import {
-  getProfileShareUrl,
   loadUserProfiles,
   saveUserProfiles,
   upsertUserProfile,
@@ -19,7 +18,6 @@ const PROFILE_BIO_LIMIT = 500;
 
 type Props = {
   user: User;
-  onShareProfile?: () => void;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
   onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
@@ -27,7 +25,6 @@ type Props = {
 
 export default function ProfileHeader({
   user,
-  onShareProfile,
   isOwnProfile = true,
   onSelectPreset,
   onProfileUpdated,
@@ -39,7 +36,6 @@ export default function ProfileHeader({
   const [draftHandle, setDraftHandle] = useState(user.handle || '');
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [copied, setCopied] = useState(false);
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const existingProfile = isOwnProfile
     ? loadUserProfiles()[String(user.id || 'current')]
@@ -63,51 +59,6 @@ export default function ProfileHeader({
     input.focus({ preventScroll: true });
     input.setSelectionRange(input.value.length, input.value.length);
   }, [isEditingBio]);
-
-  const handleShareProfile = async () => {
-    if (typeof window === 'undefined') return;
-    const url = getProfileShareUrl(user.handle) || window.location.href;
-
-    if (onShareProfile) {
-      onShareProfile();
-      return;
-    }
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `@${user.handle} on Arcane Kitchen`,
-          url,
-        });
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      }
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      }
-
-      // Legacy fallback
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (ok) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch (err) {
-      console.error('Share failed', err);
-    }
-  };
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
@@ -144,14 +95,10 @@ export default function ProfileHeader({
           </div>
 
           <div className="min-w-0 w-full text-left">
-            <section className="relative overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-5 pl-6">
-              <span
-                aria-hidden="true"
-                className="absolute inset-y-0 left-0 w-1 bg-[var(--theme-accent)]"
-              />
+            <section className="py-1 sm:pl-6 sm:border-l border-[var(--theme-border)]">
               <div className="flex min-h-9 items-center justify-between gap-3">
-                <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                  About this cook
+                <h2 className="font-heading text-xl text-[var(--theme-text)]">
+                  A note from the cook
                 </h2>
                 {isOwnProfile && !isEditingBio && (
                   <button
@@ -338,16 +285,6 @@ export default function ProfileHeader({
                 </button>
               </span>
             )}
-            <button
-              type="button"
-              onClick={handleShareProfile}
-              aria-label="Share profile"
-              title="Share profile"
-              className="ak-button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm"
-            >
-              <Share className="h-4 w-4" aria-hidden="true" />
-              {copied ? 'Copied!' : 'Share'}
-            </button>
           </div>
         </div>
       </div>

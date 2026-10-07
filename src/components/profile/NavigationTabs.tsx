@@ -1,98 +1,68 @@
+import { BookOpen, Heart, Lock } from 'lucide-react';
 import { MERLIN_PALETTE } from '../../theme/merlinPalette';
 import Button from '../ui/Button';
 
-export type TabKey = 'recipes' | 'drafts' | 'saved';
-
-type Props = {
-  active: TabKey;
-  draftsCount?: number;
-  savedCount?: number;
-  showPrivateTabs?: boolean;
-  onChange: (t: TabKey) => void;
-};
+export type TabKey = 'recipes' | 'saved';
 
 export default function NavigationTabs({
   active,
-  draftsCount = 0,
-  savedCount = 0,
-  showPrivateTabs = true,
+  recipesCount,
+  savedCount,
   onChange,
-}: Props) {
-  const tabColors: Record<TabKey, string> = {
-    recipes: MERLIN_PALETTE[2],
-    drafts: MERLIN_PALETTE[1],
-    saved: MERLIN_PALETTE[5],
-  };
-  const tabClass = 'rounded-full px-3 py-2.5 text-sm sm:px-5';
-
+}: {
+  active: TabKey;
+  recipesCount: number;
+  savedCount: number;
+  onChange: (tab: TabKey) => void;
+}) {
+  const collections = [
+    {
+      key: 'recipes' as const,
+      label: 'Recipes',
+      description: 'From your kitchen',
+      count: recipesCount,
+      Icon: BookOpen,
+      color: MERLIN_PALETTE[2],
+    },
+    {
+      key: 'saved' as const,
+      label: 'Saved',
+      description: 'For your next meal',
+      count: savedCount,
+      Icon: Heart,
+      color: MERLIN_PALETTE[5],
+    },
+  ];
   return (
     <nav
       aria-label="Your recipe collections"
-      className="border-t border-[var(--theme-border)] px-2 py-3 sm:px-4"
+      className="mt-8 grid grid-cols-2 gap-3 sm:gap-4"
     >
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+      {collections.map(({ key, label, description, count, Icon, color }) => (
         <Button
+          key={key}
           variant="choice"
           size="none"
-          type="button"
-          onClick={() => onChange('recipes')}
-          aria-pressed={active === 'recipes'}
-          className={tabClass}
-          style={
-            active === 'recipes'
-              ? { backgroundColor: tabColors.recipes }
-              : undefined
-          }
+          aria-label={label}
+          aria-pressed={active === key}
+          onClick={() => onChange(key)}
+          className="relative flex min-w-0 flex-col items-stretch gap-3 rounded-2xl p-4 text-left sm:p-6"
+          style={active === key ? { backgroundColor: color } : undefined}
         >
-          <span className="">Recipes</span>
+          <span className="flex items-center justify-between gap-2">
+            <Icon className="h-5 w-5" aria-hidden="true" />
+            <span className="text-2xl font-heading tabular-nums">{count}</span>
+          </span>
+          <span className="font-heading text-xl sm:text-2xl">{label}</span>
+          <span className="text-xs font-normal sm:text-sm">{description}</span>
+          {key === 'saved' && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-normal">
+              <Lock className="h-3 w-3" aria-hidden="true" />
+              Only you
+            </span>
+          )}
         </Button>
-
-        {showPrivateTabs && (
-          <>
-            <Button
-              variant="choice"
-              size="none"
-              type="button"
-              onClick={() => onChange('drafts')}
-              aria-pressed={active === 'drafts'}
-              className={tabClass}
-              style={
-                active === 'drafts'
-                  ? { backgroundColor: tabColors.drafts }
-                  : undefined
-              }
-            >
-              <span>Drafts</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${active === 'drafts' ? 'bg-white/15 text-white' : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)]'}`}
-              >
-                {draftsCount}
-              </span>
-            </Button>
-
-            <Button
-              variant="choice"
-              size="none"
-              type="button"
-              onClick={() => onChange('saved')}
-              aria-pressed={active === 'saved'}
-              className={tabClass}
-              style={
-                active === 'saved'
-                  ? { backgroundColor: tabColors.saved }
-                  : undefined
-              }
-            >
-              <span>Saved</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${active === 'saved' ? 'bg-white/15 text-white' : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)]'}`}
-              >
-                {savedCount}
-              </span>
-            </Button>
-          </>
-        )}
-      </div>
+      ))}
     </nav>
   );
 }

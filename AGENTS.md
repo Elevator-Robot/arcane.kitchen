@@ -111,12 +111,13 @@ Authentication submission:
 
 - The portrait dialog is titled “Who are you?” and expands to show its responsive preset grid without an internal scroll area. Character names reveal on hover/focus and remain visible on touch devices. Only the outer overlay scrolls on constrained screens.
 - Familiar selection lives in a separate owner-only dialog opened by the icon beside the familiar, not in Customize profile. Cancel discards selection; Save waits for backend success and failures retain the selection for retry. Resetting profile choices preserves the familiar.
+- Profile sharing lives in the Sanctuary banner. The bio appears beside the portrait as “A note from the cook” without a nested card, retaining full-length inline editing.
 
 - Profile customization includes nine Birthsign presets, six Sanctuary choices (The Library, The Cottage, The Inn, The Garden, The Observatory, The Manor; names only, no numbering), six named familiars, separate 140-character main and side quests, and one optional pinned published recipe. The action/dialog uses plain “Customize profile” wording and “Save changes.” Sanctuary is stored in the legacy `calling` field with stable option IDs. Birthsigns theme the full application palette. Tenet and pantry customization/display have been removed; legacy JSON is preserved for compatibility. These are creative public details, not personal-information fields or earned ranks.
 - Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat; Luna is the rabbit); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
 - The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.
 - `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
-- Public profiles have no collection tab bar and no edit/customization controls. Owners retain Recipes/Drafts/Saved navigation. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
+- Public profiles show published recipes only. Owners switch between two collection panels, Recipes and Saved, with counts and a private Saved label. Drafts remain at `/drafts` through the account menu, not on the profile. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
 - Profile customization and avatar selection use `AccessibleDialog`; the customization form previews choices before save and Cancel discards them. Community save totals derive from published-recipe favorites, with no placeholder follower, level, or achievement counts.
 - The 500-character About bio edits in place with identical reading/editing text metrics. A hidden text mirror sizes the editor immediately to the full bio without a height cap or internal scrolling; Edit sits in the section header and focus does not scroll the page.
 - Deploy the updated Amplify data schema and regenerate outputs before using Kitchen Sanctuary persistence in a live environment.
@@ -128,7 +129,7 @@ Authentication submission:
 - `amplify/auth/resource.ts` declares the mutable attributes: `nickname`, `custom:bio`, `custom:avatar`, plus character-preference customs (`custom:cookingStyle`, `custom:magicalSpecialty`, `custom:favoriteIngredients`)
 - The username/handle has no free Cognito attribute in the frozen schema, so it lives only in the `UserProfile` model + localStorage cache
 - For offline/first-paint, profile data is cached in localStorage under `arcaneKitchen.userProfiles` (a record keyed by user id), seeded from Cognito attributes on sign-in; reads prefer `userAttributes` values; it is NOT the source of truth
-- Avatars are preset fantasy/D&D-themed portraits in `src/assets/avatars/` (21 PNG files, 1024×1024); users select from a grid — no custom photo upload (the broken Upload-Photo tab was removed from `ProfileHeader.tsx`; the avatar modal is presets-only)
+- Avatars are preset fantasy portraits in `src/assets/avatars/`; the picker and random assignment use `DEFAULT_AVATAR_FILES`. Witch is retired from that roster; its asset remains for existing saved portraits. There is no custom photo upload.
 - Optimized at build time via `vite-plugin-image-optimizer` (sharp, ~74% size reduction); all avatar `<img>` tags use `loading="lazy"`
 - Selected avatar filename is saved to `custom:avatar` + `profileData.avatar` + the `UserProfile` row; displayed via `<img src={url} />`
 - New profiles without an existing avatar are seeded with one random preset avatar from `src/assets/avatars/` and persist it until changed
@@ -174,7 +175,7 @@ Authentication submission:
 - Add/remove hex entries there; every consumer updates automatically.
 - The Discover tag filters pick a random palette color on every filter click, applied as the selected button's background via inline `style` (Tailwind can't do dynamic arbitrary colors). All palette colors read well with white text.
 - Recipe tags in the Build editor/preview and expanded recipe modal receive stable random colors from the same palette when they load; dynamic colors use inline `style` values.
-- Profile navigation tabs use a cool-to-warm left-to-right progression from the same palette: Recipes, Drafts, then Saved.
+- Profile collection panels use a cool-to-warm left-to-right progression from the same palette: Recipes, then Saved.
 - The `Preparing your kitchen…` startup message uses one random Merlin palette color per display, sits above a slowly spinning sparkle, and gently breathes via `ak-loading-breathe`; both are pure-CSS so the global reduced-motion rule disables them. It has no surrounding card container.
 - The sign-in button (`Button` primary variant in `src/components/ui/Button.tsx`) uses amethyst/indigo tones from the palette.
 - Active and selected controls use `randomMerlinColor()` from `src/theme/merlinPalette.ts`; do not add hard-coded orange or brown button states.

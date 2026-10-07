@@ -61,7 +61,7 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('heading', { name: 'moon_cook', level: 1 })
     ).toHaveClass('truncate', 'whitespace-nowrap');
     expect(
-      screen.getByRole('heading', { name: 'About this cook', level: 2 })
+      screen.getByRole('heading', { name: 'A note from the cook', level: 2 })
     ).toBeInTheDocument();
     expect(screen.queryByText('Moon cook')).not.toBeInTheDocument();
     expect(screen.queryByText('The Wanderer')).not.toBeInTheDocument();
@@ -76,6 +76,48 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       familiarSection?.querySelector('.ak-color-scheme-image-light')
     ).toHaveAttribute('src', expect.stringContaining('salem-light.webp'));
+  });
+
+  it('switches between published and private saved collections without profile drafts', async () => {
+    const interaction = userEvent.setup();
+    const share = vi.fn();
+    render(
+      <UserProfileView
+        user={user}
+        publishedRecipes={recipes}
+        savedRecipes={[{ id: 'saved', title: 'Saved supper' }]}
+        draftRecipes={[{ id: 'draft', title: 'Private draft' }]}
+        onShareProfile={share}
+      />
+    );
+    const navigation = within(
+      screen.getByRole('navigation', { name: 'Your recipe collections' })
+    );
+    expect(navigation.getAllByRole('button')).toHaveLength(2);
+    expect(
+      screen.queryByRole('button', { name: 'Drafts' })
+    ).not.toBeInTheDocument();
+    await interaction.click(navigation.getByRole('button', { name: 'Saved' }));
+    expect(screen.getByText('Saved supper')).toBeInTheDocument();
+    expect(screen.queryByText('Forest mushroom soup')).not.toBeInTheDocument();
+    await interaction.click(
+      navigation.getByRole('button', { name: 'Recipes' })
+    );
+    expect(screen.getByText('Forest mushroom soup')).toBeInTheDocument();
+    const shareButton = screen.getByRole('button', { name: 'Share profile' });
+    expect(shareButton.closest('.isolate')).toContainElement(
+      screen.getByRole('heading', { name: 'moon_cook' })
+    );
+    await interaction.click(shareButton);
+    expect(share).toHaveBeenCalledOnce();
+    await interaction.click(
+      screen.getByRole('button', { name: 'update avatar' })
+    );
+    const picker = within(screen.getByRole('dialog', { name: 'Who are you?' }));
+    expect(
+      picker.queryByRole('button', { name: /^witch$/i })
+    ).not.toBeInTheDocument();
+    expect(picker.getByRole('button', { name: 'juniper' })).toBeInTheDocument();
   });
 
   it('edits named identities without pantry controls and preserves legacy pantry data', async () => {

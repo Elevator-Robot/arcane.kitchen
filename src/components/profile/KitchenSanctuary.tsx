@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import {
   ArrowUpRight,
   Check,
@@ -82,11 +82,13 @@ function FamiliarArtwork({
 export function SanctuaryBanner({
   identity,
   username,
+  actions,
   onCustomize,
   compact = false,
 }: {
   identity: KitchenIdentity;
   username: string;
+  actions?: ReactNode;
   onCustomize?: () => void;
   compact?: boolean;
 }) {
@@ -113,17 +115,20 @@ export function SanctuaryBanner({
       ) : (
         <SanctuaryMotif />
       )}
-      {onCustomize && (
-        <div className="relative flex justify-end">
-          <Button
-            variant="banner"
-            size="none"
-            type="button"
-            onClick={onCustomize}
-          >
-            <WandSparkles className="h-4 w-4" aria-hidden="true" />
-            Customize profile
-          </Button>
+      {(onCustomize || actions) && (
+        <div className="relative flex flex-wrap justify-end gap-2">
+          {actions}
+          {onCustomize && (
+            <Button
+              variant="banner"
+              size="none"
+              type="button"
+              onClick={onCustomize}
+            >
+              <WandSparkles className="h-4 w-4" aria-hidden="true" />
+              Customize profile
+            </Button>
+          )}
         </div>
       )}
       <div className={`relative min-w-0 ${compact ? 'mt-4' : 'mt-7'}`}>
@@ -583,7 +588,7 @@ export function CustomizeSanctuary({
             <SanctuaryBanner identity={draft} username={user.handle} compact />
             <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
               <p className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-                About this cook
+                A note from the cook
               </p>
               <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                 {user.bio || 'Add a little lore about your kitchen.'}
