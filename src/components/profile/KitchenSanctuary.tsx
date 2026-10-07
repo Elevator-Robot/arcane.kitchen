@@ -20,10 +20,10 @@ import {
   type KitchenIdentity,
 } from '../../utils/kitchenIdentity';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
-import { DEFAULT_PROFILE_TENET } from '../../utils/profileQuotes';
 import AccessibleDialog from '../AccessibleDialog';
 import SanctuaryMotif from '../ui/SanctuaryMotif';
 import Button from '../ui/Button';
+import ColorSchemeImage from '../ui/ColorSchemeImage';
 import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
 import { FAMILIAR_ARTWORK } from '../../theme/familiarArtwork';
 import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
@@ -44,17 +44,14 @@ export function SanctuaryArtwork({
   if (!artwork) return null;
 
   return (
-    <picture className={pictureClassName} aria-hidden="true">
-      <source media="(prefers-color-scheme: dark)" srcSet={artwork.dark} />
-      <img
-        src={artwork.light}
-        alt=""
-        width={2172}
-        height={724}
-        loading="lazy"
-        className={imageClassName}
-      />
-    </picture>
+    <ColorSchemeImage
+      lightSrc={artwork.light}
+      darkSrc={artwork.dark}
+      width={2172}
+      height={724}
+      wrapperClassName={pictureClassName}
+      imageClassName={imageClassName}
+    />
   );
 }
 
@@ -70,35 +67,31 @@ function FamiliarArtwork({
   const artwork = FAMILIAR_ARTWORK[familiarId];
 
   return (
-    <picture className={pictureClassName} aria-hidden="true">
-      <source media="(prefers-color-scheme: dark)" srcSet={artwork.dark} />
-      <img
-        src={artwork.light}
-        alt=""
-        width={1536}
-        height={1024}
-        loading="lazy"
-        className={imageClassName}
-      />
-    </picture>
+    <ColorSchemeImage
+      lightSrc={artwork.light}
+      darkSrc={artwork.dark}
+      width={1536}
+      height={1024}
+      wrapperClassName={pictureClassName}
+      imageClassName={imageClassName}
+    />
   );
 }
 
 export function SanctuaryBanner({
   identity,
+  username,
   onCustomize,
-  placeholderTenet = DEFAULT_PROFILE_TENET,
   compact = false,
 }: {
   identity: KitchenIdentity;
+  username: string;
   onCustomize?: () => void;
-  placeholderTenet?: string;
   compact?: boolean;
 }) {
   const theme = kitchenTheme(identity.theme);
   const calling = kitchenCalling(identity.calling);
   const hasArtwork = Boolean(SANCTUARY_ARTWORK[calling.id]);
-  const bannerTenet = identity.motto || placeholderTenet;
   return (
     <div
       className={`relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
@@ -132,12 +125,13 @@ export function SanctuaryBanner({
           </Button>
         </div>
       )}
-      <div className={`relative max-w-2xl ${compact ? 'mt-4' : 'mt-7'}`}>
-        <p
-          className={`break-words font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+      <div className={`relative min-w-0 ${compact ? 'mt-4' : 'mt-7'}`}>
+        <h1
+          className={`truncate whitespace-nowrap font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+          title={username}
         >
-          {bannerTenet}
-        </p>
+          {username}
+        </h1>
       </div>
     </div>
   );
@@ -249,13 +243,11 @@ export function SignatureRecipe({
 export function CustomizeSanctuary({
   user,
   recipes,
-  placeholderTenet = DEFAULT_PROFILE_TENET,
   onClose,
   onSave,
 }: {
   user: User;
   recipes: Recipe[];
-  placeholderTenet?: string;
   onClose: () => void;
   onSave: (identity: KitchenIdentity) => Promise<void>;
 }) {
@@ -433,20 +425,6 @@ export function CustomizeSanctuary({
               </div>
             </fieldset>
             <label className="grid gap-2">
-              <span className="text-sm font-bold">Tenet</span>
-              <input
-                aria-label="Tenet"
-                value={draft.motto}
-                onChange={(event) => setField('motto', event.target.value)}
-                maxLength={80}
-                placeholder={placeholderTenet}
-                className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
-              />
-              <span className="text-right text-xs text-[var(--theme-text-muted)]">
-                {draft.motto.length}/80
-              </span>
-            </label>
-            <label className="grid gap-2">
               <span className="text-sm font-bold">Main quest</span>
               <textarea
                 aria-label="Main quest"
@@ -519,13 +497,12 @@ export function CustomizeSanctuary({
               height={1024}
               className="mb-3 aspect-[3/2] w-full rounded-2xl object-contain"
             />
-            <SanctuaryBanner
-              identity={draft}
-              placeholderTenet={placeholderTenet}
-              compact
-            />
+            <SanctuaryBanner identity={draft} username={user.handle} compact />
             <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
-              <p className="break-words font-heading text-xl">{user.handle}</p>
+              <p className="break-words font-heading text-xl">{user.name}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                {user.bio || 'Add a little lore about your kitchen.'}
+              </p>
               <p className="mt-2 text-sm font-semibold text-[var(--theme-accent)]">
                 {kitchenCalling(draft.calling).name}
               </p>

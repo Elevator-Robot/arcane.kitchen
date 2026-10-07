@@ -1934,7 +1934,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return {
       userId: currentUserId,
       id: currentUserId,
-      name: activeUsername || 'Guest cook',
+      name: activeProfile?.displayName || activeUsername || 'Guest cook',
       handle: activeProfile?.username || activeUsername,
       bio: activeProfile?.bio || profileBio || '',
       avatarUrl: avatarUrl || undefined,
@@ -1970,7 +1970,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return {
       userId: profileRouteProfile.userId,
       id: profileRouteProfile.userId,
-      name: profileRouteProfile.username,
+      name: profileRouteProfile.displayName || profileRouteProfile.username,
       handle: profileRouteProfile.username,
       bio: profileRouteProfile.bio || '',
       kitchenIdentity: profileRouteProfile.kitchenIdentity,
@@ -4639,7 +4639,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   No saved recipes yet
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                  Save recipes from the Emporium to keep them close at hand here.
+                  Save recipes from the Emporium to keep them close at hand
+                  here.
                 </p>
                 <Link
                   to="/discover"

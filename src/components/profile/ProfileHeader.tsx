@@ -133,38 +133,120 @@ export default function ProfileHeader({
             )}
           </div>
 
-          <div className="min-w-0 w-full text-center sm:text-left">
-            <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
-              {!isEditingHandle || !isOwnProfile ? (
-                <>
-                  <h1 className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
-                    {user.handle}
-                  </h1>
-                  {isOwnProfile && (
-                    <span
-                      tabIndex={usernameChangeLocked ? 0 : undefined}
-                      title={usernameCooldownMessage || undefined}
-                      aria-label={usernameCooldownMessage || 'Edit username'}
-                    >
-                      <button
-                        onClick={() => {
-                          setDraftHandle(user.handle || '');
-                          setIsEditingHandle(true);
-                        }}
-                        aria-label="edit username"
-                        disabled={usernameChangeLocked}
-                        className="ak-button-ghost rounded-full p-2 disabled:opacity-50"
-                      >
-                        {usernameChangeLocked ? (
-                          <Lock className="h-3.5 w-3.5" />
-                        ) : (
-                          <Edit2 className="h-3.5 w-3.5" />
+          <div className="min-w-0 w-full text-left">
+            <section className="relative overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface-alt)] p-5 pl-6">
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-1 bg-[var(--theme-accent)]"
+              />
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                About this cook
+              </p>
+              <h2 className="mt-2 break-words font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] md:text-3xl">
+                {user.name || user.handle}
+              </h2>
+              <div className="mt-3">
+                {!isEditingBio || !isOwnProfile ? (
+                  <div>
+                    {user.bio ? (
+                      <div className="flex items-start gap-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                        <p className="whitespace-pre-wrap">{user.bio}</p>
+                        {isOwnProfile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDraftBio(user.bio || '');
+                              setIsEditingBio(true);
+                            }}
+                            aria-label="edit bio"
+                            className="ak-button-ghost -ml-1 shrink-0 rounded-full p-2"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
                         )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                        <span>
+                          {isOwnProfile
+                            ? 'Add a little lore about your kitchen.'
+                            : 'Letting the recipes tell the story.'}
+                        </span>
+                        {isOwnProfile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDraftBio(user.bio || '');
+                              setIsEditingBio(true);
+                            }}
+                            aria-label="edit bio"
+                            className="ak-button-ghost shrink-0 rounded-full p-2"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <textarea
+                      value={draftBio}
+                      onChange={(e) => setDraftBio(e.target.value)}
+                      aria-label="bio"
+                      maxLength={500}
+                      placeholder="Record your craft, the traditions you keep, and the recipes you seek."
+                      className="ak-input w-full rounded px-3 py-2 text-left text-sm"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingBio(false);
+                          setDraftBio(user.bio || '');
+                        }}
+                        className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                      >
+                        Cancel
                       </button>
-                    </span>
-                  )}
-                </>
-              ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const userId = String(user.id || 'current');
+                          const profiles = loadUserProfiles();
+                          const updated = upsertUserProfile(profiles, {
+                            userId,
+                            bio: draftBio,
+                          });
+                          saveUserProfiles(updated);
+                          setIsEditingBio(false);
+                          if (onProfileUpdated)
+                            onProfileUpdated({ bio: draftBio });
+                        }}
+                        style={{ backgroundColor: actionColor }}
+                        className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--theme-text-muted)]">
+                {user.joinDate && (
+                  <div className="inline-flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
+                    <span>{formatJoinDate(user.joinDate)}</span>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {isEditingHandle && isOwnProfile && (
+              <div className="mt-4 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
+                <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
+                  Change username
+                </p>
                 <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
                   <input
                     aria-label="Username"
@@ -173,6 +255,7 @@ export default function ProfileHeader({
                     className="ak-input min-w-0 w-full rounded px-3 py-2 sm:w-auto"
                   />
                   <button
+                    type="button"
                     onClick={() => {
                       const desired = sanitizeUsername(draftHandle);
                       const userId = String(user.id || 'current');
@@ -214,6 +297,7 @@ export default function ProfileHeader({
                     Save
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setIsEditingHandle(false);
                       setDraftHandle(user.handle || '');
@@ -223,104 +307,37 @@ export default function ProfileHeader({
                     Cancel
                   </button>
                 </div>
-              )}
-            </div>
-            <div className="mt-4">
-              {!isEditingBio || !isOwnProfile ? (
-                <div>
-                  {user.bio ? (
-                    <div className="flex items-start justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-                      <p className="whitespace-pre-wrap">{user.bio}</p>
-                      {isOwnProfile && (
-                        <button
-                          onClick={() => {
-                            setDraftBio(user.bio || '');
-                            setIsEditingBio(true);
-                          }}
-                          aria-label="edit bio"
-                          className="ak-button-ghost -ml-1 shrink-0 rounded-full p-2"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-                      <span>
-                        {isOwnProfile
-                          ? 'Add a little lore about your kitchen.'
-                          : 'Letting the recipes tell the story.'}
-                      </span>
-                      {isOwnProfile && (
-                        <button
-                          onClick={() => {
-                            setDraftBio(user.bio || '');
-                            setIsEditingBio(true);
-                          }}
-                          aria-label="edit bio"
-                          className="ak-button-ghost shrink-0 rounded-full p-2"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    value={draftBio}
-                    onChange={(e) => setDraftBio(e.target.value)}
-                    aria-label="bio"
-                    maxLength={500}
-                    placeholder="Record your craft, the traditions you keep, and the recipes you seek."
-                    className="ak-input w-full rounded px-3 py-2 text-left text-sm"
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <button
-                      onClick={() => {
-                        setIsEditingBio(false);
-                        setDraftBio(user.bio || '');
-                      }}
-                      className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        const userId = String(user.id || 'current');
-                        const profiles = loadUserProfiles();
-                        const updated = upsertUserProfile(profiles, {
-                          userId,
-                          bio: draftBio,
-                        });
-                        saveUserProfiles(updated);
-                        setIsEditingBio(false);
-                        if (onProfileUpdated)
-                          onProfileUpdated({ bio: draftBio });
-                      }}
-                      style={{ backgroundColor: actionColor }}
-                      className="ak-button-primary rounded-xl px-4 py-2 text-sm"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-              {user.joinDate && (
-                <div className="inline-flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
-                  <span>{formatJoinDate(user.joinDate)}</span>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="mt-2 flex w-full justify-center md:mt-0 md:w-auto md:justify-end">
           <div className="flex items-center gap-3 md:flex-col md:items-end">
+            {isOwnProfile && !isEditingHandle && (
+              <span
+                tabIndex={usernameChangeLocked ? 0 : undefined}
+                title={usernameCooldownMessage || undefined}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftHandle(user.handle || '');
+                    setIsEditingHandle(true);
+                  }}
+                  disabled={usernameChangeLocked}
+                  className="ak-button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm disabled:opacity-50"
+                  aria-label="Edit username"
+                >
+                  {usernameChangeLocked ? (
+                    <Lock className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Edit2 className="h-4 w-4" aria-hidden="true" />
+                  )}
+                  Username
+                </button>
+              </span>
+            )}
             <button
               type="button"
               onClick={handleShareProfile}

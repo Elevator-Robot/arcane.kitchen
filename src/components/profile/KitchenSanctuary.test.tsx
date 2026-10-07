@@ -5,17 +5,6 @@ import { render } from '../../test/test-utils';
 import UserProfileView from '../UserProfileView';
 import { DEFAULT_KITCHEN_IDENTITY } from '../../utils/kitchenIdentity';
 
-const { mockLoadProfilePlaceholderQuote } = vi.hoisted(() => ({
-  mockLoadProfilePlaceholderQuote: vi
-    .fn()
-    .mockResolvedValue('Begin where you are.'),
-}));
-
-vi.mock('../../utils/profileQuotes', () => ({
-  DEFAULT_PROFILE_TENET: 'Good food, made often.',
-  loadProfilePlaceholderQuote: mockLoadProfilePlaceholderQuote,
-}));
-
 const user = {
   id: 'cook-1',
   name: 'Moon cook',
@@ -68,21 +57,24 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       screen.queryByText('The hearth remembers what the world forgets.')
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Good food, made often.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'moon_cook', level: 1 })
+    ).toHaveClass('truncate', 'whitespace-nowrap');
+    expect(
+      screen.getByRole('heading', { name: 'Moon cook', level: 2 })
+    ).toBeInTheDocument();
     expect(screen.queryByText('The Wanderer')).not.toBeInTheDocument();
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
     expect(screen.queryByText('From this kitchen')).not.toBeInTheDocument();
     const familiarSection = screen
       .getByRole('heading', { name: 'Kitchen familiar' })
       .closest('section');
-    expect(familiarSection?.querySelector('source')).toHaveAttribute(
-      'srcset',
-      expect.stringContaining('salem-dark.webp')
-    );
-    expect(familiarSection?.querySelector('img')).toHaveAttribute(
-      'src',
-      expect.stringContaining('salem-light.webp')
-    );
+    expect(
+      familiarSection?.querySelector('.ak-color-scheme-image-dark')
+    ).toHaveAttribute('src', expect.stringContaining('salem-dark.webp'));
+    expect(
+      familiarSection?.querySelector('.ak-color-scheme-image-light')
+    ).toHaveAttribute('src', expect.stringContaining('salem-light.webp'));
   });
 
   it('edits named identities without pantry controls and preserves legacy pantry data', async () => {
@@ -95,17 +87,13 @@ describe('kitchen sanctuary profiles', () => {
         onSaveKitchenIdentity={save}
       />
     );
-    expect(await screen.findByText('Begin where you are.')).toBeInTheDocument();
     await interaction.click(
       screen.getByRole('button', { name: 'Customize profile' })
     );
     const dialog = within(
       screen.getByRole('dialog', { name: 'Customize profile' })
     );
-    expect(dialog.getByLabelText('Tenet')).toHaveAttribute(
-      'placeholder',
-      'Begin where you are.'
-    );
+    expect(dialog.queryByLabelText('Tenet')).not.toBeInTheDocument();
     expect(
       dialog.getByRole('button', { name: 'The Mage' })
     ).toBeInTheDocument();
@@ -127,15 +115,15 @@ describe('kitchen sanctuary profiles', () => {
     ] as const;
     sanctuaries.forEach(([name, filename]) => {
       const choice = dialog.getByRole('button', { name });
-      expect(choice.querySelector('source')).toHaveAttribute(
-        'media',
-        '(prefers-color-scheme: dark)'
-      );
-      expect(choice.querySelector('source')).toHaveAttribute(
-        'srcset',
+      expect(
+        choice.querySelector('.ak-color-scheme-image-dark')
+      ).toHaveAttribute(
+        'src',
         expect.stringContaining(`${filename}-dark.webp`)
       );
-      expect(choice.querySelector('img')).toHaveAttribute(
+      expect(
+        choice.querySelector('.ak-color-scheme-image-light')
+      ).toHaveAttribute(
         'src',
         expect.stringContaining(`${filename}-light.webp`)
       );
@@ -152,20 +140,20 @@ describe('kitchen sanctuary profiles', () => {
     ] as const;
     familiars.forEach(([name, filename]) => {
       const choice = dialog.getByRole('button', { name });
-      expect(choice.querySelector('source')).toHaveAttribute(
-        'srcset',
+      expect(
+        choice.querySelector('.ak-color-scheme-image-dark')
+      ).toHaveAttribute(
+        'src',
         expect.stringContaining(`${filename}-dark.webp`)
       );
-      expect(choice.querySelector('img')).toHaveAttribute(
+      expect(
+        choice.querySelector('.ak-color-scheme-image-light')
+      ).toHaveAttribute(
         'src',
         expect.stringContaining(`${filename}-light.webp`)
       );
     });
     await interaction.click(dialog.getByRole('button', { name: 'Vesper' }));
-    await interaction.type(
-      dialog.getByLabelText('Tenet'),
-      'Forage. Feast. Repeat.'
-    );
     await interaction.type(
       dialog.getByLabelText('Main quest'),
       'Master mushroom ramen'
@@ -188,7 +176,7 @@ describe('kitchen sanctuary profiles', () => {
       theme: 'grove',
       calling: 'herb-druid',
       familiar: 'fox',
-      motto: 'Forage. Feast. Repeat.',
+      motto: '',
       quest: 'Master mushroom ramen',
       sideQuest: 'Perfect a sesame broth',
       pantry: ['Garlic'],
@@ -213,21 +201,27 @@ describe('kitchen sanctuary profiles', () => {
     await interaction.click(
       screen.getByRole('button', { name: 'Customize profile' })
     );
-    await interaction.type(screen.getByLabelText('Tenet'), 'Unsaved magic');
+    await interaction.type(
+      screen.getByLabelText('Main quest'),
+      'Unsaved magic'
+    );
     await interaction.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(save).not.toHaveBeenCalled();
     await interaction.click(
       screen.getByRole('button', { name: 'Customize profile' })
     );
-    expect(screen.getByLabelText('Tenet')).toHaveValue('');
-    await interaction.type(screen.getByLabelText('Tenet'), 'Keep this idea');
+    expect(screen.getByLabelText('Main quest')).toHaveValue('');
+    await interaction.type(
+      screen.getByLabelText('Main quest'),
+      'Keep this idea'
+    );
     await interaction.click(
       screen.getByRole('button', { name: 'Save changes' })
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'could not be saved'
     );
-    expect(screen.getByLabelText('Tenet')).toHaveValue('Keep this idea');
+    expect(screen.getByLabelText('Main quest')).toHaveValue('Keep this idea');
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 

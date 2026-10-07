@@ -318,19 +318,13 @@ describe('RecipeBuilder Component', () => {
         .getByRole('heading', { name: 'Emporium' })
         .closest('.ak-discover-intro');
       await waitFor(() =>
-        expect(discoverBanner?.querySelector('source')).toHaveAttribute(
-          'srcset',
-          expect.stringContaining('garden-dark.webp')
-        )
+        expect(
+          discoverBanner?.querySelector('.ak-color-scheme-image-dark')
+        ).toHaveAttribute('src', expect.stringContaining('garden-dark.webp'))
       );
-      expect(discoverBanner?.querySelector('source')).toHaveAttribute(
-        'media',
-        '(prefers-color-scheme: dark)'
-      );
-      expect(discoverBanner?.querySelector('img')).toHaveAttribute(
-        'src',
-        expect.stringContaining('garden-light.webp')
-      );
+      expect(
+        discoverBanner?.querySelector('.ak-color-scheme-image-light')
+      ).toHaveAttribute('src', expect.stringContaining('garden-light.webp'));
       if (path === '/u/other_chef') {
         expect(
           await screen.findByRole('heading', { name: 'other_chef' })

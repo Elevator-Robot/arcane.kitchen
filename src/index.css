@@ -15,6 +15,29 @@
   }
 }
 
+.ak-color-scheme-image {
+  display: grid;
+}
+
+.ak-color-scheme-image > img {
+  grid-area: 1 / 1;
+  transition: opacity 480ms ease-in-out;
+}
+
+.ak-color-scheme-image-dark {
+  opacity: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ak-color-scheme-image-light {
+    opacity: 0;
+  }
+
+  .ak-color-scheme-image-dark {
+    opacity: 1;
+  }
+}
+
 /* The editor reads as a manuscript: distinct sections, quiet borders, ample space. */
 .ak-editor-section {
   min-width: 0;
