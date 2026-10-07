@@ -3882,7 +3882,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                 aria-hidden="true"
               />
               <div className="relative">
-                <h1 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
+                <h1 className="ak-banner-title text-2xl font-semibold text-white sm:text-3xl">
                   Emporium
                 </h1>
               </div>
@@ -4136,12 +4136,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           <div className="shrink-0 [&>header]:rounded-none">
             <SanctuaryHeading
-              eyebrow="From your grimoire"
               title={isEditingRecipe ? 'Edit recipe' : 'New recipe'}
+              callingId={discoverCalling.id}
               description={
-                !isAuthenticated
-                  ? 'Sign in to publish recipes.'
-                  : 'Record the recipe. Let the next keeper make it their own.'
+                !isAuthenticated ? 'Sign in to publish recipes.' : undefined
               }
               actions={
                 <button

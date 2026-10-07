@@ -28,6 +28,13 @@
   opacity: 0;
 }
 
+.ak-banner-title {
+  font-family: Almendra, Fraunces, Georgia, ui-serif, serif;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 28%);
+}
+
 @media (prefers-color-scheme: dark) {
   .ak-color-scheme-image-light {
     opacity: 0;

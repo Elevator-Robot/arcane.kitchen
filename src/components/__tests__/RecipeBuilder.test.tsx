@@ -702,9 +702,21 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     expect(window.location.pathname).toBe('/build');
+    const buildHeading = screen.getByRole('heading', { name: 'New recipe' });
+    expect(buildHeading).toHaveClass('ak-banner-title');
+    const buildBanner = buildHeading.closest('header');
     expect(
-      screen.getByRole('heading', { name: 'New recipe' })
+      buildBanner?.querySelector('.ak-color-scheme-image-light')
     ).toBeInTheDocument();
+    expect(
+      buildBanner?.querySelector('.ak-color-scheme-image-dark')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('From your grimoire')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Record the recipe. Let the next keeper make it their own.'
+      )
+    ).not.toBeInTheDocument();
     expect(screen.getByText('by test')).toBeInTheDocument();
     expect(screen.queryByText('by @test')).not.toBeInTheDocument();
 

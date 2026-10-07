@@ -127,7 +127,7 @@ export function SanctuaryBanner({
       )}
       <div className={`relative min-w-0 ${compact ? 'mt-4' : 'mt-7'}`}>
         <h1
-          className={`truncate whitespace-nowrap font-heading leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+          className={`ak-banner-title truncate whitespace-nowrap leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
           title={username}
         >
           {username}
