@@ -61,8 +61,9 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('heading', { name: 'moon_cook', level: 1 })
     ).toHaveClass('truncate', 'whitespace-nowrap');
     expect(
-      screen.getByRole('heading', { name: 'Moon cook', level: 2 })
+      screen.getByRole('heading', { name: 'About this cook', level: 2 })
     ).toBeInTheDocument();
+    expect(screen.queryByText('Moon cook')).not.toBeInTheDocument();
     expect(screen.queryByText('The Wanderer')).not.toBeInTheDocument();
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
     expect(screen.queryByText('From this kitchen')).not.toBeInTheDocument();

@@ -499,7 +499,9 @@ export function CustomizeSanctuary({
             />
             <SanctuaryBanner identity={draft} username={user.handle} compact />
             <div className="mt-3 rounded-2xl border border-[var(--theme-border)] p-4">
-              <p className="break-words font-heading text-xl">{user.name}</p>
+              <p className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+                About this cook
+              </p>
               <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                 {user.bio || 'Add a little lore about your kitchen.'}
               </p>

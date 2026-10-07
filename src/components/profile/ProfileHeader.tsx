@@ -139,11 +139,8 @@ export default function ProfileHeader({
                 aria-hidden="true"
                 className="absolute inset-y-0 left-0 w-1 bg-[var(--theme-accent)]"
               />
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
+              <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
                 About this cook
-              </p>
-              <h2 className="mt-2 break-words font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] md:text-3xl">
-                {user.name || user.handle}
               </h2>
               <div className="mt-3">
                 {!isEditingBio || !isOwnProfile ? (
