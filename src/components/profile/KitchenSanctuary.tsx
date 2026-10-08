@@ -1,8 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowUpRight, Check, Pencil, Compass, Feather, X } from 'lucide-react';
+import { ArrowUpRight, Check, Compass, Feather, X } from 'lucide-react';
 import type { Recipe, User } from '../../types/profile';
 import {
-  DEFAULT_KITCHEN_IDENTITY,
   KITCHEN_CLASSES,
   KITCHEN_FAMILIARS,
   KITCHEN_THEMES,
@@ -23,17 +22,10 @@ import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
 
 type SanctuaryId = (typeof KITCHEN_CLASSES)[number]['id'];
 type FamiliarId = (typeof KITCHEN_FAMILIARS)[number]['id'];
-export type ProfileEditSection =
-  | 'theme'
-  | 'calling'
-  | 'quest'
-  | 'sideQuest'
-  | 'signatureRecipeId';
+export type ProfileEditSection = 'theme' | 'calling' | 'signatureRecipeId';
 const EDIT_TITLES: Record<ProfileEditSection, string> = {
-  theme: 'Choose your birthsign',
-  calling: 'Choose your sanctuary',
-  quest: 'Edit main quest',
-  sideQuest: 'Edit side quest',
+  theme: "What's your sign?",
+  calling: "Where's your sanctuary?",
   signatureRecipeId: 'Pin a recipe',
 };
 
@@ -201,12 +193,10 @@ export function SanctuaryDetails({
   identity,
   isOwnProfile,
   onSave,
-  onEdit,
 }: {
   identity: KitchenIdentity;
   isOwnProfile: boolean;
   onSave?: (identity: KitchenIdentity) => Promise<void>;
-  onEdit?: (section: ProfileEditSection) => void;
 }) {
   const familiar = kitchenFamiliar(identity.familiar);
   const [choosing, setChoosing] = useState(false);
@@ -251,14 +241,14 @@ export function SanctuaryDetails({
         </p>
         {choosing && isOwnProfile && onSave && (
           <AccessibleDialog
-            label="Choose your familiar"
+            label="Who's your familiar?"
             onClose={() => {
               if (!pending) setChoosing(false);
             }}
           >
             <div className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-2xl">Choose your familiar</h2>
+                <h2 className="text-2xl">Who's your familiar?</h2>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -344,46 +334,18 @@ export function SanctuaryDetails({
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
           Main quest
-          {isOwnProfile && onEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Edit main quest"
-              onClick={() => onEdit('quest')}
-              className="ml-auto"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
-          {identity.quest || 'Seeking a recipe lost to the ash.'}
-        </p>
-        <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          The work that keeps the lamp burning.
+          Coming soon
         </p>
       </section>
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
           <Compass className="h-3.5 w-3.5" aria-hidden="true" />
           Side quest
-          {isOwnProfile && onEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Edit side quest"
-              onClick={() => onEdit('sideQuest')}
-              className="ml-auto"
-            >
-              <Pencil className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
         </h2>
         <p className="mt-5 break-words font-heading text-lg leading-7">
-          {identity.sideQuest || 'A page left unwritten.'}
-        </p>
-        <p className="mt-3 text-xs text-[var(--theme-text-muted)]">
-          An inquiry kept in the margins.
+          Coming soon
         </p>
       </section>
     </div>
@@ -520,7 +482,7 @@ export function CustomizeSanctuary({
           <fieldset disabled={pending} className="min-w-0 space-y-7">
             {section === 'theme' && (
               <fieldset>
-                <legend className="text-sm font-bold">Birthsign</legend>
+                <legend className="sr-only">Sign</legend>
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {KITCHEN_THEMES.map((theme) => (
                     <Button
@@ -596,42 +558,6 @@ export function CustomizeSanctuary({
                 </div>
               </fieldset>
             )}
-            {section === 'quest' && (
-              <label className="grid gap-2">
-                <span className="text-sm font-bold">Main quest</span>
-                <textarea
-                  aria-label="Main quest"
-                  value={draft.quest}
-                  onChange={(event) => setField('quest', event.target.value)}
-                  maxLength={140}
-                  rows={2}
-                  placeholder="Recover the broth recipe from the abbey’s missing folio."
-                  className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
-                />
-                <span className="text-right text-xs text-[var(--theme-text-muted)]">
-                  {draft.quest.length}/140
-                </span>
-              </label>
-            )}
-            {section === 'sideQuest' && (
-              <label className="grid gap-2">
-                <span className="text-sm font-bold">Side quest</span>
-                <textarea
-                  aria-label="Side quest"
-                  value={draft.sideQuest}
-                  onChange={(event) =>
-                    setField('sideQuest', event.target.value)
-                  }
-                  maxLength={140}
-                  rows={2}
-                  placeholder="Learn what grows beneath the winter orchard."
-                  className="ak-input min-w-0 resize-y rounded-xl px-3 py-3 text-sm"
-                />
-                <span className="text-right text-xs text-[var(--theme-text-muted)]">
-                  {draft.sideQuest.length}/140
-                </span>
-              </label>
-            )}
             {section === 'signatureRecipeId' && (
               <label className="grid gap-2">
                 <span className="text-sm font-bold">
@@ -667,28 +593,13 @@ export function CustomizeSanctuary({
             )}
           </fieldset>
         </div>
-        <footer className="sticky bottom-0 border-t border-[var(--theme-border)] bg-[var(--theme-surface)] p-5 sm:px-8">
+        <footer className="sticky bottom-0 bg-[var(--theme-surface)] p-5 sm:px-8">
           {error && (
             <p role="alert" className="mb-3 text-sm text-red-700">
               {error}
             </p>
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              disabled={pending}
-              onClick={() =>
-                setDraft({
-                  ...draft,
-                  [section]: DEFAULT_KITCHEN_IDENTITY[section],
-                })
-              }
-              className="rounded-lg text-xs"
-            >
-              Reset
-            </Button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="flex gap-2">
               <Button
                 variant="secondary"

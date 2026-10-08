@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Edit2, Calendar, X, Lock } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Calendar, X } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
@@ -13,6 +13,7 @@ import {
   USERNAME_CHANGE_COOLDOWN_DAYS,
 } from '../../utils/userProfiles';
 import { randomMerlinColor } from '../../theme/merlinPalette';
+import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
 import {
   kitchenTheme,
@@ -43,10 +44,20 @@ export default function ProfileHeader({
   const [actionColor] = useState(randomMerlinColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   useEffect(() => {
-    if (showAvatarModal) setSelectedPreset(null);
+    if (showAvatarModal) {
+      setSelectedPreset(null);
+    }
   }, [showAvatarModal]);
-  const [isEditingHandle, setIsEditingHandle] = useState(false);
   const [draftHandle, setDraftHandle] = useState(user.handle || '');
+  const [identityError, setIdentityError] = useState('');
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  const savingIdentityRef = useRef(false);
+  useEffect(() => {
+    if (showAvatarModal) {
+      setDraftHandle(user.handle || '');
+      setIdentityError('');
+    }
+  }, [showAvatarModal, user.handle]);
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const bioInputRef = useRef<HTMLTextAreaElement>(null);
@@ -63,8 +74,58 @@ export default function ProfileHeader({
     ? new Date(lastUsernameChange + usernameCooldownMs).toLocaleDateString()
     : '';
   const usernameCooldownMessage = usernameAvailableDate
-    ? `Username changes are locked until ${usernameAvailableDate}.`
+    ? `You can change your name again on ${usernameAvailableDate}.`
     : '';
+
+  const saveIdentity = async (event: FormEvent) => {
+    event.preventDefault();
+    if (savingIdentityRef.current) return;
+    const desired = sanitizeUsername(draftHandle);
+    const handleChanged = desired !== user.handle;
+    const userId = String(user.id || 'current');
+    const profiles = loadUserProfiles();
+    if (handleChanged && !validateUsername(desired)) {
+      setIdentityError(
+        'Names must be 3-20 characters: lowercase letters, numbers, or underscores.'
+      );
+      return;
+    }
+    if (
+      handleChanged &&
+      !isUsernameChangeAllowed(profiles[userId] || ({} as any), desired)
+    ) {
+      setIdentityError('You can only change your name once every 30 days.');
+      return;
+    }
+    savingIdentityRef.current = true;
+    setSavingIdentity(true);
+    setIdentityError('');
+    try {
+      if (selectedPreset && onSelectPreset)
+        await onSelectPreset(selectedPreset);
+      if (handleChanged && onProfileUpdated) {
+        // Re-read after the portrait update so the rename preserves it.
+        const updated = upsertUserProfile(loadUserProfiles(), {
+          userId,
+          username: desired,
+        });
+        saveUserProfiles(updated);
+        await onProfileUpdated({ handle: desired });
+      }
+      onCloseAvatar?.();
+    } catch (error) {
+      console.error('Failed to save profile identity:', error);
+      setIdentityError(
+        getUserFacingErrorMessage(
+          error,
+          'Your profile could not be saved. Please try again.'
+        )
+      );
+    } finally {
+      savingIdentityRef.current = false;
+      setSavingIdentity(false);
+    }
+  };
 
   useEffect(() => {
     if (!isEditingBio || !bioInputRef.current) return;
@@ -93,12 +154,12 @@ export default function ProfileHeader({
             {isOwnProfile && onEditBirthsign && (
               <button
                 type="button"
-                aria-label="Change birthsign"
+                aria-label="Change sign"
                 onClick={onEditBirthsign}
                 className="ak-artwork-trigger absolute inset-0"
               >
                 <span className="ak-artwork-hint absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--theme-surface)]/90 px-3 py-1 text-xs text-[var(--theme-text)]">
-                  Change birthsign
+                  Change sign
                 </span>
               </button>
             )}
@@ -196,116 +257,26 @@ export default function ProfileHeader({
                 )}
               </div>
             </section>
-
-            {isEditingHandle && isOwnProfile && (
-              <div className="mt-4 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4">
-                <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-                  Change username
-                </p>
-                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
-                    aria-label="Username"
-                    value={draftHandle}
-                    onChange={(e) => setDraftHandle(e.target.value)}
-                    className="ak-input min-w-0 w-full rounded px-3 py-2 sm:w-auto"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const desired = sanitizeUsername(draftHandle);
-                      const userId = String(user.id || 'current');
-                      const profiles = loadUserProfiles();
-                      const existingProfile = profiles[userId];
-
-                      if (!validateUsername(desired)) {
-                        window.alert(
-                          'Usernames must be 3-20 characters: lowercase letters, numbers, or underscores.'
-                        );
-                        return;
-                      }
-
-                      if (
-                        !isUsernameChangeAllowed(
-                          existingProfile || ({} as any),
-                          desired
-                        )
-                      ) {
-                        window.alert(
-                          'You can only change your username once every 30 days.'
-                        );
-                        return;
-                      }
-
-                      const updated = upsertUserProfile(profiles, {
-                        userId,
-                        username: desired,
-                      });
-                      saveUserProfiles(updated);
-                      setIsEditingHandle(false);
-                      setDraftHandle(desired);
-                      if (onProfileUpdated)
-                        onProfileUpdated({ handle: desired });
-                    }}
-                    style={{ backgroundColor: actionColor }}
-                    className="ak-button-primary rounded-xl px-4 py-2 text-sm"
-                  >
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsEditingHandle(false);
-                      setDraftHandle(user.handle || '');
-                    }}
-                    className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-2 flex w-full justify-center md:mt-0 md:w-auto md:justify-end">
-          <div className="flex items-center gap-3 md:flex-col md:items-end">
-            {isOwnProfile && !isEditingHandle && (
-              <span
-                tabIndex={usernameChangeLocked ? 0 : undefined}
-                title={usernameCooldownMessage || undefined}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDraftHandle(user.handle || '');
-                    setIsEditingHandle(true);
-                  }}
-                  disabled={usernameChangeLocked}
-                  className="ak-button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm disabled:opacity-50"
-                  aria-label="Edit username"
-                >
-                  {usernameChangeLocked ? (
-                    <Lock className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <Edit2 className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  Username
-                </button>
-              </span>
-            )}
           </div>
         </div>
       </div>
       {showAvatarModal && isOwnProfile && (
         <AccessibleDialog
           label="Who are you?"
-          onClose={() => onCloseAvatar?.()}
+          onClose={() => {
+            if (!savingIdentityRef.current) onCloseAvatar?.();
+          }}
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
         >
-          <div className="my-auto w-full max-w-3xl shrink-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
+          <form
+            onSubmit={saveIdentity}
+            className="my-auto w-full max-w-3xl shrink-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg"
+          >
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Who are you?</h3>
               <button
+                type="button"
+                disabled={savingIdentity}
                 onClick={() => onCloseAvatar?.()}
                 aria-label="Close avatar picker"
                 className="ak-button-ghost rounded-full p-2"
@@ -314,14 +285,47 @@ export default function ProfileHeader({
               </button>
             </div>
 
-            <div className="mt-4">
+            <fieldset disabled={savingIdentity} className="mt-4 min-w-0">
               <PresetGrid
                 onSelect={(file) => setSelectedPreset(file)}
                 selected={selectedPreset}
               />
+              <div className="mt-6 pt-5">
+                <label className="grid gap-3 text-sm font-semibold">
+                  Name
+                  <input
+                    aria-label="Name"
+                    value={draftHandle}
+                    onChange={(event) => {
+                      setDraftHandle(event.target.value);
+                      setIdentityError('');
+                    }}
+                    disabled={usernameChangeLocked || !onProfileUpdated}
+                    maxLength={20}
+                    autoComplete="username"
+                    spellCheck={false}
+                    aria-describedby="identity-name-help"
+                    className="ak-identity-name"
+                  />
+                  <span
+                    id="identity-name-help"
+                    className="text-xs font-normal text-[var(--theme-text-muted)]"
+                  >
+                    {usernameChangeLocked
+                      ? usernameCooldownMessage
+                      : '3–20 letters, numbers, or underscores. You can change your name once every 30 days.'}
+                  </span>
+                </label>
+              </div>
 
-              <div className="mt-4 flex justify-end gap-3">
+              {identityError && (
+                <p role="alert" className="mt-4 text-sm text-red-700">
+                  {identityError}
+                </p>
+              )}
+              <div className="mt-6 flex justify-end gap-3 pt-4">
                 <button
+                  type="button"
                   onClick={() => {
                     onCloseAvatar?.();
                     setSelectedPreset(null);
@@ -331,21 +335,20 @@ export default function ProfileHeader({
                   Cancel
                 </button>
                 <button
-                  disabled={!selectedPreset}
-                  onClick={() => {
-                    if (selectedPreset && onSelectPreset) {
-                      onSelectPreset(selectedPreset);
-                      onCloseAvatar?.();
-                    }
-                  }}
+                  type="submit"
+                  disabled={
+                    savingIdentity ||
+                    (!selectedPreset &&
+                      sanitizeUsername(draftHandle) === user.handle)
+                  }
                   style={{ backgroundColor: actionColor }}
                   className="ak-button-primary rounded-xl px-4 py-2 text-sm disabled:opacity-50"
                 >
-                  Save Picture
+                  {savingIdentity ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
-            </div>
-          </div>
+            </fieldset>
+          </form>
         </AccessibleDialog>
       )}
     </div>

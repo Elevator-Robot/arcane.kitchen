@@ -138,9 +138,6 @@ export default function UserProfileView({
             identity={identity}
             isOwnProfile={isOwnProfile}
             onSave={onSaveKitchenIdentity}
-            onEdit={
-              isOwnProfile && onSaveKitchenIdentity ? setCustomizing : undefined
-            }
           />
         </div>
         {isOwnProfile && (

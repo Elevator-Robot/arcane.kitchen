@@ -24,9 +24,11 @@ labels and cooking instructions remain clear and practical.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
 - Click the familiar image to open its owner-only picker. Artwork controls react on hover, focus, and press, respecting reduced motion. Save preserves other identity fields; Cancel and retry after errors are supported.
 - The portrait picker is titled “Who are you?” and shows character names on hover/focus (always on touch). Its grid expands without internal scrolling; the outer overlay remains scrollable when the viewport cannot fit all portraits.
+- The dialog shows the portrait grid with the Name editor beneath it, followed by shared Save changes and Cancel actions; there are no tabs. Cancel discards both drafts. Name errors and the 30-day cooldown explanation stay inline, and portrait changes remain available during a name cooldown.
 - Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover/focus and always on touchscreens. The selected portrait appears in public profile details. Assets live in `src/assets/familiars/` and map to stable IDs through `src/theme/familiarArtwork.ts`.
-- **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
-- Each quest heading has its own edit action. Pin recipe/Change pinned recipe lives beside the Recipes collection heading and offers published recipes plus No pinned recipe. Focused editors save/reset only their own field; there is no general customization menu.
+- **Main quest and side quest:** temporarily non-editable Coming soon placeholders. Existing saved values remain in profile JSON but are not displayed.
+- Sign and familiar pickers are titled “What's your sign?” and “Who's your familiar?” No profile modal has a Reset button. Profile modal footers have no horizontal dividers.
+- Pin recipe/Change pinned recipe lives beside the Recipes collection heading and offers published recipes plus No pinned recipe. Focused editors preserve unrelated fields; there is no general customization menu.
 - Legacy Tenet and pantry values remain in stored JSON for compatibility; neither is displayed or editable.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
 - Existing avatar presets and the 500-character bio remain available. The About editor shares the read view's width and typography and shows the full existing text immediately, without a height cap or internal scrolling. A text mirror keeps its height responsive while editing; bio copy encourages kitchen lore.
@@ -35,7 +37,7 @@ labels and cooking instructions remain clear and practical.
 
 - Visitors see the sanctuary, identity, creative details, optional signature recipe,
   and published recipe grimoire. The redundant single Recipes tab is removed.
-- Owners switch between two collection panels: Recipes (their published work) and Saved (private inspiration), with counts and descriptive labels. Drafts stay in the account menu at `/drafts`.
+- Owners switch between Recipes and Saved in a full-width, equal two-column tab-style row with centered labels, small counts, and an active underline, without icons or descriptions. Saved remains private, with a screen-reader privacy description. Drafts stay in the account menu at `/drafts`.
 - Saved is selected with `?collection=saved` on the owner's profile URL through its collection panels; there is no Saved recipes menu item. Legacy `/saved` links redirect there after sign-in. Recipe overlays preserve the selected collection when opened and closed.
 - Drafts uses the viewer's light/dark Sanctuary banner and is labeled “Drafts” in the menu. Dialog backdrops dismiss on click unless a save is pending; clicks inside the content do not dismiss.
 - Sharing lives in the artwork banner. The bio is a quiet “A note from the chef” section beside the portrait; owners click the text area to edit, with keyboard activation and full-length inline editing.
@@ -51,8 +53,8 @@ labels and cooking instructions remain clear and practical.
 `UserProfile.kitchenIdentity` is optional JSON. Older profiles use safe defaults.
 The form previews changes locally; Cancel discards them. Successful owner-authenticated
 backend writes update local caches and both public-profile lookup maps. Failed writes
-keep the choices in the editor and offer another save attempt. Reset choices changes
-only the form until saved.
+keep the choices in the editor and offer another save attempt. Remove a pinned
+recipe by selecting No pinned recipe and saving.
 
 The new field requires an Amplify backend deployment and refreshed outputs. Cognito's
 immutable attribute schema is unchanged. Local browser visual checks use fixture data
@@ -63,7 +65,7 @@ mocked persistence tests, not a live deployment.
 
 - Public/private rendering and removal of the single Recipes tab.
 - Birthsign, Sanctuary, named familiar, main and side quests, and signature selection; legacy Tenet and pantry preservation without their former UI.
-- Cancel/reset staging, failed-save retention, and successful save feedback.
+- Cancel staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.
 - Desktop/mobile visual checks, dialog Escape behavior, and signature recipe navigation.

@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+.ak-identity-name {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0.5rem 0;
+  background: transparent;
+  color: var(--theme-text);
+  border-bottom: 1px solid var(--theme-border-strong);
+  font-family: Nunito, ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  caret-color: var(--theme-accent);
+}
+
+.ak-identity-name:focus-visible {
+  outline: none;
+  box-shadow: 0 1px 0 var(--theme-accent);
+}
+
 /* Feather only the outer 3%; keep the artwork's interior fully opaque. */
 .ak-birthsign-soft-edge {
   -webkit-mask-image:

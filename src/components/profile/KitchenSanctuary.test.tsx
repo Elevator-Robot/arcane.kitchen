@@ -48,7 +48,7 @@ describe('kitchen sanctuary profiles', () => {
     expect(screen.queryByText('Secret draft')).not.toBeInTheDocument();
     expect(screen.queryByText('Private favorite')).not.toBeInTheDocument();
     for (const name of [
-      'Change birthsign',
+      'Change sign',
       'Change familiar',
       'Edit main quest',
       'Edit side quest',
@@ -142,11 +142,14 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
     await interaction.click(
-      screen.getByRole('button', { name: 'Change birthsign' })
+      screen.getByRole('button', { name: 'Change sign' })
     );
     let dialog = within(
-      screen.getByRole('dialog', { name: 'Choose your birthsign' })
+      screen.getByRole('dialog', { name: "What's your sign?" })
     );
+    expect(
+      dialog.queryByRole('button', { name: 'Reset' })
+    ).not.toBeInTheDocument();
     expect(dialog.queryByLabelText('Tenet')).not.toBeInTheDocument();
     expect(
       dialog.getByRole('button', { name: 'The Mage' })
@@ -168,7 +171,7 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('button', { name: 'Change sanctuary' })
     );
     dialog = within(
-      screen.getByRole('dialog', { name: 'Choose your sanctuary' })
+      screen.getByRole('dialog', { name: "Where's your sanctuary?" })
     );
     const sanctuaries = [
       ['The Library', 'library'],
@@ -205,34 +208,13 @@ describe('kitchen sanctuary profiles', () => {
       ...user.kitchenIdentity,
       calling: 'herb-druid',
     });
-    await interaction.click(
-      screen.getByRole('button', { name: 'Edit main quest' })
-    );
-    await interaction.type(
-      screen.getByLabelText('Main quest'),
-      'Master mushroom ramen'
-    );
-    await interaction.click(
-      screen.getByRole('button', { name: 'Save changes' })
-    );
-    expect(save).toHaveBeenLastCalledWith({
-      ...user.kitchenIdentity,
-      quest: 'Master mushroom ramen',
-    });
-    await interaction.click(
-      screen.getByRole('button', { name: 'Edit side quest' })
-    );
-    await interaction.type(
-      screen.getByLabelText('Side quest'),
-      'Perfect a sesame broth'
-    );
-    await interaction.click(
-      screen.getByRole('button', { name: 'Save changes' })
-    );
-    expect(save).toHaveBeenLastCalledWith({
-      ...user.kitchenIdentity,
-      sideQuest: 'Perfect a sesame broth',
-    });
+    expect(screen.getAllByText('Coming soon')).toHaveLength(2);
+    expect(
+      screen.queryByRole('button', { name: 'Edit main quest' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Edit side quest' })
+    ).not.toBeInTheDocument();
     await interaction.click(screen.getByRole('button', { name: 'Pin recipe' }));
     dialog = within(screen.getByRole('dialog', { name: 'Pin a recipe' }));
     expect(screen.queryByText('Pantry of curiosities')).not.toBeInTheDocument();
@@ -274,7 +256,7 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('button', { name: 'Change familiar' })
     );
     const dialog = within(
-      screen.getByRole('dialog', { name: 'Choose your familiar' })
+      screen.getByRole('dialog', { name: "Who's your familiar?" })
     );
     for (const name of ['Salem', 'Veyr', 'Orin', 'Vesper', 'Morrow', 'Luna']) {
       expect(dialog.getByRole('button', { name })).toBeInTheDocument();
@@ -308,7 +290,7 @@ describe('kitchen sanctuary profiles', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('resets only the field in the focused editor', async () => {
+  it('removes a pinned recipe without resetting other profile choices', async () => {
     const interaction = userEvent.setup();
     const save = vi.fn().mockResolvedValue(undefined);
     const identity = {
@@ -325,15 +307,21 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
     await interaction.click(
-      screen.getByRole('button', { name: 'Edit main quest' })
+      screen.getByRole('button', { name: 'Change pinned recipe' })
     );
-    await interaction.click(screen.getByRole('button', { name: 'Reset' }));
+    expect(
+      screen.queryByRole('button', { name: 'Reset' })
+    ).not.toBeInTheDocument();
+    await interaction.selectOptions(
+      screen.getByRole('combobox', { name: 'Pin a signature creation' }),
+      ''
+    );
     await interaction.click(
       screen.getByRole('button', { name: 'Save changes' })
     );
     expect(save).toHaveBeenCalledWith({
       ...identity,
-      quest: DEFAULT_KITCHEN_IDENTITY.quest,
+      signatureRecipeId: '',
     });
   });
 
@@ -365,6 +353,57 @@ describe('kitchen sanctuary profiles', () => {
     expect(screen.getByText(longBio, { exact: false })).toBeInTheDocument();
   });
 
+  it('stages username and portrait together and discards both on cancel', async () => {
+    const interaction = userEvent.setup();
+    const update = vi.fn();
+    const portrait = vi.fn();
+    render(
+      <UserProfileView
+        user={user}
+        publishedRecipes={recipes}
+        onProfileUpdated={update}
+        onSelectPreset={portrait}
+      />
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Edit username' })
+    ).not.toBeInTheDocument();
+    await interaction.click(
+      screen.getByRole('button', { name: 'update avatar' })
+    );
+    await interaction.clear(screen.getByRole('textbox', { name: 'Name' }));
+    await interaction.type(
+      screen.getByRole('textbox', { name: 'Name' }),
+      'new_cook'
+    );
+    await interaction.click(screen.getByRole('button', { name: 'juniper' }));
+    await interaction.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(update).not.toHaveBeenCalled();
+    expect(portrait).not.toHaveBeenCalled();
+    await interaction.click(
+      screen.getByRole('button', { name: 'update avatar' })
+    );
+    expect(screen.getByLabelText('Name', { selector: 'input' })).toHaveValue(
+      user.handle
+    );
+    expect(screen.getByRole('button', { name: 'juniper' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    await interaction.clear(screen.getByRole('textbox', { name: 'Name' }));
+    await interaction.type(
+      screen.getByRole('textbox', { name: 'Name' }),
+      'new_cook'
+    );
+    await interaction.click(screen.getByRole('button', { name: 'juniper' }));
+    await interaction.click(
+      screen.getByRole('button', { name: 'Save changes' })
+    );
+    expect(portrait).toHaveBeenCalledWith('juniper.webp');
+    expect(update).toHaveBeenCalledWith({ handle: 'new_cook' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('discards canceled edits and keeps failed saves available to retry', async () => {
     const interaction = userEvent.setup();
     const save = vi.fn().mockRejectedValue(new Error('backend failed'));
@@ -376,29 +415,28 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
     await interaction.click(
-      screen.getByRole('button', { name: 'Edit main quest' })
+      screen.getByRole('button', { name: 'Change sign' })
     );
-    await interaction.type(
-      screen.getByLabelText('Main quest'),
-      'Unsaved magic'
-    );
+    await interaction.click(screen.getByRole('button', { name: 'The Raven' }));
     await interaction.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(save).not.toHaveBeenCalled();
     await interaction.click(
-      screen.getByRole('button', { name: 'Edit main quest' })
+      screen.getByRole('button', { name: 'Change sign' })
     );
-    expect(screen.getByLabelText('Main quest')).toHaveValue('');
-    await interaction.type(
-      screen.getByLabelText('Main quest'),
-      'Keep this idea'
-    );
+    expect(
+      screen.getByRole('button', { name: 'The Wanderer' })
+    ).toHaveAttribute('aria-pressed', 'true');
+    await interaction.click(screen.getByRole('button', { name: 'The Raven' }));
     await interaction.click(
       screen.getByRole('button', { name: 'Save changes' })
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'could not be saved'
     );
-    expect(screen.getByLabelText('Main quest')).toHaveValue('Keep this idea');
+    expect(screen.getByRole('button', { name: 'The Raven' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 

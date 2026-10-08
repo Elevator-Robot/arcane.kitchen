@@ -373,7 +373,7 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(
-      await screen.findByRole('button', { name: 'Change birthsign' })
+      await screen.findByRole('button', { name: 'Change sign' })
     );
     await user.click(screen.getByRole('button', { name: 'The Wyrm' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -1090,9 +1090,7 @@ describe('RecipeBuilder Component', () => {
     expect(
       screen.queryByRole('link', { name: 'Saved recipes' })
     ).not.toBeInTheDocument();
-    await user.click(
-      await screen.findByRole('button', { name: 'Saved', exact: true })
-    );
+    await user.click(await screen.findByRole('button', { name: 'Saved' }));
 
     expect(await screen.findByText('Saved recipes')).toBeInTheDocument();
     expect(screen.getAllByText('Saved Recipe').length).toBeGreaterThan(0);
@@ -1260,7 +1258,7 @@ describe('RecipeBuilder Component', () => {
 
     await user.click(presetImg);
     await user.click(
-      within(modal as HTMLElement).getByRole('button', { name: 'Save Picture' })
+      within(modal as HTMLElement).getByRole('button', { name: 'Save changes' })
     );
 
     const saved = JSON.parse(
@@ -1305,13 +1303,13 @@ describe('RecipeBuilder Component', () => {
     await user.click(await screen.findByRole('button', { name: 'Profile' }));
 
     await user.click(
-      await screen.findByRole('button', { name: /edit username/i })
+      await screen.findByRole('button', { name: /update avatar/i })
     );
-    const nameInput = screen.getByRole('textbox', { name: 'Username' });
+    const nameInput = screen.getByRole('textbox', { name: 'Name' });
     expect(nameInput).toHaveValue('test');
     await user.clear(nameInput);
     await user.type(nameInput, 'mystic_chef');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
       await screen.findByRole('heading', { name: 'mystic_chef' })
@@ -1352,7 +1350,7 @@ describe('RecipeBuilder Component', () => {
 
     await user.click(presetImg);
     await user.click(
-      within(modal as HTMLElement).getByRole('button', { name: 'Save Picture' })
+      within(modal as HTMLElement).getByRole('button', { name: 'Save changes' })
     );
 
     const headerAvatar = screen
