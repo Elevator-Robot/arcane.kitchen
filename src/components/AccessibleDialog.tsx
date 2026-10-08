@@ -7,7 +7,7 @@ export default function AccessibleDialog({
   label,
   className,
   style,
-  dismissOnBackdrop = false,
+  dismissOnBackdrop = true,
 }: {
   children: ReactNode;
   onClose: () => void;

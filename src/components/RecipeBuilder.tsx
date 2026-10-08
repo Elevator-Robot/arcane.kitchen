@@ -11,7 +11,6 @@ import { generateClient } from 'aws-amplify/data';
 import { getUrl, uploadData } from 'aws-amplify/storage';
 import {
   ArrowDownUp,
-  BookOpen,
   Heart,
   Maximize2,
   Plus,
@@ -39,6 +38,7 @@ import {
   findProfileByUsername,
   getDisplayNameFromAuth,
   getProfileRoutePath,
+  randomDefaultAvatar,
   getProfileUsernameFromPath,
   getRecipeIdFromPath,
   getRecipeRoutePath,
@@ -61,6 +61,7 @@ import ProfileDropdown from './ProfileDropdown';
 import RecipeTagFilters from './RecipeTagFilters';
 import Button from './ui/Button';
 import ProfileSkeleton from './profile/ProfileSkeleton';
+import { SanctuaryArtwork } from './profile/KitchenSanctuary';
 import AccessibleDialog from './AccessibleDialog';
 import ErrorArtwork from './ErrorArtwork';
 import SanctuaryHeading from './ui/SanctuaryHeading';
@@ -69,7 +70,11 @@ import {
   sanctuaryBackground,
   sanctuaryThemeStyle,
 } from '../theme/sanctuaryTheme';
-import type { KitchenIdentity } from '../utils/kitchenIdentity';
+import {
+  kitchenCalling,
+  normalizeKitchenIdentity,
+  type KitchenIdentity,
+} from '../utils/kitchenIdentity';
 import { syncProfileToCognito } from '../utils/cognitoProfileSync';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 
@@ -1174,11 +1179,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     const nextProfile: Record<string, UserProfile> = existing
       ? { ...profiles, [currentUserId]: existing }
       : (() => {
-          const avatar =
-            profileAvatar ||
-            avatarEntries[Math.floor(Math.random() * avatarEntries.length)]
-              ?.file ||
-            null;
+          const avatar = profileAvatar || randomDefaultAvatar();
 
           return upsertUserProfile(profiles, {
             userId: currentUserId,
@@ -1446,6 +1447,26 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
   }, [loadRecipes]);
 
   const previousAuthenticatedRef = useRef(isAuthenticated);
+
+  useEffect(() => {
+    if (
+      !/^\/saved\/?$/.test(location.pathname) ||
+      !isAuthenticated ||
+      !activeUsername
+    )
+      return;
+    const params = new URLSearchParams(location.search);
+    params.set('collection', 'saved');
+    navigate(`${getProfileRoutePath(activeUsername)}?${params.toString()}`, {
+      replace: true,
+    });
+  }, [
+    location.pathname,
+    location.search,
+    isAuthenticated,
+    activeUsername,
+    navigate,
+  ]);
 
   useEffect(() => {
     if (previousAuthenticatedRef.current && !isAuthenticated) {
@@ -1930,7 +1951,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return {
       userId: currentUserId,
       id: currentUserId,
-      name: activeUsername || 'Guest cook',
+      name: activeProfile?.displayName || activeUsername || 'Guest cook',
       handle: activeProfile?.username || activeUsername,
       bio: activeProfile?.bio || profileBio || '',
       avatarUrl: avatarUrl || undefined,
@@ -1966,7 +1987,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     return {
       userId: profileRouteProfile.userId,
       id: profileRouteProfile.userId,
-      name: profileRouteProfile.username,
+      name: profileRouteProfile.displayName || profileRouteProfile.username,
       handle: profileRouteProfile.username,
       bio: profileRouteProfile.bio || '',
       kitchenIdentity: profileRouteProfile.kitchenIdentity,
@@ -2881,7 +2902,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         : window.location.pathname === '/'
           ? '/discover'
           : window.location.pathname || '/discover';
-      navigate(`${basePath}?recipe=${encodeURIComponent(recipe.id)}`);
+      const params = new URLSearchParams(window.location.search);
+      params.set('recipe', recipe.id);
+      navigate(`${basePath}?${params.toString()}`);
     }
 
     if (isAuthenticated) {
@@ -2981,7 +3004,9 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         : window.location.pathname === '/'
           ? '/discover'
           : window.location.pathname || '/discover';
-      navigate(basePath);
+      const params = new URLSearchParams(window.location.search);
+      params.delete('recipe');
+      navigate(`${basePath}${params.size ? `?${params.toString()}` : ''}`);
     }
   };
 
@@ -3742,6 +3767,12 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
     </article>
   ) : null;
 
+  const discoverCalling = kitchenCalling(
+    normalizeKitchenIdentity(
+      isAuthenticated ? profileViewUser.kitchenIdentity : undefined
+    ).calling
+  );
+
   return (
     <main
       style={sanctuaryThemeStyle(
@@ -3862,12 +3893,17 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               className="ak-discover-intro"
               style={{ background: sanctuaryBackground }}
             >
+              <SanctuaryArtwork
+                callingId={discoverCalling.id}
+                pictureClassName="absolute inset-0"
+                imageClassName="h-full w-full object-cover"
+              />
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"
+                aria-hidden="true"
+              />
               <div className="relative">
-                <p className="ak-eyebrow mb-2 flex items-center gap-2 text-white/80">
-                  <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
-                  Community grimoire
-                </p>
-                <h1 className="font-heading text-2xl font-semibold text-white sm:text-3xl">
+                <h1 className="ak-banner-title text-2xl font-semibold text-white sm:text-3xl">
                   Emporium
                 </h1>
               </div>
@@ -4077,13 +4113,13 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
               <div className="ak-empty-state">
                 <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
                   {discoverQuery || activeTag !== null || activeAuthor
-                    ? 'No recipes match just yet'
-                    : 'Every collection starts with one recipe'}
+                    ? 'No recipes match these filters'
+                    : 'No recipes have been shared yet'}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
                   {discoverQuery || activeTag !== null || activeAuthor
-                    ? 'Try a different title, tag, or cook — or clear your filters to explore.'
-                    : 'Share something you love to cook and help this kitchen grow.'}
+                    ? 'Try a different search or clear the filters.'
+                    : 'Create a recipe to add it to the Emporium.'}
                 </p>
                 {discoverQuery || activeTag !== null || activeAuthor ? (
                   <button
@@ -4103,7 +4139,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                     onClick={startCreateRecipe}
                     className="ak-button-primary mt-5 rounded-xl px-5 py-3 text-sm font-semibold"
                   >
-                    Share your first recipe
+                    Create recipe
                   </button>
                 )}
               </div>
@@ -4121,12 +4157,10 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           <div className="shrink-0 [&>header]:rounded-none">
             <SanctuaryHeading
-              eyebrow="From your grimoire"
               title={isEditingRecipe ? 'Edit recipe' : 'New recipe'}
+              callingId={discoverCalling.id}
               description={
-                !isAuthenticated
-                  ? 'Sign in to publish recipes.'
-                  : 'Record the recipe. Let the next keeper make it their own.'
+                !isAuthenticated ? 'Sign in to publish recipes.' : undefined
               }
               actions={
                 <button
@@ -4562,24 +4596,6 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
           }`}
         >
           <div className="mx-auto w-full max-w-6xl">
-            <SanctuaryHeading
-              eyebrow="Your personal collection"
-              title="Saved recipes"
-              description="Recipes you want to come back to, gathered from the community."
-              actions={
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('Discover');
-                    navigate('/discover');
-                  }}
-                  className="ak-banner-action"
-                >
-                  Back to the Emporium
-                </button>
-              }
-            />
-
             {!isAuthenticated ? (
               <div className="ak-empty-state">
                 <h2 className="text-2xl">Keep your next favorite close</h2>
@@ -4594,46 +4610,7 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
                   Sign in to save recipes
                 </button>
               </div>
-            ) : savedRecipes.length ? (
-              <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {savedRecipes.map((recipe) => (
-                  <FeedRecipeCard
-                    key={recipe.id}
-                    recipe={recipe}
-                    isFavorited={favoriteRecipeIds.has(recipe.id)}
-                    isPendingFavorite={pendingFavoriteRecipeIds.has(recipe.id)}
-                    saveCount={recipeSaves[recipe.id] ?? 0}
-                    onOpenRecipe={(selectedRecipe) => {
-                      void expandRecipe(selectedRecipe);
-                    }}
-                    onToggleFavorite={toggleFavoriteRecipe}
-                    onEditRecipe={startEditRecipe}
-                    onDeleteRecipe={deleteRecipe}
-                    loadingEditRecipeId={loadingEditRecipeId}
-                    deletingRecipeIds={deletingRecipeIds}
-                    armedDeleteRecipeIds={armedDeleteRecipeIds}
-                    currentUserId={currentUserId}
-                    isAuthenticated={isAuthenticated}
-                    onOpenProfile={selectAuthorFilter}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="ak-empty-state">
-                <p className="font-heading text-xl font-semibold text-[var(--theme-text)]">
-                  No saved recipes yet
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
-                  Save recipes from the Emporium to keep them close at hand here.
-                </p>
-                <Link
-                  to="/discover"
-                  className="ak-button-primary mt-5 inline-flex rounded-xl px-5 py-3 text-sm font-semibold"
-                >
-                  Find recipes to save
-                </Link>
-              </div>
-            )}
+            ) : null}
           </div>
         </section>
 
@@ -4646,8 +4623,8 @@ const RecipeBuilder: React.FC<RecipeBuilderProps> = ({
         >
           <div className="mx-auto w-full max-w-6xl">
             <SanctuaryHeading
-              eyebrow="Notes from your workshop"
               title="Drafts"
+              callingId={discoverCalling.id}
               description="Unfinished ideas, experiments, and recipes in the making. Only visible to you."
               actions={
                 <button

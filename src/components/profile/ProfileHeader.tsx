@@ -1,15 +1,9 @@
-import { useState } from 'react';
-import { Edit2, Share, Calendar, Camera, X, Lock } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { Calendar, X } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
-import {
-  kitchenCalling,
-  kitchenTheme,
-  normalizeKitchenIdentity,
-} from '../../utils/kitchenIdentity';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
 import {
-  getProfileShareUrl,
   loadUserProfiles,
   saveUserProfiles,
   upsertUserProfile,
@@ -19,32 +13,54 @@ import {
   USERNAME_CHANGE_COOLDOWN_DAYS,
 } from '../../utils/userProfiles';
 import { randomMerlinColor } from '../../theme/merlinPalette';
+import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
+import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
+import {
+  kitchenTheme,
+  normalizeKitchenIdentity,
+} from '../../utils/kitchenIdentity';
+
+const PROFILE_BIO_LIMIT = 500;
 
 type Props = {
   user: User;
-  onShareProfile?: () => void;
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
+  onEditBirthsign?: () => void;
+  showAvatarModal?: boolean;
+  onCloseAvatar?: () => void;
   onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
 };
 
 export default function ProfileHeader({
   user,
-  onShareProfile,
   isOwnProfile = true,
   onSelectPreset,
+  onEditBirthsign,
+  showAvatarModal = false,
+  onCloseAvatar,
   onProfileUpdated,
 }: Props) {
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [actionColor] = useState(randomMerlinColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
-  const [isEditingHandle, setIsEditingHandle] = useState(false);
+  useEffect(() => {
+    if (showAvatarModal) {
+      setSelectedPreset(null);
+    }
+  }, [showAvatarModal]);
   const [draftHandle, setDraftHandle] = useState(user.handle || '');
+  const [identityError, setIdentityError] = useState('');
+  const [savingIdentity, setSavingIdentity] = useState(false);
+  const savingIdentityRef = useRef(false);
+  useEffect(() => {
+    if (showAvatarModal) {
+      setDraftHandle(user.handle || '');
+      setIdentityError('');
+    }
+  }, [showAvatarModal, user.handle]);
   const [draftBio, setDraftBio] = useState(user.bio || '');
   const [isEditingBio, setIsEditingBio] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const identity = normalizeKitchenIdentity(user.kitchenIdentity);
-  const calling = kitchenCalling(identity.calling);
+  const bioInputRef = useRef<HTMLTextAreaElement>(null);
   const existingProfile = isOwnProfile
     ? loadUserProfiles()[String(user.id || 'current')]
     : null;
@@ -58,309 +74,210 @@ export default function ProfileHeader({
     ? new Date(lastUsernameChange + usernameCooldownMs).toLocaleDateString()
     : '';
   const usernameCooldownMessage = usernameAvailableDate
-    ? `Username changes are locked until ${usernameAvailableDate}.`
+    ? `You can change your name again on ${usernameAvailableDate}.`
     : '';
 
-  const handleShareProfile = async () => {
-    if (typeof window === 'undefined') return;
-    const url = getProfileShareUrl(user.handle) || window.location.href;
-
-    if (onShareProfile) {
-      onShareProfile();
+  const saveIdentity = async (event: FormEvent) => {
+    event.preventDefault();
+    if (savingIdentityRef.current) return;
+    const desired = sanitizeUsername(draftHandle);
+    const handleChanged = desired !== user.handle;
+    const userId = String(user.id || 'current');
+    const profiles = loadUserProfiles();
+    if (handleChanged && !validateUsername(desired)) {
+      setIdentityError(
+        'Names must be 3-20 characters: lowercase letters, numbers, or underscores.'
+      );
       return;
     }
-
+    if (
+      handleChanged &&
+      !isUsernameChangeAllowed(profiles[userId] || ({} as any), desired)
+    ) {
+      setIdentityError('You can only change your name once every 30 days.');
+      return;
+    }
+    savingIdentityRef.current = true;
+    setSavingIdentity(true);
+    setIdentityError('');
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: `@${user.handle} on Arcane Kitchen`,
-          url,
+      if (selectedPreset && onSelectPreset)
+        await onSelectPreset(selectedPreset);
+      if (handleChanged && onProfileUpdated) {
+        // Re-read after the portrait update so the rename preserves it.
+        const updated = upsertUserProfile(loadUserProfiles(), {
+          userId,
+          username: desired,
         });
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
+        saveUserProfiles(updated);
+        await onProfileUpdated({ handle: desired });
       }
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        return;
-      }
-
-      // Legacy fallback
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      const ok = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (ok) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch (err) {
-      console.error('Share failed', err);
+      onCloseAvatar?.();
+    } catch (error) {
+      console.error('Failed to save profile identity:', error);
+      setIdentityError(
+        getUserFacingErrorMessage(
+          error,
+          'Your profile could not be saved. Please try again.'
+        )
+      );
+    } finally {
+      savingIdentityRef.current = false;
+      setSavingIdentity(false);
     }
   };
+
+  useEffect(() => {
+    if (!isEditingBio || !bioInputRef.current) return;
+    const input = bioInputRef.current;
+    input.focus({ preventScroll: true });
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, [isEditingBio]);
 
   return (
     <div className="p-4 sm:p-6 md:p-8">
       <div className="flex flex-col items-stretch gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex w-full flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6 md:w-auto">
-          <div className="relative shrink-0">
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.handle}
-                loading="lazy"
-                className="h-32 w-32 rounded-full border-4 border-[var(--theme-surface)] object-cover shadow-md sm:h-40 sm:w-40"
-              />
-            ) : (
-              <div
-                aria-label={user.handle}
-                className="flex h-32 w-32 items-center justify-center rounded-full border-4 border-[var(--theme-surface)] bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md sm:h-40 sm:w-40"
-              >
-                {(user.handle || user.name || 'C').charAt(0).toUpperCase()}
-              </div>
-            )}
-            {isOwnProfile && (
+        <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-0">
+          <div className="ak-artwork-surface relative isolate aspect-[3/2] w-full shrink-0 self-start sm:w-72 lg:w-80">
+            <img
+              src={
+                BIRTHSIGN_ARTWORK[
+                  kitchenTheme(
+                    normalizeKitchenIdentity(user.kitchenIdentity).theme
+                  ).id
+                ]
+              }
+              alt=""
+              aria-hidden="true"
+              className="ak-birthsign-soft-edge pointer-events-none absolute inset-0 h-full w-full object-contain"
+            />
+            {isOwnProfile && onEditBirthsign && (
               <button
-                onClick={() => {
-                  setSelectedPreset(null);
-                  setShowAvatarModal(true);
-                }}
-                className="ak-button-secondary absolute bottom-2 right-2 rounded-full p-2.5"
-                aria-label="update avatar"
+                type="button"
+                aria-label="Change sign"
+                onClick={onEditBirthsign}
+                className="ak-artwork-trigger absolute inset-0"
               >
-                <Camera className="w-4 h-4" style={{ color: actionColor }} />
+                <span className="ak-artwork-hint absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--theme-surface)]/90 px-3 py-1 text-xs text-[var(--theme-text)]">
+                  Change sign
+                </span>
               </button>
             )}
           </div>
 
-          <div className="min-w-0 w-full text-center sm:text-left">
-            <div className="mt-2 flex items-center justify-center gap-2 sm:justify-start">
-              {!isEditingHandle || !isOwnProfile ? (
-                <>
-                  <h1 className="font-heading text-2xl font-semibold tracking-tight text-[var(--theme-text)] truncate md:text-3xl">
-                    {user.handle}
-                  </h1>
-                  {isOwnProfile && (
-                    <span
-                      tabIndex={usernameChangeLocked ? 0 : undefined}
-                      title={usernameCooldownMessage || undefined}
-                      aria-label={usernameCooldownMessage || 'Edit username'}
-                    >
-                      <button
-                        onClick={() => {
-                          setDraftHandle(user.handle || '');
-                          setIsEditingHandle(true);
-                        }}
-                        aria-label="edit username"
-                        disabled={usernameChangeLocked}
-                        className="ak-button-ghost rounded-full p-2 disabled:opacity-50"
-                      >
-                        {usernameChangeLocked ? (
-                          <Lock className="h-3.5 w-3.5" />
-                        ) : (
-                          <Edit2 className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                    </span>
-                  )}
-                </>
-              ) : (
-                <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
-                  <input
-                    aria-label="Username"
-                    value={draftHandle}
-                    onChange={(e) => setDraftHandle(e.target.value)}
-                    className="ak-input min-w-0 w-full rounded px-3 py-2 sm:w-auto"
-                  />
-                  <button
-                    onClick={() => {
-                      const desired = sanitizeUsername(draftHandle);
-                      const userId = String(user.id || 'current');
-                      const profiles = loadUserProfiles();
-                      const existingProfile = profiles[userId];
-
-                      if (!validateUsername(desired)) {
-                        window.alert(
-                          'Usernames must be 3-20 characters: lowercase letters, numbers, or underscores.'
-                        );
-                        return;
-                      }
-
-                      if (
-                        !isUsernameChangeAllowed(
-                          existingProfile || ({} as any),
-                          desired
-                        )
-                      ) {
-                        window.alert(
-                          'You can only change your username once every 30 days.'
-                        );
-                        return;
-                      }
-
-                      const updated = upsertUserProfile(profiles, {
-                        userId,
-                        username: desired,
-                      });
-                      saveUserProfiles(updated);
-                      setIsEditingHandle(false);
-                      setDraftHandle(desired);
-                      if (onProfileUpdated)
-                        onProfileUpdated({ handle: desired });
-                    }}
-                    style={{ backgroundColor: actionColor }}
-                    className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+          <div className="min-w-0 w-full text-left">
+            <section className="py-1 sm:pl-6 sm:border-l border-[var(--theme-border)]">
+              <div className="flex min-h-9 items-center justify-between gap-3">
+                <h2 className="font-heading text-xl text-[var(--theme-text)]">
+                  A note from the chef
+                </h2>
+              </div>
+              <div className="mt-3">
+                <div className="relative">
+                  <p
+                    aria-hidden={
+                      isEditingBio && isOwnProfile ? true : undefined
+                    }
+                    className={`ak-bio-text ${isEditingBio && isOwnProfile ? 'invisible' : ''}`}
                   >
-                    Save
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsEditingHandle(false);
-                      setDraftHandle(user.handle || '');
-                    }}
-                    className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="mt-3 flex flex-col items-center gap-2 sm:items-start">
-              <p
-                className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-white"
-                style={{ backgroundColor: kitchenTheme(identity.theme).accent }}
-              >
-                <span aria-hidden="true">{calling.icon}</span>
-                {calling.name}
-              </p>
-            </div>
-            <div className="mt-4">
-              {!isEditingBio || !isOwnProfile ? (
-                <div>
-                  {user.bio ? (
-                    <div className="flex items-start justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-                      <p className="whitespace-pre-wrap">{user.bio}</p>
-                      {isOwnProfile && (
-                        <button
-                          onClick={() => {
-                            setDraftBio(user.bio || '');
-                            setIsEditingBio(true);
-                          }}
-                          aria-label="edit bio"
-                          className="ak-button-ghost -ml-1 shrink-0 rounded-full p-2"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-                      <span>
-                        {isOwnProfile
-                          ? 'Add a little lore about your kitchen.'
-                          : 'Letting the recipes tell the story.'}
-                      </span>
-                      {isOwnProfile && (
-                        <button
-                          onClick={() => {
-                            setDraftBio(user.bio || '');
-                            setIsEditingBio(true);
-                          }}
-                          aria-label="edit bio"
-                          className="ak-button-ghost shrink-0 rounded-full p-2"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    value={draftBio}
-                    onChange={(e) => setDraftBio(e.target.value)}
-                    aria-label="bio"
-                    maxLength={500}
-                    placeholder="Record your craft, the traditions you keep, and the recipes you seek."
-                    className="ak-input w-full rounded px-3 py-2 text-left text-sm"
-                  />
-                  <div className="flex gap-2 justify-end">
+                    {(isEditingBio && isOwnProfile ? draftBio : user.bio) ||
+                      (isOwnProfile
+                        ? 'Add a little lore about your kitchen.'
+                        : 'Letting the recipes tell the story.')}
+                  </p>
+                  {isOwnProfile && !isEditingBio && (
                     <button
+                      type="button"
+                      aria-label="edit bio"
+                      title="Click to edit your note"
+                      className="absolute inset-0 w-full cursor-text rounded-sm bg-transparent transition-colors hover:bg-[var(--theme-focus)]"
                       onClick={() => {
-                        setIsEditingBio(false);
                         setDraftBio(user.bio || '');
+                        setIsEditingBio(true);
                       }}
-                      className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => {
-                        const userId = String(user.id || 'current');
-                        const profiles = loadUserProfiles();
-                        const updated = upsertUserProfile(profiles, {
-                          userId,
-                          bio: draftBio,
-                        });
-                        saveUserProfiles(updated);
-                        setIsEditingBio(false);
-                        if (onProfileUpdated)
-                          onProfileUpdated({ bio: draftBio });
-                      }}
-                      style={{ backgroundColor: actionColor }}
-                      className="ak-button-primary rounded-xl px-4 py-2 text-sm"
-                    >
-                      Save
-                    </button>
+                    />
+                  )}
+                  {isEditingBio && isOwnProfile && (
+                    <textarea
+                      ref={bioInputRef}
+                      value={draftBio}
+                      onChange={(e) => setDraftBio(e.target.value)}
+                      aria-label="bio"
+                      maxLength={PROFILE_BIO_LIMIT}
+                      placeholder="Add a little lore about your kitchen."
+                      className="ak-bio-text absolute inset-0 h-full w-full resize-none overflow-hidden border-0 bg-transparent outline-none"
+                    />
+                  )}
+                </div>
+                {isEditingBio && isOwnProfile && (
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-3">
+                    <span className="text-xs tabular-nums text-[var(--theme-text-muted)]">
+                      {draftBio.length}/{PROFILE_BIO_LIMIT}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditingBio(false);
+                          setDraftBio(user.bio || '');
+                        }}
+                        className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const userId = String(user.id || 'current');
+                          const profiles = loadUserProfiles();
+                          const updated = upsertUserProfile(profiles, {
+                            userId,
+                            bio: draftBio,
+                          });
+                          saveUserProfiles(updated);
+                          setIsEditingBio(false);
+                          if (onProfileUpdated)
+                            onProfileUpdated({ bio: draftBio });
+                        }}
+                        style={{ backgroundColor: actionColor }}
+                        className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                      >
+                        Save
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-[var(--theme-text-muted)] sm:justify-start">
-              {user.joinDate && (
-                <div className="inline-flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
-                  <span>{formatJoinDate(user.joinDate)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-2 flex w-full justify-center md:mt-0 md:w-auto md:justify-end">
-          <div className="flex items-center gap-3 md:flex-col md:items-end">
-            <button
-              type="button"
-              onClick={handleShareProfile}
-              aria-label="Share profile"
-              title="Share profile"
-              className="ak-button-secondary inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm"
-            >
-              <Share className="h-4 w-4" aria-hidden="true" />
-              {copied ? 'Copied!' : 'Share'}
-            </button>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--theme-text-muted)]">
+                {user.joinDate && (
+                  <div className="inline-flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
+                    <span>{formatJoinDate(user.joinDate)}</span>
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         </div>
       </div>
       {showAvatarModal && isOwnProfile && (
         <AccessibleDialog
-          label="Update Profile Picture"
-          onClose={() => setShowAvatarModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          label="Who are you?"
+          onClose={() => {
+            if (!savingIdentityRef.current) onCloseAvatar?.();
+          }}
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
         >
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
+          <form
+            onSubmit={saveIdentity}
+            className="my-auto w-full max-w-3xl shrink-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Update Profile Picture</h3>
+              <h3 className="text-lg font-semibold">Who are you?</h3>
               <button
-                onClick={() => setShowAvatarModal(false)}
+                type="button"
+                disabled={savingIdentity}
+                onClick={() => onCloseAvatar?.()}
                 aria-label="Close avatar picker"
                 className="ak-button-ghost rounded-full p-2"
               >
@@ -368,16 +285,49 @@ export default function ProfileHeader({
               </button>
             </div>
 
-            <div className="mt-4">
+            <fieldset disabled={savingIdentity} className="mt-4 min-w-0">
               <PresetGrid
                 onSelect={(file) => setSelectedPreset(file)}
                 selected={selectedPreset}
               />
+              <div className="mt-6 pt-5">
+                <label className="grid gap-3 text-sm font-semibold">
+                  Name
+                  <input
+                    aria-label="Name"
+                    value={draftHandle}
+                    onChange={(event) => {
+                      setDraftHandle(event.target.value);
+                      setIdentityError('');
+                    }}
+                    disabled={usernameChangeLocked || !onProfileUpdated}
+                    maxLength={20}
+                    autoComplete="username"
+                    spellCheck={false}
+                    aria-describedby="identity-name-help"
+                    className="ak-identity-name"
+                  />
+                  <span
+                    id="identity-name-help"
+                    className="text-xs font-normal text-[var(--theme-text-muted)]"
+                  >
+                    {usernameChangeLocked
+                      ? usernameCooldownMessage
+                      : '3–20 letters, numbers, or underscores. You can change your name once every 30 days.'}
+                  </span>
+                </label>
+              </div>
 
-              <div className="mt-4 flex justify-end gap-3">
+              {identityError && (
+                <p role="alert" className="mt-4 text-sm text-red-700">
+                  {identityError}
+                </p>
+              )}
+              <div className="mt-6 flex justify-end gap-3 pt-4">
                 <button
+                  type="button"
                   onClick={() => {
-                    setShowAvatarModal(false);
+                    onCloseAvatar?.();
                     setSelectedPreset(null);
                   }}
                   className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
@@ -385,21 +335,20 @@ export default function ProfileHeader({
                   Cancel
                 </button>
                 <button
-                  disabled={!selectedPreset}
-                  onClick={() => {
-                    if (selectedPreset && onSelectPreset) {
-                      onSelectPreset(selectedPreset);
-                      setShowAvatarModal(false);
-                    }
-                  }}
+                  type="submit"
+                  disabled={
+                    savingIdentity ||
+                    (!selectedPreset &&
+                      sanitizeUsername(draftHandle) === user.handle)
+                  }
                   style={{ backgroundColor: actionColor }}
                   className="ak-button-primary rounded-xl px-4 py-2 text-sm disabled:opacity-50"
                 >
-                  Save Picture
+                  {savingIdentity ? 'Saving…' : 'Save changes'}
                 </button>
               </div>
-            </div>
-          </div>
+            </fieldset>
+          </form>
         </AccessibleDialog>
       )}
     </div>

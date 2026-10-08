@@ -265,7 +265,7 @@ describe('RecipeBuilder Component', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each(['/saved', '/drafts', '/build', '/u/other_chef'])(
+  it.each(['/discover', '/saved', '/drafts', '/build', '/u/other_chef'])(
     'uses the viewer’s saved atmosphere on %s',
     async (path) => {
       window.history.replaceState({}, '', path);
@@ -276,14 +276,20 @@ describe('RecipeBuilder Component', () => {
             userId: 'testuser',
             username: 'test',
             displayName: 'Test cook',
-            kitchenIdentity: JSON.stringify({ theme: 'grove' }),
+            kitchenIdentity: JSON.stringify({
+              theme: 'grove',
+              calling: 'dough-artificer',
+            }),
           },
           {
             id: 'other-profile',
             userId: 'other-user',
             username: 'other_chef',
             displayName: 'Other cook',
-            kitchenIdentity: JSON.stringify({ theme: 'ember' }),
+            kitchenIdentity: JSON.stringify({
+              theme: 'ember',
+              calling: 'feast-bard',
+            }),
           },
         ],
       };
@@ -308,16 +314,33 @@ describe('RecipeBuilder Component', () => {
       expect(
         screen.getByRole('main').style.getPropertyValue('--theme-surface')
       ).toBe(kitchenTheme('grove').surface);
+      const discoverBanner = screen
+        .getByRole('heading', { name: 'Emporium' })
+        .closest('.ak-discover-intro');
+      await waitFor(() =>
+        expect(
+          discoverBanner?.querySelector('.ak-color-scheme-image-dark')
+        ).toHaveAttribute('src', expect.stringContaining('garden-dark.webp'))
+      );
+      expect(
+        discoverBanner?.querySelector('.ak-color-scheme-image-light')
+      ).toHaveAttribute('src', expect.stringContaining('garden-light.webp'));
       if (path === '/u/other_chef') {
         expect(
           await screen.findByRole('heading', { name: 'other_chef' })
         ).toBeInTheDocument();
-        const banner = screen
-          .getByText(/The Wyrm/)
-          .closest('[style]') as HTMLElement;
+        await waitFor(() =>
+          expect(
+            document.querySelector('img[src*="manor-light.webp"]')
+          ).toBeInTheDocument()
+        );
+        const banner = document
+          .querySelector('img[src*="manor-light.webp"]')
+          ?.closest('[style]') as HTMLElement;
         expect(banner).toHaveStyle({
           background: kitchenTheme('ember').background,
         });
+        expect(screen.queryByText('The Wyrm')).not.toBeInTheDocument();
       }
     }
   );
@@ -350,7 +373,7 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
     await user.click(
-      await screen.findByRole('button', { name: 'Customize profile' })
+      await screen.findByRole('button', { name: 'Change sign' })
     );
     await user.click(screen.getByRole('button', { name: 'The Wyrm' }));
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
@@ -398,7 +421,7 @@ describe('RecipeBuilder Component', () => {
     await user.clear(search);
     await user.type(search, 'zzzzzz');
     expect(
-      await screen.findByText('No recipes match just yet')
+      await screen.findByText('No recipes match these filters')
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Clear all filters' }));
     expect(
@@ -424,7 +447,7 @@ describe('RecipeBuilder Component', () => {
       '@test'
     );
     expect(
-      await screen.findByText('No recipes match just yet')
+      await screen.findByText('No recipes match these filters')
     ).toBeInTheDocument();
   });
 
@@ -668,8 +691,8 @@ describe('RecipeBuilder Component', () => {
     await user.click(
       within(dialog).getByRole('button', { name: 'Back to collection' })
     );
-    expect(window.location.pathname).toBe('/saved');
-    expect(window.location.search).toBe('');
+    expect(window.location.pathname).toBe('/u/test');
+    expect(window.location.search).toBe('?collection=saved');
   });
 
   it('opens the editor from search and returns contextually', async () => {
@@ -679,9 +702,21 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     expect(window.location.pathname).toBe('/build');
+    const buildHeading = screen.getByRole('heading', { name: 'New recipe' });
+    expect(buildHeading).toHaveClass('ak-banner-title');
+    const buildBanner = buildHeading.closest('header');
     expect(
-      screen.getByRole('heading', { name: 'New recipe' })
+      buildBanner?.querySelector('.ak-color-scheme-image-light')
     ).toBeInTheDocument();
+    expect(
+      buildBanner?.querySelector('.ak-color-scheme-image-dark')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('From your grimoire')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Record the recipe. Let the next keeper make it their own.'
+      )
+    ).not.toBeInTheDocument();
     expect(screen.getByText('by test')).toBeInTheDocument();
     expect(screen.queryByText('by @test')).not.toBeInTheDocument();
 
@@ -868,10 +903,14 @@ describe('RecipeBuilder Component', () => {
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
 
-    const savedSection = document.getElementById('saved-recipes');
+    await screen.findByRole('heading', { name: 'Saved recipes' });
+    const savedSection = document.getElementById('profile');
     expect(savedSection).not.toBeNull();
+    await user.click(await within(savedSection!).findByText('Test Recipe'));
     await user.click(
-      await within(savedSection!).findByRole('button', {
+      await within(
+        await screen.findByRole('dialog', { name: 'Test Recipe' })
+      ).findByRole('button', {
         name: 'by @recipe_author',
       })
     );
@@ -1047,9 +1086,11 @@ describe('RecipeBuilder Component', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Saved recipes' })
-    );
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    expect(
+      screen.queryByRole('link', { name: 'Saved recipes' })
+    ).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Saved' }));
 
     expect(await screen.findByText('Saved recipes')).toBeInTheDocument();
     expect(screen.getAllByText('Saved Recipe').length).toBeGreaterThan(0);
@@ -1070,14 +1111,17 @@ describe('RecipeBuilder Component', () => {
     await user.type(titleInput, 'Moonlit Porridge');
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Recipe drafts' })
-    );
+    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
 
     const draftsHeading = await screen.findByRole('heading', {
       name: 'Drafts',
     });
     expect(draftsHeading).toBeInTheDocument();
+    expect(
+      draftsHeading
+        .closest('header')
+        ?.querySelector('.ak-color-scheme-image-dark')
+    ).toBeInTheDocument();
 
     const draftsSection = draftsHeading.closest('section');
     expect(draftsSection).not.toBeNull();
@@ -1093,7 +1137,7 @@ describe('RecipeBuilder Component', () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(screen.getByRole('link', { name: 'Recipe drafts' }));
+    await user.click(screen.getByRole('link', { name: 'Drafts' }));
     await user.click(
       within(document.getElementById('drafts')!).getByRole('button', {
         name: 'Delete',
@@ -1146,9 +1190,7 @@ describe('RecipeBuilder Component', () => {
     await user.upload(fileInput as HTMLInputElement, imageFile);
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Recipe drafts' })
-    );
+    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
     const draftsHeading = await screen.findByRole('heading', {
       name: 'Drafts',
     });
@@ -1162,9 +1204,7 @@ describe('RecipeBuilder Component', () => {
     await user.click(screen.getByRole('button', { name: 'Publish' }));
 
     await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(
-      await screen.findByRole('link', { name: 'Recipe drafts' })
-    );
+    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
     const refreshedDraftsHeading = await screen.findByRole('heading', {
       name: 'Drafts',
     });
@@ -1205,7 +1245,7 @@ describe('RecipeBuilder Component', () => {
       await screen.findByRole('button', { name: /update avatar/i })
     );
 
-    const modal = (await screen.findByText('Update Profile Picture')).closest(
+    const modal = (await screen.findByText('Who are you?')).closest(
       'div.fixed'
     );
     expect(modal).not.toBeNull();
@@ -1218,7 +1258,7 @@ describe('RecipeBuilder Component', () => {
 
     await user.click(presetImg);
     await user.click(
-      within(modal as HTMLElement).getByRole('button', { name: 'Save Picture' })
+      within(modal as HTMLElement).getByRole('button', { name: 'Save changes' })
     );
 
     const saved = JSON.parse(
@@ -1263,13 +1303,13 @@ describe('RecipeBuilder Component', () => {
     await user.click(await screen.findByRole('button', { name: 'Profile' }));
 
     await user.click(
-      await screen.findByRole('button', { name: /edit username/i })
+      await screen.findByRole('button', { name: /update avatar/i })
     );
-    const nameInput = screen.getByRole('textbox', { name: 'Username' });
+    const nameInput = screen.getByRole('textbox', { name: 'Name' });
     expect(nameInput).toHaveValue('test');
     await user.clear(nameInput);
     await user.type(nameInput, 'mystic_chef');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(
       await screen.findByRole('heading', { name: 'mystic_chef' })
@@ -1297,7 +1337,7 @@ describe('RecipeBuilder Component', () => {
       await screen.findByRole('button', { name: /update avatar/i })
     );
 
-    const modal = (await screen.findByText('Update Profile Picture')).closest(
+    const modal = (await screen.findByText('Who are you?')).closest(
       'div.fixed'
     );
     const presetImg = within(modal as HTMLElement)
@@ -1310,7 +1350,7 @@ describe('RecipeBuilder Component', () => {
 
     await user.click(presetImg);
     await user.click(
-      within(modal as HTMLElement).getByRole('button', { name: 'Save Picture' })
+      within(modal as HTMLElement).getByRole('button', { name: 'Save changes' })
     );
 
     const headerAvatar = screen

@@ -24,7 +24,7 @@ import {
   EmailSignInFooter,
 } from './components/AuthSignInOptions';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import { randomMerlinColor } from './theme/merlinPalette';
+import StartupLoading from './components/StartupLoading';
 import {
   getProfileRoutePath,
   loadUserProfiles,
@@ -418,7 +418,6 @@ export function AppRouteAware() {
 }
 
 function App({ pathname }: AppProps = {}) {
-  const [loadingColor] = useState(randomMerlinColor);
   const [authState, setAuthState] = useState<AuthState>(() => {
     const persisted = getPersistedAuthState();
     const currentUser = persisted?.isAuthenticated
@@ -550,32 +549,7 @@ function App({ pathname }: AppProps = {}) {
   }, [refreshAuthState]);
 
   if (!isAuthInitialized) {
-    return (
-      <div className="flex h-screen h-dvh items-center justify-center overflow-hidden bg-[var(--theme-bg)] text-[var(--theme-text)]">
-        <div className="flex flex-col items-center gap-3">
-          <span
-            className="ak-loading-sparkle"
-            style={{ color: loadingColor }}
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="h-5 w-5"
-              aria-hidden="true"
-            >
-              <path d="M12 0c.9 6.3 5.5 11 11.9 12C18.5 13 13.9 17.7 13 24c-.9-6.3-5.5-11-11.9-12C6.5 11 11.1 6.3 12 0Z" />
-            </svg>
-          </span>
-          <span
-            className="ak-loading-breathe text-sm font-medium"
-            style={{ color: loadingColor }}
-          >
-            Preparing your kitchen…
-          </span>
-        </div>
-      </div>
-    );
+    return <StartupLoading />;
   }
 
   const currentPathname =

@@ -6,6 +6,7 @@ type Props = {
 import { useState } from 'react';
 import { randomMerlinColor } from '../../theme/merlinPalette';
 import Button from '../ui/Button';
+import { DEFAULT_AVATAR_FILES } from '../../utils/userProfiles';
 
 const presets = import.meta.glob('/src/assets/avatars/*.{png,webp,jpg}', {
   eager: true,
@@ -13,13 +14,17 @@ const presets = import.meta.glob('/src/assets/avatars/*.{png,webp,jpg}', {
 
 export default function PresetGrid({ selected, onSelect }: Props) {
   const [selectionColor] = useState(randomMerlinColor);
-  const entries = Object.entries(presets).map(([path, mod]) => ({
-    file: path.split('/').pop()!,
-    url: mod.default,
-  }));
+  const entries = Object.entries(presets)
+    .filter(([path]) =>
+      DEFAULT_AVATAR_FILES.some((file) => path.endsWith(`/${file}`))
+    )
+    .map(([path, mod]) => ({
+      file: path.split('/').pop()!,
+      url: mod.default,
+    }));
 
   return (
-    <div className="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+    <div className="grid grid-cols-3 gap-3 p-1 sm:grid-cols-4 md:grid-cols-5">
       {entries.map(({ file, url }) => (
         <Button
           variant="image"
@@ -27,15 +32,24 @@ export default function PresetGrid({ selected, onSelect }: Props) {
           key={file}
           type="button"
           aria-pressed={selected === file}
+          aria-label={file.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')}
           onClick={() => onSelect(file)}
           style={
             selected === file
               ? { boxShadow: `0 0 0 2px ${selectionColor}` }
               : undefined
           }
-          className="overflow-hidden rounded-xl"
+          className="ak-identity-art-card relative overflow-hidden rounded-xl"
         >
-          <img src={url} alt={file} className="w-full h-20 object-cover" />
+          <img
+            src={url}
+            alt={file}
+            loading="lazy"
+            className="aspect-square w-full object-cover"
+          />
+          <span className="ak-identity-art-label absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 to-black/30 px-2 pb-2 pt-5 text-xs font-semibold capitalize text-white">
+            {file.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')}
+          </span>
         </Button>
       ))}
     </div>

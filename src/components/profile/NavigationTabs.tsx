@@ -1,98 +1,63 @@
 import { MERLIN_PALETTE } from '../../theme/merlinPalette';
 import Button from '../ui/Button';
 
-export type TabKey = 'recipes' | 'drafts' | 'saved';
-
-type Props = {
-  active: TabKey;
-  draftsCount?: number;
-  savedCount?: number;
-  showPrivateTabs?: boolean;
-  onChange: (t: TabKey) => void;
-};
+export type TabKey = 'recipes' | 'saved';
 
 export default function NavigationTabs({
   active,
-  draftsCount = 0,
-  savedCount = 0,
-  showPrivateTabs = true,
+  recipesCount,
+  savedCount,
   onChange,
-}: Props) {
-  const tabColors: Record<TabKey, string> = {
-    recipes: MERLIN_PALETTE[2],
-    drafts: MERLIN_PALETTE[1],
-    saved: MERLIN_PALETTE[5],
-  };
-  const tabClass = 'rounded-full px-3 py-2.5 text-sm sm:px-5';
-
+}: {
+  active: TabKey;
+  recipesCount: number;
+  savedCount: number;
+  onChange: (tab: TabKey) => void;
+}) {
+  const collections = [
+    {
+      key: 'recipes' as const,
+      label: 'Recipes',
+      count: recipesCount,
+      color: MERLIN_PALETTE[2],
+    },
+    {
+      key: 'saved' as const,
+      label: 'Saved',
+      count: savedCount,
+      color: MERLIN_PALETTE[5],
+    },
+  ];
   return (
     <nav
       aria-label="Your recipe collections"
-      className="border-t border-[var(--theme-border)] px-2 py-3 sm:px-4"
+      className="mt-6 grid grid-cols-2 border-b border-[var(--theme-border)]"
     >
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+      {collections.map(({ key, label, count, color }) => (
         <Button
-          variant="choice"
+          key={key}
+          variant="unstyled"
           size="none"
-          type="button"
-          onClick={() => onChange('recipes')}
-          aria-pressed={active === 'recipes'}
-          className={tabClass}
-          style={
-            active === 'recipes'
-              ? { backgroundColor: tabColors.recipes }
-              : undefined
+          aria-label={label}
+          aria-describedby={
+            key === 'saved' ? 'saved-collection-privacy' : undefined
           }
+          aria-pressed={active === key}
+          onClick={() => onChange(key)}
+          className={`-mb-px inline-flex min-h-12 w-full items-center justify-center gap-2 border-b-2 px-4 py-3 text-sm transition-colors ${active === key ? 'text-[var(--theme-text)]' : 'border-transparent text-[var(--theme-text-muted)] hover:text-[var(--theme-text)]'}`}
+          style={active === key ? { borderBottomColor: color } : undefined}
         >
-          <span className="">Recipes</span>
+          <span>{label}</span>
+          <span className="rounded-full bg-[var(--theme-surface-alt)] px-2 py-0.5 text-xs font-normal tabular-nums text-[var(--theme-text-muted)]">
+            {count}
+          </span>
+          {key === 'saved' && (
+            <span id="saved-collection-privacy" className="sr-only">
+              Only you
+            </span>
+          )}
         </Button>
-
-        {showPrivateTabs && (
-          <>
-            <Button
-              variant="choice"
-              size="none"
-              type="button"
-              onClick={() => onChange('drafts')}
-              aria-pressed={active === 'drafts'}
-              className={tabClass}
-              style={
-                active === 'drafts'
-                  ? { backgroundColor: tabColors.drafts }
-                  : undefined
-              }
-            >
-              <span>Drafts</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${active === 'drafts' ? 'bg-white/15 text-white' : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)]'}`}
-              >
-                {draftsCount}
-              </span>
-            </Button>
-
-            <Button
-              variant="choice"
-              size="none"
-              type="button"
-              onClick={() => onChange('saved')}
-              aria-pressed={active === 'saved'}
-              className={tabClass}
-              style={
-                active === 'saved'
-                  ? { backgroundColor: tabColors.saved }
-                  : undefined
-              }
-            >
-              <span>Saved</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${active === 'saved' ? 'bg-white/15 text-white' : 'bg-[var(--theme-surface-alt)] text-[var(--theme-text-muted)]'}`}
-              >
-                {savedCount}
-              </span>
-            </Button>
-          </>
-        )}
-      </div>
+      ))}
     </nav>
   );
 }

@@ -16,20 +16,33 @@ histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
 labels and cooking instructions remain clear and practical.
 
 - **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs remain compatible; names follow this order. The Mage uses mulberry, the Witch muted yellow-green, and the Sorcerer crimson/deep blue with pale blue reading surfaces.
-- Birthsign selection uses supplied constellation artwork in uncropped 3:2 cards, with names shown on hover or keyboard focus and always on touchscreens. The live preview includes the selected image and name. Assets are local optimized WebP files in `src/assets/birthsigns/`.
-- **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor, in this order. Show names without numbers or subtitles. The existing `calling` field and option IDs remain compatible. The editor is titled **Customize profile**, with **Save changes** as its submit action.
+- Birthsign selection uses uncropped 3:2 cards with names on hover/focus and always on touchscreens. Click the rectangular artwork beside the bio to choose a Birthsign. Only the outer 3% of the saved artwork's edges are feathered to blend into the background; its interior remains fully opaque and picker cards remain unfaded. The portrait lives in the banner; clicking it opens “Who are you?” without a separate camera button.
+- **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor. Click the profile banner to open its focused picker; Share remains an independent action. The existing `calling` field and option IDs remain compatible.
+- Sanctuary selection uses local 3:1 light/dark artwork pairs. Overlapping image layers follow the device's `prefers-color-scheme` and crossfade when it changes. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
+- The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover and Build use the signed-in viewer's Sanctuary artwork in their banners.
+- Profile banners omit generic Sanctuary headings, Birthsign names, symbols, and lore lines. They show the username on one truncated line over the artwork without repeating it below. The profile section uses the former username space for the bio.
 - **Familiar:** Salem (black cat), Veyr (dragon), Orin (owl), Vesper (fox), Morrow (frog), Luna (rabbit).
-- **Tenet:** up to 80 characters in the profile banner.
-- **Main quest and side quest:** separate fields of up to 140 characters for current pursuits.
-- Legacy pantry choices remain in stored JSON for compatibility; no pantry section is displayed or editable.
+- Click the familiar image to open its owner-only picker. Artwork controls react on hover, focus, and press, respecting reduced motion. Save preserves other identity fields; Cancel and retry after errors are supported.
+- The portrait picker is titled “Who are you?” and shows character names on hover/focus (always on touch). Its grid expands without internal scrolling; the outer overlay remains scrollable when the viewport cannot fit all portraits.
+- The dialog shows the portrait grid with the Name editor beneath it, followed by shared Save changes and Cancel actions; there are no tabs. Cancel discards both drafts. Name errors and the 30-day cooldown explanation stay inline, and portrait changes remain available during a name cooldown.
+- Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover/focus and always on touchscreens. The selected portrait appears in public profile details. Assets live in `src/assets/familiars/` and map to stable IDs through `src/theme/familiarArtwork.ts`.
+- **Main quest and side quest:** temporarily non-editable Coming soon placeholders. Existing saved values remain in profile JSON but are not displayed.
+- Sign and familiar pickers are titled “What's your sign?” and “Who's your familiar?” No profile modal has a Reset button. Profile modal footers have no horizontal dividers.
+- Pin recipe/Change pinned recipe lives beside the Recipes collection heading and offers published recipes plus No pinned recipe. Focused editors preserve unrelated fields; there is no general customization menu.
+- Legacy Tenet and pantry values remain in stored JSON for compatibility; neither is displayed or editable.
 - **Signature creation:** one of the cook's own published recipes, featured above the collection.
-- Existing avatar presets and bio remain available; bio copy encourages kitchen lore.
+- Existing avatar presets and the 500-character bio remain available. The About editor shares the read view's width and typography and shows the full existing text immediately, without a height cap or internal scrolling. A text mirror keeps its height responsive while editing; bio copy encourages kitchen lore.
 
 ## Public and owner views
 
 - Visitors see the sanctuary, identity, creative details, optional signature recipe,
   and published recipe grimoire. The redundant single Recipes tab is removed.
-- Owners additionally see Customize sanctuary and private Recipes/Drafts/Saved navigation.
+- Owners switch between Recipes and Saved in a full-width, equal two-column tab-style row with centered labels, small counts, and an active underline, without icons or descriptions. Saved remains private, with a screen-reader privacy description. Drafts stay in the account menu at `/drafts`.
+- Saved is selected with `?collection=saved` on the owner's profile URL through its collection panels; there is no Saved recipes menu item. Legacy `/saved` links redirect there after sign-in. Recipe overlays preserve the selected collection when opened and closed.
+- Drafts uses the viewer's light/dark Sanctuary banner and is labeled “Drafts” in the menu. Dialog backdrops dismiss on click unless a save is pending; clicks inside the content do not dismiss.
+- Sharing lives in the artwork banner. The bio is a quiet “A note from the chef” section beside the portrait; owners click the text area to edit, with keyboard activation and full-length inline editing.
+- Birthsign artwork stays in a 3:2 frame rather than stretching to the bio height. The banner portrait uses a thin antique-brass rim with delicate etched arcs. The username is bottom-aligned and slightly overlaps its right edge. Hover brightens the artwork itself instead of outlining its border.
+- The Witch portrait is retired from the picker and random signup assignment; existing saved portraits remain compatible.
 - Saved collections and draft titles are never rendered for visitors. Public recipe
   cards have no inert edit menu. Recipe titles support keyboard activation.
 - Public totals are published-recipe counts and their real community saves; no fake
@@ -40,8 +53,8 @@ labels and cooking instructions remain clear and practical.
 `UserProfile.kitchenIdentity` is optional JSON. Older profiles use safe defaults.
 The form previews changes locally; Cancel discards them. Successful owner-authenticated
 backend writes update local caches and both public-profile lookup maps. Failed writes
-keep the choices in the editor and offer another save attempt. Reset choices changes
-only the form until saved.
+keep the choices in the editor and offer another save attempt. Remove a pinned
+recipe by selecting No pinned recipe and saving.
 
 The new field requires an Amplify backend deployment and refreshed outputs. Cognito's
 immutable attribute schema is unchanged. Local browser visual checks use fixture data
@@ -51,8 +64,8 @@ mocked persistence tests, not a live deployment.
 ## Verification
 
 - Public/private rendering and removal of the single Recipes tab.
-- Birthsign, Sanctuary, named familiar, Tenet, main and side quests, and signature selection; legacy pantry preservation without pantry UI.
-- Cancel/reset staging, failed-save retention, and successful save feedback.
+- Birthsign, Sanctuary, named familiar, main and side quests, and signature selection; legacy Tenet and pantry preservation without their former UI.
+- Cancel staging, failed-save retention, and successful save feedback.
 - Legacy/malformed JSON normalization and preservation through unrelated profile edits.
 - Owner-authenticated, paginated backend lookups and failure propagation.
 - Desktop/mobile visual checks, dialog Escape behavior, and signature recipe navigation.

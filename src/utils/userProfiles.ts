@@ -26,7 +26,6 @@ export const DEFAULT_AVATAR_FILES = [
   'oswin.webp',
   'warlock.webp',
   'juniper.webp',
-  'witch.webp',
   'muur.webp',
   'shopkeeper.webp',
   'ysra.webp',
