@@ -16,7 +16,7 @@ histories. Avoid cheerful magic slogans or borrowed franchise lore. Functional
 labels and cooking instructions remain clear and practical.
 
 - **Birthsign:** The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, or The Mage. The selected Birthsign controls the application palette. Existing stored theme IDs remain compatible; names follow this order. The Mage uses mulberry, the Witch muted yellow-green, and the Sorcerer crimson/deep blue with pale blue reading surfaces.
-- Birthsign selection uses uncropped 3:2 cards with names on hover/focus and always on touchscreens. The complete rectangular artwork behind the portrait uses contain sizing without an oval mask or faded edges. Click that background to choose a Birthsign; click the portrait itself to open “Who are you?” without a separate camera button.
+- Birthsign selection uses uncropped 3:2 cards with names on hover/focus and always on touchscreens. Click the rectangular artwork beside the bio to choose a Birthsign. Only the outer 3% of the saved artwork's edges are feathered to blend into the background; its interior remains fully opaque and picker cards remain unfaded. The portrait lives in the banner; clicking it opens “Who are you?” without a separate camera button.
 - **Sanctuary:** The Library, The Cottage, The Inn, The Garden, The Observatory, or The Manor. Click the profile banner to open its focused picker; Share remains an independent action. The existing `calling` field and option IDs remain compatible.
 - Sanctuary selection uses local 3:1 light/dark artwork pairs. Overlapping image layers follow the device's `prefers-color-scheme` and crossfade when it changes. All six pairs live in `src/assets/sanctuaries/` and map to stable `calling` IDs through `src/theme/sanctuaryArtwork.ts`.
 - The selected artwork is the Sanctuary indicator on profiles; do not repeat its icon or name as an identity tag. Discover and Build use the signed-in viewer's Sanctuary artwork in their banners.
@@ -38,7 +38,8 @@ labels and cooking instructions remain clear and practical.
 - Owners switch between two collection panels: Recipes (their published work) and Saved (private inspiration), with counts and descriptive labels. Drafts stay in the account menu at `/drafts`.
 - Saved is selected with `?collection=saved` on the owner's profile URL. The menu shortcut opens that collection; legacy `/saved` links redirect there after sign-in. Recipe overlays preserve the selected collection when opened and closed.
 - Drafts uses the viewer's light/dark Sanctuary banner and is labeled “Drafts” in the menu. Dialog backdrops dismiss on click unless a save is pending; clicks inside the content do not dismiss.
-- Sharing lives in the artwork banner. The bio is a quiet “A note from the cook” section beside the portrait, with seamless full-length inline editing.
+- Sharing lives in the artwork banner. The bio is a quiet “A note from the chef” section beside the portrait; owners click the text area to edit, with keyboard activation and full-length inline editing.
+- Birthsign artwork stays in a 3:2 frame rather than stretching to the bio height. The banner portrait uses a thin antique-brass rim with delicate etched arcs. The username is bottom-aligned and slightly overlaps its right edge. Hover brightens the artwork itself instead of outlining its border.
 - The Witch portrait is retired from the picker and random signup assignment; existing saved portraits remain compatible.
 - Saved collections and draft titles are never rendered for visitors. Public recipe
   cards have no inert edit menu. Recipe titles support keyboard activation.

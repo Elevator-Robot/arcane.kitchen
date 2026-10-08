@@ -2,16 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-.ak-artwork-trigger {
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    background-color 180ms ease;
+/* Feather only the outer 3%; keep the artwork's interior fully opaque. */
+.ak-birthsign-soft-edge {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent, #000 3%, #000 97%, transparent),
+    linear-gradient(to bottom, transparent, #000 3%, #000 97%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent, #000 3%, #000 97%, transparent),
+    linear-gradient(to bottom, transparent, #000 3%, #000 97%, transparent);
+  mask-composite: intersect;
 }
 
-.ak-artwork-trigger:hover {
-  box-shadow: inset 0 0 0 2px var(--theme-border-strong);
-  background-color: rgb(255 255 255 / 6%);
+.ak-portrait-medallion {
+  padding: 3px;
+  border-radius: 50%;
+  background: linear-gradient(
+    145deg,
+    #dbc18a,
+    #695239 32%,
+    #b49a66 55%,
+    #403326 80%,
+    #c6ab76
+  );
+  box-shadow:
+    0 3px 12px rgb(0 0 0 / 22%),
+    inset 0 0 0 1px #695239;
+}
+
+.ak-portrait-medallion > img {
+  box-shadow: 0 0 0 1px #30281f;
+}
+
+.ak-portrait-engraving {
+  position: absolute;
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  color: #cdb887;
+  pointer-events: none;
+}
+
+.ak-artwork-trigger {
+  transition: transform 180ms ease;
+}
+
+.ak-artwork-trigger img,
+.ak-artwork-surface > img {
+  transition: filter 180ms ease;
+}
+
+.ak-artwork-trigger:hover img,
+.ak-artwork-trigger:focus-visible img,
+.ak-artwork-surface:has(> .ak-artwork-trigger:hover) > img,
+.ak-artwork-surface:has(> .ak-artwork-trigger:focus-visible) > img,
+.ak-artwork-surface:has(> .ak-artwork-trigger:hover)
+  > .ak-color-scheme-image
+  img,
+.ak-artwork-surface:has(> .ak-artwork-trigger:focus-visible)
+  > .ak-color-scheme-image
+  img {
+  filter: brightness(1.12) saturate(1.06);
 }
 
 .ak-artwork-trigger:active {
@@ -81,7 +132,9 @@ textarea.ak-bio-text:focus-visible {
 
 .ak-color-scheme-image > img {
   grid-area: 1 / 1;
-  transition: opacity 480ms ease-in-out;
+  transition:
+    opacity 480ms ease-in-out,
+    filter 180ms ease;
 }
 
 .ak-color-scheme-image-dark {

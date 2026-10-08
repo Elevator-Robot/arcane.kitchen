@@ -87,12 +87,16 @@ function FamiliarArtwork({
 export function SanctuaryBanner({
   identity,
   username,
+  avatarUrl,
+  onChangePortrait,
   actions,
   onCustomize,
   compact = false,
 }: {
   identity: KitchenIdentity;
   username: string;
+  avatarUrl?: string;
+  onChangePortrait?: () => void;
   actions?: ReactNode;
   onCustomize?: () => void;
   compact?: boolean;
@@ -102,7 +106,7 @@ export function SanctuaryBanner({
   const hasArtwork = Boolean(SANCTUARY_ARTWORK[calling.id]);
   return (
     <div
-      className={`relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
+      className={`ak-artwork-surface relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
       style={{ background: theme.background }}
     >
       {hasArtwork ? (
@@ -126,11 +130,7 @@ export function SanctuaryBanner({
           onClick={onCustomize}
           aria-label="Change sanctuary"
           className="ak-artwork-trigger absolute inset-0 z-10 rounded-none"
-        >
-          <span className="ak-artwork-hint absolute bottom-3 right-4 rounded-full bg-black/50 px-3 py-1 text-xs text-white">
-            Change sanctuary
-          </span>
-        </button>
+        ></button>
       )}
       {actions && (
         <div className="pointer-events-none relative z-20 flex flex-wrap justify-end gap-2 [&>*]:pointer-events-auto">
@@ -138,10 +138,56 @@ export function SanctuaryBanner({
         </div>
       )}
       <div
-        className={`pointer-events-none relative min-w-0 ${compact ? 'mt-4' : 'mt-7'}`}
+        className={`pointer-events-none relative z-20 flex min-w-0 items-end ${compact ? 'mt-4' : 'mt-7'}`}
       >
+        <div className="ak-portrait-medallion ak-artwork-surface relative h-24 w-24 shrink-0 sm:h-32 sm:w-32">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={username}
+              loading="lazy"
+              className="h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            <div
+              aria-label={username}
+              className="flex h-full w-full items-center justify-center rounded-full bg-[var(--theme-accent)] text-4xl text-white"
+            >
+              {username.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <svg
+            className="ak-portrait-engraving"
+            viewBox="0 0 128 128"
+            fill="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <circle
+              cx="64"
+              cy="64"
+              r="62"
+              stroke="currentColor"
+              strokeWidth=".7"
+            />
+            <path
+              d="M45 6a61 61 0 0 1 38 0 M122 45a61 61 0 0 1 0 38 M83 122a61 61 0 0 1-38 0 M6 83a61 61 0 0 1 0-38"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+            />
+          </svg>
+          {onChangePortrait && (
+            <button
+              type="button"
+              aria-label="update avatar"
+              onClick={onChangePortrait}
+              className="ak-artwork-trigger pointer-events-auto absolute inset-0 rounded-full"
+            ></button>
+          )}
+        </div>
         <h1
-          className={`ak-banner-title truncate whitespace-nowrap leading-tight ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+          className={`ak-banner-title relative z-10 -ml-6 min-w-0 truncate whitespace-nowrap leading-tight [text-shadow:0_2px_8px_rgb(0_0_0_/_90%)] sm:-ml-7 ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
           title={username}
         >
           {username}
@@ -171,7 +217,7 @@ export function SanctuaryDetails({
     <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-3">
       <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
         <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-          Kitchen familiar
+          Familiar
         </h2>
         {isOwnProfile && onSave ? (
           <button
@@ -189,9 +235,6 @@ export function SanctuaryDetails({
               pictureClassName="block"
               imageClassName="aspect-[3/2] w-full object-cover"
             />
-            <span className="ak-artwork-hint absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-3 pt-6 text-sm text-white">
-              Change familiar
-            </span>
           </button>
         ) : (
           <FamiliarArtwork

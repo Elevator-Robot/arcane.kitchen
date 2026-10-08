@@ -26,7 +26,6 @@ type Props = {
   draftRecipes?: Draft[];
   savedRecipes?: Recipe[];
   onSelectPreset?: (file: string) => void;
-  onShareProfile?: () => void;
   onNewRecipe?: () => void;
   onContinueDraft?: (id: Draft['id']) => void;
   onDeleteDraft?: (id: Draft['id']) => void;
@@ -57,7 +56,6 @@ export default function UserProfileView({
   isOwnProfile = true,
   onProfileUpdated,
   onSelectPreset,
-  onShareProfile,
   onNewRecipe,
   onSaveKitchenIdentity,
 }: Props) {
@@ -76,6 +74,7 @@ export default function UserProfileView({
   const [customizing, setCustomizing] =
     React.useState<ProfileEditSection | null>(null);
   const [savedNotice, setSavedNotice] = React.useState(false);
+  const [showAvatarModal, setShowAvatarModal] = React.useState(false);
   const identity = normalizeKitchenIdentity(user.kitchenIdentity);
   const signature = publishedRecipes.find(
     (recipe) => String(recipe.id) === identity.signatureRecipeId
@@ -88,6 +87,7 @@ export default function UserProfileView({
 
   React.useEffect(() => {
     setCustomizing(null);
+    setShowAvatarModal(false);
     setSavedNotice(false);
   }, [isOwnProfile, user.id]);
 
@@ -98,12 +98,11 @@ export default function UserProfileView({
           <SanctuaryBanner
             identity={identity}
             username={user.handle}
-            actions={
-              <ShareProfileButton
-                username={user.handle}
-                onShare={onShareProfile}
-              />
+            avatarUrl={user.avatarUrl}
+            onChangePortrait={
+              isOwnProfile ? () => setShowAvatarModal(true) : undefined
             }
+            actions={<ShareProfileButton username={user.handle} />}
             onCustomize={
               isOwnProfile && onSaveKitchenIdentity
                 ? () => {
@@ -118,6 +117,8 @@ export default function UserProfileView({
             user={user}
             isOwnProfile={isOwnProfile}
             onSelectPreset={onSelectPreset}
+            showAvatarModal={showAvatarModal}
+            onCloseAvatar={() => setShowAvatarModal(false)}
             onEditBirthsign={
               isOwnProfile && onSaveKitchenIdentity
                 ? () => setCustomizing('theme')

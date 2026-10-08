@@ -70,14 +70,14 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('heading', { name: 'moon_cook', level: 1 })
     ).toHaveClass('truncate', 'whitespace-nowrap');
     expect(
-      screen.getByRole('heading', { name: 'A note from the cook', level: 2 })
+      screen.getByRole('heading', { name: 'A note from the chef', level: 2 })
     ).toBeInTheDocument();
     expect(screen.queryByText('Moon cook')).not.toBeInTheDocument();
     expect(screen.queryByText('The Wanderer')).not.toBeInTheDocument();
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
     expect(screen.queryByText('From this kitchen')).not.toBeInTheDocument();
     const familiarSection = screen
-      .getByRole('heading', { name: 'Kitchen familiar' })
+      .getByRole('heading', { name: 'Familiar' })
       .closest('section');
     expect(
       familiarSection?.querySelector('.ak-color-scheme-image-dark')
@@ -89,14 +89,15 @@ describe('kitchen sanctuary profiles', () => {
 
   it('switches between published and private saved collections without profile drafts', async () => {
     const interaction = userEvent.setup();
-    const share = vi.fn();
+    const copy = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockResolvedValue(undefined);
     render(
       <UserProfileView
         user={user}
         publishedRecipes={recipes}
         savedRecipes={[{ id: 'saved', title: 'Saved supper' }]}
         draftRecipes={[{ id: 'draft', title: 'Private draft' }]}
-        onShareProfile={share}
       />
     );
     const navigation = within(
@@ -118,7 +119,8 @@ describe('kitchen sanctuary profiles', () => {
       screen.getByRole('heading', { name: 'moon_cook' })
     );
     await interaction.click(shareButton);
-    expect(share).toHaveBeenCalledOnce();
+    expect(copy).toHaveBeenCalledWith(expect.stringContaining('/u/moon_cook'));
+    expect(shareButton).toHaveTextContent('Copied!');
     await interaction.click(
       screen.getByRole('button', { name: 'update avatar' })
     );

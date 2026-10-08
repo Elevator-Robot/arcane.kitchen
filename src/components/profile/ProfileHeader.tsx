@@ -26,6 +26,8 @@ type Props = {
   isOwnProfile?: boolean;
   onSelectPreset?: (file: string) => void;
   onEditBirthsign?: () => void;
+  showAvatarModal?: boolean;
+  onCloseAvatar?: () => void;
   onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
 };
 
@@ -34,11 +36,15 @@ export default function ProfileHeader({
   isOwnProfile = true,
   onSelectPreset,
   onEditBirthsign,
+  showAvatarModal = false,
+  onCloseAvatar,
   onProfileUpdated,
 }: Props) {
-  const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [actionColor] = useState(randomMerlinColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  useEffect(() => {
+    if (showAvatarModal) setSelectedPreset(null);
+  }, [showAvatarModal]);
   const [isEditingHandle, setIsEditingHandle] = useState(false);
   const [draftHandle, setDraftHandle] = useState(user.handle || '');
   const [draftBio, setDraftBio] = useState(user.bio || '');
@@ -71,7 +77,7 @@ export default function ProfileHeader({
     <div className="p-4 sm:p-6 md:p-8">
       <div className="flex flex-col items-stretch gap-6 md:flex-row md:items-start md:justify-between">
         <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-0">
-          <div className="relative isolate flex min-h-60 w-full shrink-0 items-center justify-center self-stretch sm:w-64">
+          <div className="ak-artwork-surface relative isolate aspect-[3/2] w-full shrink-0 self-start sm:w-72 lg:w-80">
             <img
               src={
                 BIRTHSIGN_ARTWORK[
@@ -82,7 +88,7 @@ export default function ProfileHeader({
               }
               alt=""
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+              className="ak-birthsign-soft-edge pointer-events-none absolute inset-0 h-full w-full object-contain"
             />
             {isOwnProfile && onEditBirthsign && (
               <button
@@ -96,60 +102,14 @@ export default function ProfileHeader({
                 </span>
               </button>
             )}
-            <div className="pointer-events-none relative">
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.handle}
-                  loading="lazy"
-                  className="pointer-events-none relative h-32 w-32 rounded-full border-4 border-[var(--theme-surface)] object-cover shadow-md sm:h-40 sm:w-40"
-                />
-              ) : (
-                <div
-                  aria-label={user.handle}
-                  className="pointer-events-none relative flex h-32 w-32 items-center justify-center rounded-full border-4 border-[var(--theme-surface)] bg-[var(--theme-accent)] text-4xl font-semibold text-white shadow-md sm:h-40 sm:w-40"
-                >
-                  {(user.handle || user.name || 'C').charAt(0).toUpperCase()}
-                </div>
-              )}
-              {isOwnProfile && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedPreset(null);
-                    setShowAvatarModal(true);
-                  }}
-                  className="ak-artwork-trigger pointer-events-auto absolute inset-0 rounded-full"
-                  aria-label="update avatar"
-                >
-                  <span className="ak-artwork-hint absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/65 px-2 py-1 text-xs text-white">
-                    Change portrait
-                  </span>
-                </button>
-              )}
-            </div>
           </div>
 
           <div className="min-w-0 w-full text-left">
             <section className="py-1 sm:pl-6 sm:border-l border-[var(--theme-border)]">
               <div className="flex min-h-9 items-center justify-between gap-3">
                 <h2 className="font-heading text-xl text-[var(--theme-text)]">
-                  A note from the cook
+                  A note from the chef
                 </h2>
-                {isOwnProfile && !isEditingBio && (
-                  <button
-                    type="button"
-                    aria-label="edit bio"
-                    className="ak-button-ghost inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs"
-                    onClick={() => {
-                      setDraftBio(user.bio || '');
-                      setIsEditingBio(true);
-                    }}
-                  >
-                    <Edit2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    Edit
-                  </button>
-                )}
               </div>
               <div className="mt-3">
                 <div className="relative">
@@ -164,6 +124,18 @@ export default function ProfileHeader({
                         ? 'Add a little lore about your kitchen.'
                         : 'Letting the recipes tell the story.')}
                   </p>
+                  {isOwnProfile && !isEditingBio && (
+                    <button
+                      type="button"
+                      aria-label="edit bio"
+                      title="Click to edit your note"
+                      className="absolute inset-0 w-full cursor-text rounded-sm bg-transparent transition-colors hover:bg-[var(--theme-focus)]"
+                      onClick={() => {
+                        setDraftBio(user.bio || '');
+                        setIsEditingBio(true);
+                      }}
+                    />
+                  )}
                   {isEditingBio && isOwnProfile && (
                     <textarea
                       ref={bioInputRef}
@@ -327,14 +299,14 @@ export default function ProfileHeader({
       {showAvatarModal && isOwnProfile && (
         <AccessibleDialog
           label="Who are you?"
-          onClose={() => setShowAvatarModal(false)}
+          onClose={() => onCloseAvatar?.()}
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm"
         >
           <div className="my-auto w-full max-w-3xl shrink-0 rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-4 shadow-cozy-lg">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Who are you?</h3>
               <button
-                onClick={() => setShowAvatarModal(false)}
+                onClick={() => onCloseAvatar?.()}
                 aria-label="Close avatar picker"
                 className="ak-button-ghost rounded-full p-2"
               >
@@ -351,7 +323,7 @@ export default function ProfileHeader({
               <div className="mt-4 flex justify-end gap-3">
                 <button
                   onClick={() => {
-                    setShowAvatarModal(false);
+                    onCloseAvatar?.();
                     setSelectedPreset(null);
                   }}
                   className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
@@ -363,7 +335,7 @@ export default function ProfileHeader({
                   onClick={() => {
                     if (selectedPreset && onSelectPreset) {
                       onSelectPreset(selectedPreset);
-                      setShowAvatarModal(false);
+                      onCloseAvatar?.();
                     }
                   }}
                   style={{ backgroundColor: actionColor }}
