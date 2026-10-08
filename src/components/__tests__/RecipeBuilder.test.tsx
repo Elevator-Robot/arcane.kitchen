@@ -1086,8 +1086,12 @@ describe('RecipeBuilder Component', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /test/i }));
+    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    expect(
+      screen.queryByRole('link', { name: 'Saved recipes' })
+    ).not.toBeInTheDocument();
     await user.click(
-      await screen.findByRole('link', { name: 'Saved recipes' })
+      await screen.findByRole('button', { name: 'Saved', exact: true })
     );
 
     expect(await screen.findByText('Saved recipes')).toBeInTheDocument();

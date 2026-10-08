@@ -78,7 +78,7 @@ Authentication submission:
 - Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
 - Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
 - Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
-- Account menus link Saved recipes to the owner's `/u/:username?collection=saved` collection and label `/drafts` as “Drafts.” Legacy `/saved` links redirect signed-in users to that profile collection while preserving recipe parameters; guests receive a sign-in invitation.
+- Account menus include Profile and Drafts, with no separate Saved recipes item. Saved is accessed from the profile collection panels. Legacy `/saved` links redirect signed-in users to `/u/:username?collection=saved` while preserving recipe parameters; guests receive a sign-in invitation.
 - All `AccessibleDialog` overlays dismiss on backdrop click by default, alongside keyboard containment, Escape dismissal, and focus restoration. Clicks within dialog content do not dismiss it; existing pending-save guards still apply.
 - Discover distinguishes request failures (with Retry), empty collections, empty filters (with Clear all filters), and successful search counts. Search covers recipe text, tags, and authors; it does not claim to index ingredient records.
 - Nonempty drafts autosave without requiring a photo or ingredients, and the debounce survives navigation between workspace views. Browser refresh/unmount during the debounce is still a follow-up.

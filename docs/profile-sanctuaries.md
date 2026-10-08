@@ -36,7 +36,7 @@ labels and cooking instructions remain clear and practical.
 - Visitors see the sanctuary, identity, creative details, optional signature recipe,
   and published recipe grimoire. The redundant single Recipes tab is removed.
 - Owners switch between two collection panels: Recipes (their published work) and Saved (private inspiration), with counts and descriptive labels. Drafts stay in the account menu at `/drafts`.
-- Saved is selected with `?collection=saved` on the owner's profile URL. The menu shortcut opens that collection; legacy `/saved` links redirect there after sign-in. Recipe overlays preserve the selected collection when opened and closed.
+- Saved is selected with `?collection=saved` on the owner's profile URL through its collection panels; there is no Saved recipes menu item. Legacy `/saved` links redirect there after sign-in. Recipe overlays preserve the selected collection when opened and closed.
 - Drafts uses the viewer's light/dark Sanctuary banner and is labeled “Drafts” in the menu. Dialog backdrops dismiss on click unless a save is pending; clicks inside the content do not dismiss.
 - Sharing lives in the artwork banner. The bio is a quiet “A note from the chef” section beside the portrait; owners click the text area to edit, with keyboard activation and full-length inline editing.
 - Birthsign artwork stays in a 3:2 frame rather than stretching to the bio height. The banner portrait uses a thin antique-brass rim with delicate etched arcs. The username is bottom-aligned and slightly overlaps its right edge. Hover brightens the artwork itself instead of outlining its border.

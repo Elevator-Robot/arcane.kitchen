@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bookmark, FilePenLine } from 'lucide-react';
+import { FilePenLine } from 'lucide-react';
 import { randomMerlinColor } from '../theme/merlinPalette';
 import Button from './ui/Button';
 
@@ -133,14 +133,6 @@ export default function ProfileDropdown({
             </svg>
             Profile
           </Button>
-          <Link
-            to={`${profilePath}?collection=saved`}
-            onClick={() => setOpen(false)}
-            className="ak-menu-item"
-          >
-            <Bookmark className="h-4 w-4" aria-hidden="true" />
-            Saved recipes
-          </Link>
           <Link
             to="/drafts"
             onClick={() => setOpen(false)}
