@@ -104,6 +104,7 @@ Authentication submission:
 - Discover and Build are not global navigation tabs. The recipe explorer is the home surface, its search row owns the responsive `Create recipe` action, and the editor header owns the contextual `Back to recipes` action.
 - The Discover search bar groups standard search, clear, and newest/oldest sort controls in one responsive surface; sorting is a labeled icon toggle rather than a separate select.
 - Discover opens directly with search, Create recipe, filters, and the feed; there is no promotional welcome card above the search controls.
+- The Emporium banner (`.ak-discover-intro`) must not shrink in its scrolling flex column. Keep `flex-shrink: 0` so long feeds cannot collapse the banner and clip search controls.
 - Discover filters come only from tags on loaded community recipes. There are no All/Favorites/New/My recipes shortcut chips or New card badges. Selecting an active tag again clears it; names such as “All” are valid ordinary community tags. Counts deduplicate each recipe's tags case-insensitively.
 - Primary content uses centered `max-w-6xl` rails where practical; profile cards use shared theme tokens, profile identity stacks on narrow screens, and forms/body copy remain left-aligned for readability.
 

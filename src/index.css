@@ -338,6 +338,7 @@ textarea.ak-bio-text:focus-visible {
 
   .ak-discover-intro {
     position: relative;
+    flex-shrink: 0;
     isolation: isolate;
     overflow: hidden;
     padding: clamp(1rem, 3vw, 1.75rem);
