@@ -15,11 +15,17 @@ export default function ActivityPanel({
   loading,
   unavailable,
   actorById,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }: {
   entries: AdminAuditEntry[];
   loading: boolean;
   unavailable: boolean;
   actorById: Map<string, AdminUserProfile>;
+  hasMore: boolean;
+  loadingMore: boolean;
+  onLoadMore: () => void;
 }) {
   if (unavailable) {
     return (
@@ -65,6 +71,18 @@ export default function ActivityPanel({
         <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">
           No admin actions recorded yet.
         </p>
+      )}
+      {hasMore && entries.length > 0 && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="ak-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -112,11 +112,25 @@ export default function AdminDashboard({
       }
     );
   };
+  const AUDIT_PAGE_SIZE = 20;
   const [auditEntries, setAuditEntries] = useState<AdminAuditEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
+  const [auditNextToken, setAuditNextToken] = useState<string | null>(null);
+  const [auditLoadingMore, setAuditLoadingMore] = useState(false);
   const [auditRequested, setAuditRequested] = useState(false);
   const [auditUnavailable, setAuditUnavailable] = useState(false);
   const auditRequest = useRef(0);
+  const auditMoreInFlight = useRef(false);
+
+  const readAuditPage = useCallback(
+    (nextToken?: string) =>
+      client.models.AdminAuditLog.list({
+        authMode: 'userPool',
+        limit: AUDIT_PAGE_SIZE,
+        nextToken,
+      }),
+    []
+  );
 
   const loadAuditLog = useCallback(async () => {
     if (!isAuthenticated || !isAdmin) return;
@@ -129,12 +143,17 @@ export default function AdminDashboard({
         if (requestId === auditRequest.current) setAuditUnavailable(true);
         return;
       }
-      const data = await readAllAdminPages<AdminAuditEntry>((nextToken) =>
-        client.models.AdminAuditLog.list({ authMode: 'userPool', nextToken })
-      );
+      const result = await readAuditPage();
       if (requestId !== auditRequest.current) return;
+      if (result.errors?.length)
+        throw new Error(
+          result.errors
+            .map((error: { message: string }) => error.message)
+            .join('; ')
+        );
       setAuditUnavailable(false);
-      setAuditEntries(data);
+      setAuditEntries(Array.isArray(result.data) ? result.data : []);
+      setAuditNextToken(result.nextToken || null);
     } catch (loadError) {
       if (requestId !== auditRequest.current) return;
       console.error('Failed to load admin activity log:', loadError);
@@ -142,7 +161,33 @@ export default function AdminDashboard({
     } finally {
       if (requestId === auditRequest.current) setAuditLoading(false);
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, readAuditPage]);
+
+  const loadMoreAuditLog = useCallback(async () => {
+    if (!auditNextToken || auditMoreInFlight.current) return;
+    const requestId = ++auditRequest.current;
+    auditMoreInFlight.current = true;
+    setAuditLoadingMore(true);
+    try {
+      const result = await readAuditPage(auditNextToken);
+      if (requestId !== auditRequest.current) return;
+      if (result.errors?.length)
+        throw new Error(
+          result.errors
+            .map((error: { message: string }) => error.message)
+            .join('; ')
+        );
+      setAuditEntries((current) => [...current, ...(result.data ?? [])]);
+      setAuditNextToken(result.nextToken || null);
+    } catch (loadError) {
+      if (requestId !== auditRequest.current) return;
+      console.error('Failed to load more admin activity:', loadError);
+      setError((current) => current ?? errorText(loadError));
+    } finally {
+      auditMoreInFlight.current = false;
+      if (requestId === auditRequest.current) setAuditLoadingMore(false);
+    }
+  }, [auditNextToken, readAuditPage]);
 
   const loadContent = useCallback(async () => {
     if (!isAuthenticated || !isAdmin || actionInFlight.current) return;
@@ -963,6 +1008,9 @@ export default function AdminDashboard({
                         loading={auditLoading}
                         unavailable={auditUnavailable}
                         actorById={ownerById}
+                        hasMore={Boolean(auditNextToken)}
+                        loadingMore={auditLoadingMore}
+                        onLoadMore={() => void loadMoreAuditLog()}
                       />
                     )}
                   </fieldset>

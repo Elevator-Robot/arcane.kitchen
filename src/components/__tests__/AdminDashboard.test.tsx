@@ -399,6 +399,7 @@ describe('admin console workflows', () => {
     expect(screen.getByText('Banned account')).toBeInTheDocument();
     expect(mocks.auditLogs).toHaveBeenCalledWith({
       authMode: 'userPool',
+      limit: 20,
       nextToken: undefined,
     });
 
@@ -408,5 +409,63 @@ describe('admin console workflows', () => {
     );
     expect(screen.getByText('Transferred ownership')).toBeInTheDocument();
     expect(screen.queryByText('Banned account')).not.toBeInTheDocument();
+  });
+
+  it('pages the activity log by nextToken through Load more', async () => {
+    const user = userEvent.setup();
+    mocks.auditLogs
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 'a1',
+            actorUserId: 'u1',
+            action: 'transferOwnership',
+            targetType: 'RecipeBatch',
+            targetId: 'r1',
+            createdAt: '2026-01-01T10:00:00.000Z',
+          },
+        ],
+        nextToken: 'audit-page-2',
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 'a2',
+            actorUserId: 'u2',
+            action: 'ban',
+            targetType: 'UserProfile',
+            targetId: 'u4',
+            createdAt: '2026-01-02T11:00:00.000Z',
+          },
+        ],
+        nextToken: undefined,
+      });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: 'Activity log' }));
+
+    expect(
+      await screen.findByText('Transferred ownership')
+    ).toBeInTheDocument();
+    expect(mocks.auditLogs).toHaveBeenCalledTimes(1);
+    expect(mocks.auditLogs).toHaveBeenCalledWith({
+      authMode: 'userPool',
+      limit: 20,
+      nextToken: undefined,
+    });
+
+    const loadMore = screen.getByRole('button', { name: 'Load more' });
+    await user.click(loadMore);
+    expect(await screen.findByText('Banned account')).toBeInTheDocument();
+    expect(mocks.auditLogs).toHaveBeenCalledTimes(2);
+    expect(mocks.auditLogs).toHaveBeenLastCalledWith({
+      authMode: 'userPool',
+      limit: 20,
+      nextToken: 'audit-page-2',
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Load more' })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Transferred ownership')).toBeInTheDocument();
   });
 });
