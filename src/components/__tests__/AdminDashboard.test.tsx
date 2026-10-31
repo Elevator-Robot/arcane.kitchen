@@ -285,4 +285,27 @@ describe('admin console workflows', () => {
       within(row).getByRole('button', { name: 'Unban' })
     ).toBeInTheDocument();
   });
+
+  it('exposes labelled 44px rail targets and shows the active panel title in the header', async () => {
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+
+    const recipesRail = screen.getByRole('button', { name: 'Recipes · 12' });
+    const commentsRail = screen.getByRole('button', { name: 'Comments · 1' });
+    const usersRail = screen.getByRole('button', { name: 'Users · 2' });
+
+    for (const railButton of [recipesRail, commentsRail, usersRail]) {
+      expect(railButton).toHaveClass('min-h-11', 'min-w-11');
+      expect(
+        within(railButton).getByRole('tooltip', { hidden: true })
+      ).toBeInTheDocument();
+    }
+
+    expect(recipesRail).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(usersRail);
+    expect(
+      screen.getByRole('heading', { name: 'Users', level: 2 })
+    ).toBeInTheDocument();
+    expect(usersRail).toHaveAttribute('aria-pressed', 'true');
+  });
 });

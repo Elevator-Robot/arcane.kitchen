@@ -19,7 +19,7 @@ import ProfileDropdown from './ProfileDropdown';
 import SanctuaryHeading from './ui/SanctuaryHeading';
 import { sanctuaryThemeStyle } from '../theme/sanctuaryTheme';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
-import Stat from './admin/Stat';
+import AdminRail from './admin/AdminRail';
 import RecipesPanel from './admin/RecipesPanel';
 import CommentsPanel from './admin/CommentsPanel';
 import UsersPanel from './admin/UsersPanel';
@@ -526,18 +526,22 @@ export default function AdminDashboard({
       ? recipes.length
       : tab === 'comments'
         ? comments.length
-        : users.length;
+        : tab === 'users'
+          ? users.length
+          : users.length;
   const filteredCount =
     tab === 'recipes'
       ? filteredRecipes.length
       : tab === 'comments'
         ? filteredComments.length
-        : filteredUsers.length;
+        : tab === 'users'
+          ? filteredUsers.length
+          : filteredUsers.length;
   const pageSize = 10;
   const pages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
-  const selectTab = (next: typeof tab) => {
+  const selectTab = (next: Tab) => {
     setTab(next);
     setSearch('');
     setStatusFilter('All');
@@ -621,332 +625,331 @@ export default function AdminDashboard({
             title="Moderation desk"
             description="Find a recipe, follow a conversation, or look after the cooks in your community."
           />
-          <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-4">
-            <Stat
-              label="Recipes"
-              value={recipes.length}
-              active={tab === 'recipes'}
-              onClick={() => selectTab('recipes')}
-              loading={
-                !loadedOnce ||
-                (failedCollections.includes('recipes') && !recipes.length)
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+            <AdminRail
+              active={tab}
+              counts={
+                loadedOnce && !failedCollections.length
+                  ? {
+                      recipes: recipes.length,
+                      comments: comments.length,
+                      users: users.length,
+                    }
+                  : {}
               }
+              onSelect={selectTab}
             />
-            <Stat
-              label="Comments"
-              value={comments.length}
-              active={tab === 'comments'}
-              onClick={() => selectTab('comments')}
-              loading={
-                !loadedOnce ||
-                (failedCollections.includes('comments') && !comments.length)
-              }
-            />
-            <Stat
-              label="Users"
-              value={users.length}
-              active={tab === 'users'}
-              onClick={() => selectTab('users')}
-              loading={
-                !loadedOnce ||
-                (failedCollections.includes('users') && !users.length) ||
-                userListUnavailable
-              }
-            />
-          </div>
-          {error && (
-            <div
-              role="alert"
-              className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800"
-            >
-              {error}
-              {failedCollections.length > 0 && (
-                <p className="mt-2">
-                  Previously loaded records are kept where available. Use
-                  Refresh to try again.
-                </p>
+            <div className="min-w-0 flex-1">
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800"
+                >
+                  {error}
+                  {failedCollections.length > 0 && (
+                    <p className="mt-2">
+                      Previously loaded records are kept where available. Use
+                      Refresh to try again.
+                    </p>
+                  )}
+                </div>
+              )}
+              <section className="ak-panel p-4 sm:p-6">
+                {success && (
+                  <div
+                    role="status"
+                    className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+                  >
+                    <span>{success}</span>
+                    <button
+                      type="button"
+                      onClick={() => setSuccess('')}
+                      aria-label="Dismiss confirmation"
+                      className="ak-button-ghost rounded-lg p-2"
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl">
+                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </h2>
+                    <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                      {lastRefreshed
+                        ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Admin access`
+                        : 'Live community records · Admin access'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      void loadContent();
+                    }}
+                    disabled={loading || pendingUserAction !== null}
+                    className="ak-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
+                  >
+                    {loading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <label className="ak-input flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3">
+                    <Search
+                      className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)]"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">Search {tab}</span>
+                    <input
+                      aria-label={`Search ${tab}`}
+                      value={search}
+                      onChange={(event) => {
+                        setSearch(event.target.value);
+                        setPage(1);
+                      }}
+                      placeholder={
+                        tab === 'users'
+                          ? 'Name, handle, email, or user ID'
+                          : tab === 'recipes'
+                            ? 'Recipe, author, or ID'
+                            : 'Comment, author, recipe ID, or user ID'
+                      }
+                      className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                    />
+                    {search && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        onClick={() => {
+                          setSearch('');
+                          setPage(1);
+                        }}
+                        className="ak-button-ghost rounded-lg p-2"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[var(--theme-text-muted)]">
+                    <span>
+                      {tab === 'users' ? 'Account state' : 'Visibility'}
+                    </span>
+                    <select
+                      value={statusFilter}
+                      onChange={(event) => {
+                        setStatusFilter(event.target.value);
+                        setPage(1);
+                      }}
+                      className="ak-input min-h-11 rounded-xl px-3 py-2"
+                    >
+                      {(tab === 'users'
+                        ? [
+                            'All',
+                            'Active',
+                            'Banned',
+                            'Disabled',
+                            'Content hidden',
+                            'Deleted',
+                          ]
+                        : ['All', 'Visible', 'Hidden']
+                      ).map((value) => (
+                        <option key={value}>{value}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {pendingUserAction && (
+                  <p
+                    role="status"
+                    className="mt-4 text-sm text-[var(--theme-accent)]"
+                  >
+                    Applying changes…
+                  </p>
+                )}
+                {loading && (
+                  <p
+                    role="status"
+                    className="mt-4 text-sm text-[var(--theme-text-muted)]"
+                  >
+                    {loadedOnce
+                      ? 'Refreshing collections…'
+                      : 'Loading admin workspace…'}
+                  </p>
+                )}
+                {loadedOnce && !contentUnavailable && (
+                  <p className="mt-4 text-xs text-[var(--theme-text-muted)]">
+                    {filteredCount} of {total} {tab}
+                    {(search || statusFilter !== 'All') && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="ml-3 font-semibold text-[var(--theme-accent)] underline underline-offset-4"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </p>
+                )}
+                {contentUnavailable ? (
+                  <div className="ak-empty-state">
+                    <h3 className="text-xl">
+                      This collection couldn’t be loaded
+                    </h3>
+                    <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                      Refresh to try again.
+                    </p>
+                  </div>
+                ) : loadedOnce &&
+                  !filteredCount &&
+                  (search || statusFilter !== 'All') ? (
+                  <div className="ak-empty-state">
+                    <h3 className="text-xl">No matching {tab}</h3>
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="ak-button-secondary mt-4 rounded-xl px-4 py-2 text-sm"
+                    >
+                      Show all {tab}
+                    </button>
+                  </div>
+                ) : (
+                  <fieldset
+                    disabled={pendingUserAction !== null || loading}
+                    className="min-w-0"
+                  >
+                    {tab === 'recipes' && (
+                      <RecipesPanel
+                        recipes={filteredRecipes.slice(start, start + pageSize)}
+                        editingRecipe={editingRecipe}
+                        recipeForm={recipeForm}
+                        setEditingRecipe={setEditingRecipe}
+                        setRecipeForm={setRecipeForm}
+                        saveRecipe={saveRecipe}
+                        removeRecipe={removeRecipe}
+                        loading={loading || !loadedOnce}
+                      />
+                    )}
+                    {tab === 'comments' && (
+                      <CommentsPanel
+                        comments={filteredComments.slice(
+                          start,
+                          start + pageSize
+                        )}
+                        editingComment={editingComment}
+                        commentForm={commentForm}
+                        setEditingComment={setEditingComment}
+                        setCommentForm={setCommentForm}
+                        saveComment={saveComment}
+                        removeComment={removeComment}
+                        loading={loading || !loadedOnce}
+                      />
+                    )}
+                    {tab === 'users' && (
+                      <UsersPanel
+                        users={filteredUsers.slice(start, start + pageSize)}
+                        loading={loading || !loadedOnce}
+                        unavailable={userListUnavailable}
+                        onModerateUser={moderateUser}
+                        pendingUserAction={pendingUserAction}
+                      />
+                    )}
+                  </fieldset>
+                )}
+                {loadedOnce && filteredCount > 0 && (
+                  <nav
+                    aria-label="Collection pages"
+                    className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-4 text-sm"
+                  >
+                    <p className="text-[var(--theme-text-muted)]">
+                      Showing {start + 1}–
+                      {Math.min(start + pageSize, filteredCount)} of{' '}
+                      {filteredCount}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        aria-label="Previous page"
+                        disabled={currentPage === 1}
+                        onClick={() => setPage(currentPage - 1)}
+                        className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span>
+                        Page {currentPage} of {pages}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Next page"
+                        disabled={currentPage >= pages}
+                        onClick={() => setPage(currentPage + 1)}
+                        className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </nav>
+                )}
+              </section>
+              {tab === 'recipes' && (
+                <section className="ak-panel mt-6 p-6">
+                  <fieldset disabled={pendingUserAction !== null || loading}>
+                    <h2 className="text-xl font-semibold">
+                      Ownership transfer
+                    </h2>
+                    <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                      Assign a recipe to another cook. Its author attribution
+                      will follow the new owner.
+                    </p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                      <select
+                        aria-label="Recipe to transfer"
+                        value={transferRecipeId}
+                        onChange={(event) =>
+                          setTransferRecipeId(event.target.value)
+                        }
+                        className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
+                      >
+                        <option value="">Select a recipe</option>
+                        {recipes.map((recipe) => (
+                          <option key={recipe.id} value={recipe.id}>
+                            {recipe.name} · {recipe.ownerId}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        aria-label="Destination user"
+                        value={transferOwnerId}
+                        onChange={(event) =>
+                          setTransferOwnerId(event.target.value)
+                        }
+                        className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
+                      >
+                        <option value="">Select a destination user</option>
+                        {users.map((user) => (
+                          <option key={user.userId} value={user.userId}>
+                            {user.displayName} · {user.userId}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => void transferOwnership()}
+                        disabled={
+                          !transferRecipeId ||
+                          !transferOwnerId ||
+                          pendingUserAction !== null
+                        }
+                        className="ak-button-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-50"
+                      >
+                        {pendingUserAction === 'transferOwnership'
+                          ? 'Transferring...'
+                          : 'Transfer ownership'}
+                      </button>
+                    </div>
+                  </fieldset>
+                </section>
               )}
             </div>
-          )}
-          <section className="ak-panel mt-6 p-4 sm:p-6">
-            {success && (
-              <div
-                role="status"
-                className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
-              >
-                <span>{success}</span>
-                <button
-                  type="button"
-                  onClick={() => setSuccess('')}
-                  aria-label="Dismiss confirmation"
-                  className="ak-button-ghost rounded-lg p-2"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl capitalize">{tab}</h2>
-                <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                  {lastRefreshed
-                    ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                    : 'Live community records'}{' '}
-                  · Admin access
-                </p>
-              </div>
-              <button
-                onClick={() => void loadContent()}
-                disabled={loading || pendingUserAction !== null}
-                className="ak-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
-              >
-                {loading ? 'Refreshing...' : 'Refresh'}
-              </button>
-            </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <label className="ak-input flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3">
-                <Search
-                  className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)]"
-                  aria-hidden="true"
-                />
-                <span className="sr-only">Search {tab}</span>
-                <input
-                  aria-label={`Search ${tab}`}
-                  value={search}
-                  onChange={(event) => {
-                    setSearch(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder={
-                    tab === 'users'
-                      ? 'Name, handle, email, or user ID'
-                      : tab === 'recipes'
-                        ? 'Recipe, author, or ID'
-                        : 'Comment, author, recipe ID, or user ID'
-                  }
-                  className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    aria-label="Clear search"
-                    onClick={() => {
-                      setSearch('');
-                      setPage(1);
-                    }}
-                    className="ak-button-ghost rounded-lg p-2"
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                )}
-              </label>
-              <label className="flex items-center gap-2 text-sm text-[var(--theme-text-muted)]">
-                <span>{tab === 'users' ? 'Account state' : 'Visibility'}</span>
-                <select
-                  value={statusFilter}
-                  onChange={(event) => {
-                    setStatusFilter(event.target.value);
-                    setPage(1);
-                  }}
-                  className="ak-input min-h-11 rounded-xl px-3 py-2"
-                >
-                  {(tab === 'users'
-                    ? [
-                        'All',
-                        'Active',
-                        'Banned',
-                        'Disabled',
-                        'Content hidden',
-                        'Deleted',
-                      ]
-                    : ['All', 'Visible', 'Hidden']
-                  ).map((value) => (
-                    <option key={value}>{value}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            {pendingUserAction && (
-              <p
-                role="status"
-                className="mt-4 text-sm text-[var(--theme-accent)]"
-              >
-                Applying changes…
-              </p>
-            )}
-            {loading && (
-              <p
-                role="status"
-                className="mt-4 text-sm text-[var(--theme-text-muted)]"
-              >
-                {loadedOnce
-                  ? 'Refreshing collections…'
-                  : 'Loading admin workspace…'}
-              </p>
-            )}
-            {loadedOnce && !contentUnavailable && (
-              <p className="mt-4 text-xs text-[var(--theme-text-muted)]">
-                {filteredCount} of {total} {tab}
-                {(search || statusFilter !== 'All') && (
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="ml-3 font-semibold text-[var(--theme-accent)] underline underline-offset-4"
-                  >
-                    Clear filters
-                  </button>
-                )}
-              </p>
-            )}
-            {contentUnavailable ? (
-              <div className="ak-empty-state">
-                <h3 className="text-xl">This collection couldn’t be loaded</h3>
-                <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-                  Refresh to try again.
-                </p>
-              </div>
-            ) : loadedOnce &&
-              !filteredCount &&
-              (search || statusFilter !== 'All') ? (
-              <div className="ak-empty-state">
-                <h3 className="text-xl">No matching {tab}</h3>
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="ak-button-secondary mt-4 rounded-xl px-4 py-2 text-sm"
-                >
-                  Show all {tab}
-                </button>
-              </div>
-            ) : (
-              <fieldset
-                disabled={pendingUserAction !== null || loading}
-                className="min-w-0"
-              >
-                {tab === 'recipes' && (
-                  <RecipesPanel
-                    recipes={filteredRecipes.slice(start, start + pageSize)}
-                    editingRecipe={editingRecipe}
-                    recipeForm={recipeForm}
-                    setEditingRecipe={setEditingRecipe}
-                    setRecipeForm={setRecipeForm}
-                    saveRecipe={saveRecipe}
-                    removeRecipe={removeRecipe}
-                    loading={loading || !loadedOnce}
-                  />
-                )}
-                {tab === 'comments' && (
-                  <CommentsPanel
-                    comments={filteredComments.slice(start, start + pageSize)}
-                    editingComment={editingComment}
-                    commentForm={commentForm}
-                    setEditingComment={setEditingComment}
-                    setCommentForm={setCommentForm}
-                    saveComment={saveComment}
-                    removeComment={removeComment}
-                    loading={loading || !loadedOnce}
-                  />
-                )}
-                {tab === 'users' && (
-                  <UsersPanel
-                    users={filteredUsers.slice(start, start + pageSize)}
-                    loading={loading || !loadedOnce}
-                    unavailable={userListUnavailable}
-                    onModerateUser={moderateUser}
-                    pendingUserAction={pendingUserAction}
-                  />
-                )}
-              </fieldset>
-            )}
-            {loadedOnce && filteredCount > 0 && (
-              <nav
-                aria-label="Collection pages"
-                className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-4 text-sm"
-              >
-                <p className="text-[var(--theme-text-muted)]">
-                  Showing {start + 1}–
-                  {Math.min(start + pageSize, filteredCount)} of {filteredCount}
-                </p>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    aria-label="Previous page"
-                    disabled={currentPage === 1}
-                    onClick={() => setPage(currentPage - 1)}
-                    className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  <span>
-                    Page {currentPage} of {pages}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Next page"
-                    disabled={currentPage >= pages}
-                    onClick={() => setPage(currentPage + 1)}
-                    className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </nav>
-            )}
-          </section>
-          {tab === 'recipes' && (
-            <section className="ak-panel mt-6 p-6">
-              <fieldset disabled={pendingUserAction !== null || loading}>
-                <h2 className="text-xl font-semibold">Ownership transfer</h2>
-                <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-                  Assign a recipe to another cook. Its author attribution will
-                  follow the new owner.
-                </p>
-                <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                  <select
-                    aria-label="Recipe to transfer"
-                    value={transferRecipeId}
-                    onChange={(event) =>
-                      setTransferRecipeId(event.target.value)
-                    }
-                    className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
-                  >
-                    <option value="">Select a recipe</option>
-                    {recipes.map((recipe) => (
-                      <option key={recipe.id} value={recipe.id}>
-                        {recipe.name} · {recipe.ownerId}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    aria-label="Destination user"
-                    value={transferOwnerId}
-                    onChange={(event) => setTransferOwnerId(event.target.value)}
-                    className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
-                  >
-                    <option value="">Select a destination user</option>
-                    {users.map((user) => (
-                      <option key={user.userId} value={user.userId}>
-                        {user.displayName} · {user.userId}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={() => void transferOwnership()}
-                    disabled={
-                      !transferRecipeId ||
-                      !transferOwnerId ||
-                      pendingUserAction !== null
-                    }
-                    className="ak-button-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-50"
-                  >
-                    {pendingUserAction === 'transferOwnership'
-                      ? 'Transferring...'
-                      : 'Transfer ownership'}
-                  </button>
-                </div>
-              </fieldset>
-            </section>
-          )}
+          </div>
         </div>
       </div>
       {confirmation && (
