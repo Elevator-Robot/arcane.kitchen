@@ -7,7 +7,6 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import AccessibleDialog from './AccessibleDialog';
-import { Link } from 'react-router-dom';
 import {
   matchesAdminSearch,
   readAllAdminPages,
@@ -16,11 +15,21 @@ import {
 } from '../utils/adminConsole';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
-import { randomMerlinColor } from '../theme/merlinPalette';
 import ProfileDropdown from './ProfileDropdown';
 import SanctuaryHeading from './ui/SanctuaryHeading';
 import { sanctuaryThemeStyle } from '../theme/sanctuaryTheme';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
+import Stat from './admin/Stat';
+import RecipesPanel from './admin/RecipesPanel';
+import CommentsPanel from './admin/CommentsPanel';
+import UsersPanel from './admin/UsersPanel';
+import type {
+  AdminRecipe as Recipe,
+  AdminComment as Comment,
+  AdminUserProfile as UserProfile,
+  AdminTab as Tab,
+  ModerationAction,
+} from './admin/types';
 
 const client: any = generateClient<Schema>();
 
@@ -33,35 +42,6 @@ type Props = {
   profileLabel?: string;
   profileAvatar?: string | null;
   profileTheme?: string;
-};
-
-type Recipe = {
-  id: string;
-  name: string;
-  description?: string | null;
-  ownerId: string;
-  createdBy?: string | null;
-  isHidden?: boolean | null;
-};
-type Comment = {
-  id: string;
-  recipeId: string;
-  author: string;
-  content: string;
-  userId: string;
-  isHidden?: boolean | null;
-};
-type UserProfile = {
-  id: string;
-  userId: string;
-  username: string;
-  displayName: string;
-  email?: string | null;
-  status?: string | null;
-  enabled?: boolean | null;
-  isBanned?: boolean | null;
-  isDeleted?: boolean | null;
-  contentHidden?: boolean | null;
 };
 
 const errorText = (error: unknown) =>
@@ -83,7 +63,7 @@ export default function AdminDashboard({
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [tab, setTab] = useState<'recipes' | 'comments' | 'users'>('recipes');
+  const [tab, setTab] = useState<Tab>('recipes');
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [recipeForm, setRecipeForm] = useState({ name: '', description: '' });
@@ -341,16 +321,7 @@ export default function AdminDashboard({
     );
   };
 
-  const moderateUser = async (
-    user: UserProfile,
-    action:
-      | 'delete'
-      | 'ban'
-      | 'unban'
-      | 'hideContent'
-      | 'restoreContent'
-      | 'restore'
-  ) => {
+  const moderateUser = async (user: UserProfile, action: ModerationAction) => {
     const descriptions = {
       delete: 'disable this user and hide their content',
       ban: 'disable this user and hide their content',
@@ -853,7 +824,7 @@ export default function AdminDashboard({
                 className="min-w-0"
               >
                 {tab === 'recipes' && (
-                  <RecipeList
+                  <RecipesPanel
                     recipes={filteredRecipes.slice(start, start + pageSize)}
                     editingRecipe={editingRecipe}
                     recipeForm={recipeForm}
@@ -865,7 +836,7 @@ export default function AdminDashboard({
                   />
                 )}
                 {tab === 'comments' && (
-                  <CommentList
+                  <CommentsPanel
                     comments={filteredComments.slice(start, start + pageSize)}
                     editingComment={editingComment}
                     commentForm={commentForm}
@@ -877,7 +848,7 @@ export default function AdminDashboard({
                   />
                 )}
                 {tab === 'users' && (
-                  <UserTable
+                  <UsersPanel
                     users={filteredUsers.slice(start, start + pageSize)}
                     loading={loading || !loadedOnce}
                     unavailable={userListUnavailable}
@@ -1015,400 +986,5 @@ export default function AdminDashboard({
         </AccessibleDialog>
       )}
     </main>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  active,
-  onClick,
-  loading,
-}: {
-  label: string;
-  value: number;
-  active: boolean;
-  onClick: () => void;
-  loading?: boolean;
-}) {
-  const [activeColor, setActiveColor] = useState(randomMerlinColor);
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        setActiveColor(randomMerlinColor());
-        onClick();
-      }}
-      aria-pressed={active}
-      style={
-        active
-          ? { backgroundColor: activeColor, borderColor: activeColor }
-          : undefined
-      }
-      className="ak-button-choice rounded-2xl p-3 text-left sm:p-4"
-    >
-      <p
-        className={`text-xs uppercase ${active ? 'text-white' : 'text-[var(--theme-text-muted)]'}`}
-      >
-        {label}
-      </p>
-      <p className="mt-2 text-3xl font-heading font-semibold">
-        {loading ? '—' : value}
-      </p>
-      <p
-        className={`mt-1 hidden text-xs sm:block ${active ? 'text-white' : 'text-[var(--theme-text-muted)]'}`}
-      >
-        View {label.toLowerCase()}
-      </p>
-    </button>
-  );
-}
-
-function RecipeList({
-  recipes,
-  editingRecipe,
-  recipeForm,
-  setEditingRecipe,
-  setRecipeForm,
-  saveRecipe,
-  removeRecipe,
-  loading,
-}: any) {
-  return (
-    <div className="mt-5 space-y-3">
-      {recipes.map((recipe: Recipe) => (
-        <article
-          key={recipe.id}
-          className="rounded-2xl border border-[var(--theme-border)] p-4"
-        >
-          {editingRecipe?.id === recipe.id ? (
-            <div className="grid gap-3">
-              <input
-                value={recipeForm.name}
-                onChange={(event) =>
-                  setRecipeForm({ ...recipeForm, name: event.target.value })
-                }
-                aria-label="Recipe name"
-                className="rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2"
-              />
-              <textarea
-                value={recipeForm.description}
-                onChange={(event) =>
-                  setRecipeForm({
-                    ...recipeForm,
-                    description: event.target.value,
-                  })
-                }
-                aria-label="Recipe description"
-                className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => void saveRecipe()}
-                  className="ak-button-primary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingRecipe(null)}
-                  className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="break-words text-xl font-semibold">
-                    {recipe.name}
-                  </h3>
-                  <VisibilityBadge hidden={recipe.isHidden} />
-                </div>
-                <p className="mt-1 break-all text-xs text-[var(--theme-text-muted)]">
-                  Owner: {recipe.ownerId}
-                </p>
-                <p className="mt-2 break-words text-sm text-[var(--theme-text-muted)]">
-                  {recipe.description || 'No description'}
-                </p>
-                <Link
-                  to={`/discover?recipe=${encodeURIComponent(recipe.id)}`}
-                  className="mt-3 inline-flex text-xs font-semibold text-[var(--theme-accent)] underline underline-offset-4"
-                >
-                  View recipe
-                </Link>
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => {
-                    setEditingRecipe(recipe);
-                    setRecipeForm({
-                      name: recipe.name,
-                      description: recipe.description || '',
-                    });
-                  }}
-                  className="ak-button-secondary rounded-xl px-3 py-2 text-sm"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => void removeRecipe(recipe)}
-                  className="ak-button-danger-soft rounded-xl px-3 py-2 text-sm"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </article>
-      ))}
-      {!recipes.length && !loading && (
-        <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">
-          No recipes found.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CommentList({
-  comments,
-  editingComment,
-  commentForm,
-  setEditingComment,
-  setCommentForm,
-  saveComment,
-  removeComment,
-  loading,
-}: any) {
-  return (
-    <div className="mt-5 space-y-3">
-      {comments.map((comment: Comment) => (
-        <article
-          key={comment.id}
-          className="rounded-2xl border border-[var(--theme-border)] p-4"
-        >
-          {editingComment?.id === comment.id ? (
-            <div className="grid gap-3">
-              <textarea
-                value={commentForm}
-                onChange={(event) => setCommentForm(event.target.value)}
-                aria-label="Comment content"
-                className="min-h-24 rounded-xl border border-[var(--theme-border)] bg-transparent px-3 py-2"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => void saveComment()}
-                  className="ak-button-primary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingComment(null)}
-                  className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">{comment.author}</p>
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
-                  {comment.content}
-                </p>
-                <div className="mt-3">
-                  <VisibilityBadge hidden={comment.isHidden} />
-                </div>
-                <p className="mt-2 break-all text-xs text-[var(--theme-text-muted)]">
-                  Recipe: {comment.recipeId} | User: {comment.userId}
-                </p>
-                <Link
-                  to={`/discover?recipe=${encodeURIComponent(comment.recipeId)}`}
-                  className="mt-3 inline-flex text-xs font-semibold text-[var(--theme-accent)] underline underline-offset-4"
-                >
-                  View conversation
-                </Link>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setEditingComment(comment);
-                    setCommentForm(comment.content);
-                  }}
-                  className="ak-button-secondary rounded-xl px-3 py-2 text-sm"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => void removeComment(comment)}
-                  className="ak-button-danger-soft rounded-xl px-3 py-2 text-sm"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </article>
-      ))}
-      {!comments.length && !loading && (
-        <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">
-          No comments found.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function VisibilityBadge({ hidden }: { hidden?: boolean | null }) {
-  return (
-    <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${hidden ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}
-    >
-      {hidden ? 'Hidden' : 'Visible'}
-    </span>
-  );
-}
-
-function UserTable({
-  users,
-  loading,
-  unavailable,
-  onModerateUser,
-  pendingUserAction,
-}: {
-  users: UserProfile[];
-  loading: boolean;
-  unavailable: boolean;
-  onModerateUser: (
-    user: UserProfile,
-    action:
-      | 'delete'
-      | 'ban'
-      | 'unban'
-      | 'hideContent'
-      | 'restoreContent'
-      | 'restore'
-  ) => void;
-  pendingUserAction: string | null;
-}) {
-  if (unavailable) {
-    return (
-      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-        The deployed backend does not include the admin Cognito user-list
-        operation yet. Deploy the latest Amplify backend and reload this page.
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-5">
-      <p className="mb-2 text-xs text-[var(--theme-text-muted)] md:hidden">
-        Scroll the table sideways for account status and actions.
-      </p>
-      <div
-        tabIndex={0}
-        role="region"
-        aria-label="User management table"
-        className="max-h-[32rem] overflow-auto rounded-2xl border border-[var(--theme-border)]"
-      >
-        <table className="min-w-full text-left text-sm">
-          <thead className="sticky top-0 bg-[var(--theme-surface-alt)] text-xs uppercase text-[var(--theme-text-muted)]">
-            <tr>
-              <th className="px-4 py-3">User</th>
-              <th className="px-4 py-3">User ID</th>
-              <th className="px-4 py-3">Cognito status</th>
-              <th className="px-4 py-3">Moderation</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                className="border-t border-[var(--theme-border)]"
-              >
-                <td className="px-4 py-3">
-                  <div className="font-semibold">
-                    {user.displayName || user.username}
-                  </div>
-                  <div className="text-xs text-[var(--theme-accent)]">
-                    {user.username}
-                  </div>
-                  <div className="text-[var(--theme-text-muted)]">
-                    {user.email || user.username}
-                  </div>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-[var(--theme-text-muted)]">
-                  {user.userId}
-                </td>
-                <td className="px-4 py-3">
-                  {user.status || 'UNKNOWN'}
-                  {user.enabled === false ? ' · Disabled' : ''}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${userModerationStatus(user) === 'Active' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}
-                  >
-                    {userModerationStatus(user)}
-                  </span>
-                  {user.contentHidden &&
-                    userModerationStatus(user) !== 'Content hidden' && (
-                      <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                        Content hidden
-                      </p>
-                    )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex min-w-52 flex-wrap gap-2">
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(user, user.isBanned ? 'unban' : 'ban')
-                      }
-                      className="ak-button-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.isBanned ? 'Unban' : 'Ban'}
-                    </button>
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(
-                          user,
-                          user.contentHidden ? 'restoreContent' : 'hideContent'
-                        )
-                      }
-                      className="ak-button-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.contentHidden ? 'Restore content' : 'Hide content'}
-                    </button>
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(
-                          user,
-                          user.isDeleted ? 'restore' : 'delete'
-                        )
-                      }
-                      className="ak-button-danger-soft rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.isDeleted ? 'Restore user' : 'Delete user'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!users.length && !loading && (
-          <p className="p-8 text-center text-sm text-[var(--theme-text-muted)]">
-            No Cognito users found.
-          </p>
-        )}
-      </div>
-    </div>
   );
 }
