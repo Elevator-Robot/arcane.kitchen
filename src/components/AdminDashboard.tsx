@@ -90,8 +90,28 @@ export default function AdminDashboard({
   const [pendingUserAction, setPendingUserAction] = useState<string | null>(
     null
   );
-  const [transferRecipeId, setTransferRecipeId] = useState('');
-  const [transferOwnerId, setTransferOwnerId] = useState('');
+
+  const hideRecipe = async (recipe: Recipe) => {
+    const nextHidden = !recipe.isHidden;
+    await runAction(
+      `hideRecipe:${recipe.id}`,
+      nextHidden ? `Hid “${recipe.name}”.` : `Restored “${recipe.name}”.`,
+      async () => {
+        const result = await client.models.Recipe.update(
+          { id: recipe.id, isHidden: nextHidden },
+          { authMode: 'userPool' }
+        );
+        const updated = requireAdminResult<Recipe>(result);
+        setRecipes((current) =>
+          current.map((entry) =>
+            entry.id === updated.id
+              ? { ...entry, isHidden: updated.isHidden ?? nextHidden }
+              : entry
+          )
+        );
+      }
+    );
+  };
   const [auditEntries, setAuditEntries] = useState<AdminAuditEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditRequested, setAuditRequested] = useState(false);
@@ -447,17 +467,17 @@ export default function AdminDashboard({
     );
   };
 
-  const transferOwnership = async () => {
-    if (!transferRecipeId || !transferOwnerId) return;
-    const recipe = recipes.find((entry) => entry.id === transferRecipeId);
-    const destination = users.find((entry) => entry.userId === transferOwnerId);
-    if (!recipe || !destination) return;
+  const transferOwnership = async (
+    recipe: Recipe,
+    destination: UserProfile
+  ) => {
     if (
       !(await confirmAction(
         `ADMIN ACTION: transfer “${recipe.name}” from ${recipe.ownerId} to @${destination.username} (${destination.userId})?`
       ))
     )
-      return;
+      return false;
+    let succeeded = false;
     await runAction(
       'transferOwnership',
       `Transferred “${recipe.name}” to ${destination.username}.`,
@@ -490,10 +510,10 @@ export default function AdminDashboard({
               : entry
           )
         );
-        setTransferRecipeId('');
-        setTransferOwnerId('');
+        succeeded = true;
       }
     );
+    return succeeded;
   };
 
   const ownerById = useMemo(
@@ -900,12 +920,16 @@ export default function AdminDashboard({
                     {tab === 'recipes' && (
                       <RecipesPanel
                         recipes={filteredRecipes.slice(start, start + pageSize)}
+                        users={users}
                         editingRecipe={editingRecipe}
                         recipeForm={recipeForm}
                         setEditingRecipe={setEditingRecipe}
                         setRecipeForm={setRecipeForm}
                         saveRecipe={saveRecipe}
                         removeRecipe={removeRecipe}
+                        onHideRecipe={hideRecipe}
+                        onTransfer={transferOwnership}
+                        pendingUserAction={pendingUserAction}
                         loading={loading || !loadedOnce}
                       />
                     )}
@@ -979,64 +1003,6 @@ export default function AdminDashboard({
                   </nav>
                 )}
               </section>
-              {tab === 'recipes' && (
-                <section className="ak-panel mt-6 p-6">
-                  <fieldset disabled={pendingUserAction !== null || loading}>
-                    <h2 className="text-xl font-semibold">
-                      Ownership transfer
-                    </h2>
-                    <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-                      Assign a recipe to another cook. Its author attribution
-                      will follow the new owner.
-                    </p>
-                    <div className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                      <select
-                        aria-label="Recipe to transfer"
-                        value={transferRecipeId}
-                        onChange={(event) =>
-                          setTransferRecipeId(event.target.value)
-                        }
-                        className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
-                      >
-                        <option value="">Select a recipe</option>
-                        {recipes.map((recipe) => (
-                          <option key={recipe.id} value={recipe.id}>
-                            {recipe.name} · {recipe.ownerId}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        aria-label="Destination user"
-                        value={transferOwnerId}
-                        onChange={(event) =>
-                          setTransferOwnerId(event.target.value)
-                        }
-                        className="ak-input min-w-0 rounded-xl px-3 py-3 text-sm"
-                      >
-                        <option value="">Select a destination user</option>
-                        {users.map((user) => (
-                          <option key={user.userId} value={user.userId}>
-                            {user.displayName} · {user.userId}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => void transferOwnership()}
-                        disabled={
-                          !transferRecipeId ||
-                          !transferOwnerId ||
-                          pendingUserAction !== null
-                        }
-                        className="ak-button-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-50"
-                      >
-                        {pendingUserAction === 'transferOwnership'
-                          ? 'Transferring...'
-                          : 'Transfer ownership'}
-                      </button>
-                    </div>
-                  </fieldset>
-                </section>
-              )}
             </div>
           </div>
         </div>

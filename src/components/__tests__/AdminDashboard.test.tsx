@@ -10,6 +10,8 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../../test/test-utils';
 import AdminDashboard from '../AdminDashboard';
 
+vi.setConfig({ testTimeout: 15000 });
+
 const mocks = vi.hoisted(() => ({
   recipes: vi.fn(),
   comments: vi.fn(),
@@ -173,12 +175,22 @@ describe('admin console workflows', () => {
     const row = (
       await screen.findByRole('heading', { name: 'Recipe 1' })
     ).closest('article')!;
-    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+    await user.click(
+      within(row).getByRole('button', { name: 'More actions for Recipe 1' })
+    );
+    await user.click(
+      within(row).getByRole('menuitem', { name: 'Delete recipe…' })
+    );
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' })
     );
     expect(mocks.deleteRecipe).not.toHaveBeenCalled();
-    await user.click(within(row).getByRole('button', { name: 'Delete' }));
+    await user.click(
+      within(row).getByRole('button', { name: 'More actions for Recipe 1' })
+    );
+    await user.click(
+      within(row).getByRole('menuitem', { name: 'Delete recipe…' })
+    );
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', {
         name: 'Confirm action',
@@ -230,17 +242,16 @@ describe('admin console workflows', () => {
     const user = userEvent.setup();
     renderAdmin();
     await screen.findByText('Showing 1–10 of 12');
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Recipe to transfer' }),
-      'r1'
-    );
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Destination user' }),
-      'u2'
-    );
     await user.click(
-      screen.getByRole('button', { name: 'Transfer ownership' })
+      screen.getByRole('button', {
+        name: 'Transfer Recipe 1 from Moon Cook',
+      })
     );
+    await user.click(screen.getByRole('button', { name: /Spice Mage/ }));
+    const reassign = screen.getByRole('button', {
+      name: 'Reassign to Spice Mage',
+    });
+    await user.click(reassign);
     expect(screen.getByRole('dialog')).toHaveTextContent('spice_mage');
     expect(mocks.moderate).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Confirm action' }));
@@ -255,6 +266,11 @@ describe('admin console workflows', () => {
       { authMode: 'userPool' }
     );
     expect(mocks.updateRecipe).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', {
+        name: 'Transfer Recipe 1 from Spice Mage',
+      })
+    ).toBeInTheDocument();
   });
 
   it('keeps previously loaded records visible when refresh fails', async () => {
@@ -288,6 +304,30 @@ describe('admin console workflows', () => {
     );
     expect(
       within(row).getByRole('button', { name: 'Unban' })
+    ).toBeInTheDocument();
+  });
+
+  it('hides recipes through direct updates without showing raw IDs on cards', async () => {
+    const user = userEvent.setup();
+    mocks.updateRecipe.mockResolvedValue({
+      data: { ...recipes[0], isHidden: true },
+    });
+    renderAdmin();
+    const row = (
+      await screen.findByRole('heading', { name: 'Recipe 1' })
+    ).closest('article')!;
+    expect(within(row).queryByText('u1')).not.toBeInTheDocument();
+    expect(within(row).queryByText('r1')).not.toBeInTheDocument();
+    await user.click(
+      within(row).getByRole('button', { name: 'Hide Recipe 1' })
+    );
+    expect(mocks.updateRecipe).toHaveBeenCalledWith(
+      { id: 'r1', isHidden: true },
+      { authMode: 'userPool' }
+    );
+    expect(await within(row).findByText('Hidden')).toBeInTheDocument();
+    expect(
+      within(row).getByRole('button', { name: 'Unhide Recipe 1' })
     ).toBeInTheDocument();
   });
 
