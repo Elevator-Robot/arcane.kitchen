@@ -29,7 +29,7 @@ export type AdminUserProfile = {
   contentHidden?: boolean | null;
 };
 
-export type AdminTab = 'recipes' | 'comments' | 'users';
+export type AdminTab = 'recipes' | 'comments' | 'users' | 'activity';
 
 export type ModerationAction =
   | 'delete'
@@ -38,3 +38,14 @@ export type ModerationAction =
   | 'hideContent'
   | 'restoreContent'
   | 'restore';
+
+export type AdminAuditEntry = {
+  id: string;
+  actorUserId: string;
+  action: string;
+  targetType: string;
+  targetId: string;
+  before?: unknown;
+  after?: unknown;
+  createdAt: string;
+};

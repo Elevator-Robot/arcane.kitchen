@@ -12,6 +12,7 @@ import {
   readAllAdminPages,
   requireAdminResult,
   userModerationStatus,
+  adminAuditCategory,
 } from '../utils/adminConsole';
 import { generateClient } from 'aws-amplify/data';
 import type { Schema } from '../../amplify/data/resource';
@@ -20,6 +21,7 @@ import SanctuaryHeading from './ui/SanctuaryHeading';
 import { sanctuaryThemeStyle } from '../theme/sanctuaryTheme';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
 import AdminRail from './admin/AdminRail';
+import ActivityPanel from './admin/ActivityPanel';
 import RecipesPanel from './admin/RecipesPanel';
 import CommentsPanel from './admin/CommentsPanel';
 import UsersPanel from './admin/UsersPanel';
@@ -27,6 +29,7 @@ import type {
   AdminRecipe as Recipe,
   AdminComment as Comment,
   AdminUserProfile as UserProfile,
+  AdminAuditEntry,
   AdminTab as Tab,
   ModerationAction,
 } from './admin/types';
@@ -89,6 +92,37 @@ export default function AdminDashboard({
   );
   const [transferRecipeId, setTransferRecipeId] = useState('');
   const [transferOwnerId, setTransferOwnerId] = useState('');
+  const [auditEntries, setAuditEntries] = useState<AdminAuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditRequested, setAuditRequested] = useState(false);
+  const [auditUnavailable, setAuditUnavailable] = useState(false);
+  const auditRequest = useRef(0);
+
+  const loadAuditLog = useCallback(async () => {
+    if (!isAuthenticated || !isAdmin) return;
+    const requestId = ++auditRequest.current;
+    setAuditLoading(true);
+    try {
+      const hasAuditQuery =
+        typeof client.models?.AdminAuditLog?.list === 'function';
+      if (!hasAuditQuery) {
+        if (requestId === auditRequest.current) setAuditUnavailable(true);
+        return;
+      }
+      const data = await readAllAdminPages<AdminAuditEntry>((nextToken) =>
+        client.models.AdminAuditLog.list({ authMode: 'userPool', nextToken })
+      );
+      if (requestId !== auditRequest.current) return;
+      setAuditUnavailable(false);
+      setAuditEntries(data);
+    } catch (loadError) {
+      if (requestId !== auditRequest.current) return;
+      console.error('Failed to load admin activity log:', loadError);
+      setError((current) => current ?? errorText(loadError));
+    } finally {
+      if (requestId === auditRequest.current) setAuditLoading(false);
+    }
+  }, [isAuthenticated, isAdmin]);
 
   const loadContent = useCallback(async () => {
     if (!isAuthenticated || !isAdmin || actionInFlight.current) return;
@@ -521,6 +555,25 @@ export default function AdminDashboard({
       ),
     [users, search, statusFilter]
   );
+  const filteredAudit = useMemo(
+    () =>
+      auditEntries.filter((entry) => {
+        const actor = ownerById.get(entry.actorUserId);
+        return (
+          (statusFilter === 'All' ||
+            adminAuditCategory(entry.action) === statusFilter) &&
+          matchesAdminSearch(
+            search,
+            entry.action,
+            entry.targetType,
+            entry.targetId,
+            actor?.username,
+            actor?.displayName
+          )
+        );
+      }),
+    [auditEntries, ownerById, search, statusFilter]
+  );
   const total =
     tab === 'recipes'
       ? recipes.length
@@ -528,7 +581,7 @@ export default function AdminDashboard({
         ? comments.length
         : tab === 'users'
           ? users.length
-          : users.length;
+          : auditEntries.length;
   const filteredCount =
     tab === 'recipes'
       ? filteredRecipes.length
@@ -536,7 +589,7 @@ export default function AdminDashboard({
         ? filteredComments.length
         : tab === 'users'
           ? filteredUsers.length
-          : filteredUsers.length;
+          : filteredAudit.length;
   const pageSize = 10;
   const pages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const currentPage = Math.min(page, pages);
@@ -546,6 +599,10 @@ export default function AdminDashboard({
     setSearch('');
     setStatusFilter('All');
     setPage(1);
+    if (next === 'activity' && !auditRequested) {
+      setAuditRequested(true);
+      void loadAuditLog();
+    }
   };
   const clearFilters = () => {
     setSearch('');
@@ -674,22 +731,29 @@ export default function AdminDashboard({
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <h2 className="text-2xl">
-                      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                      {tab === 'activity'
+                        ? 'Activity log'
+                        : tab.charAt(0).toUpperCase() + tab.slice(1)}
                     </h2>
                     <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                      {lastRefreshed
-                        ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Admin access`
-                        : 'Live community records · Admin access'}
+                      {tab === 'activity'
+                        ? 'Admin actions recorded in the audit log'
+                        : lastRefreshed
+                          ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Admin access`
+                          : 'Live community records · Admin access'}
                     </p>
                   </div>
                   <button
                     onClick={() => {
                       void loadContent();
+                      if (auditRequested) void loadAuditLog();
                     }}
-                    disabled={loading || pendingUserAction !== null}
+                    disabled={
+                      loading || auditLoading || pendingUserAction !== null
+                    }
                     className="ak-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
                   >
-                    {loading ? 'Refreshing...' : 'Refresh'}
+                    {loading || auditLoading ? 'Refreshing...' : 'Refresh'}
                   </button>
                 </div>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
@@ -711,7 +775,9 @@ export default function AdminDashboard({
                           ? 'Name, handle, email, or user ID'
                           : tab === 'recipes'
                             ? 'Recipe, author, or ID'
-                            : 'Comment, author, recipe ID, or user ID'
+                            : tab === 'activity'
+                              ? 'Action, actor, or target ID'
+                              : 'Comment, author, recipe ID, or user ID'
                       }
                       className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
                     />
@@ -731,7 +797,11 @@ export default function AdminDashboard({
                   </label>
                   <label className="flex items-center gap-2 text-sm text-[var(--theme-text-muted)]">
                     <span>
-                      {tab === 'users' ? 'Account state' : 'Visibility'}
+                      {tab === 'users'
+                        ? 'Account state'
+                        : tab === 'activity'
+                          ? 'Category'
+                          : 'Visibility'}
                     </span>
                     <select
                       value={statusFilter}
@@ -750,7 +820,9 @@ export default function AdminDashboard({
                             'Content hidden',
                             'Deleted',
                           ]
-                        : ['All', 'Visible', 'Hidden']
+                        : tab === 'activity'
+                          ? ['All', 'Reassignments', 'Moderation', 'Deletions']
+                          : ['All', 'Visible', 'Hidden']
                       ).map((value) => (
                         <option key={value}>{value}</option>
                       ))}
@@ -765,19 +837,22 @@ export default function AdminDashboard({
                     Applying changes…
                   </p>
                 )}
-                {loading && (
+                {(loading || (tab === 'activity' && auditLoading)) && (
                   <p
                     role="status"
                     className="mt-4 text-sm text-[var(--theme-text-muted)]"
                   >
                     {loadedOnce
-                      ? 'Refreshing collections…'
+                      ? tab === 'activity' && !auditEntries.length
+                        ? 'Loading activity log…'
+                        : 'Refreshing collections…'
                       : 'Loading admin workspace…'}
                   </p>
                 )}
                 {loadedOnce && !contentUnavailable && (
                   <p className="mt-4 text-xs text-[var(--theme-text-muted)]">
-                    {filteredCount} of {total} {tab}
+                    {filteredCount} of {total}{' '}
+                    {tab === 'activity' ? 'entries' : tab}
                     {(search || statusFilter !== 'All') && (
                       <button
                         type="button"
@@ -802,18 +877,24 @@ export default function AdminDashboard({
                   !filteredCount &&
                   (search || statusFilter !== 'All') ? (
                   <div className="ak-empty-state">
-                    <h3 className="text-xl">No matching {tab}</h3>
+                    <h3 className="text-xl">
+                      No matching {tab === 'activity' ? 'entries' : tab}
+                    </h3>
                     <button
                       type="button"
                       onClick={clearFilters}
                       className="ak-button-secondary mt-4 rounded-xl px-4 py-2 text-sm"
                     >
-                      Show all {tab}
+                      Show all {tab === 'activity' ? 'entries' : tab}
                     </button>
                   </div>
                 ) : (
                   <fieldset
-                    disabled={pendingUserAction !== null || loading}
+                    disabled={
+                      pendingUserAction !== null ||
+                      loading ||
+                      (tab === 'activity' && auditLoading)
+                    }
                     className="min-w-0"
                   >
                     {tab === 'recipes' && (
@@ -850,6 +931,14 @@ export default function AdminDashboard({
                         unavailable={userListUnavailable}
                         onModerateUser={moderateUser}
                         pendingUserAction={pendingUserAction}
+                      />
+                    )}
+                    {tab === 'activity' && (
+                      <ActivityPanel
+                        entries={filteredAudit.slice(start, start + pageSize)}
+                        loading={auditLoading}
+                        unavailable={auditUnavailable}
+                        actorById={ownerById}
                       />
                     )}
                   </fieldset>

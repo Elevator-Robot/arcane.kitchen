@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { ChefHat, MessageCircle, Users as UsersIcon } from 'lucide-react';
+import {
+  ChefHat,
+  MessageCircle,
+  Users as UsersIcon,
+  ScrollText,
+} from 'lucide-react';
 import { randomMerlinColor } from '../../theme/merlinPalette';
 import type { AdminTab } from './types';
 
@@ -27,6 +32,7 @@ export default function AdminRail({
       count: counts.comments,
     },
     { id: 'users', label: 'Users', icon: UsersIcon, count: counts.users },
+    { id: 'activity', label: 'Activity log', icon: ScrollText },
   ];
 
   return (

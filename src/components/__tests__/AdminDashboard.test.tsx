@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   recipes: vi.fn(),
   comments: vi.fn(),
   users: vi.fn(),
+  auditLogs: vi.fn(),
   updateRecipe: vi.fn(),
   deleteRecipe: vi.fn(),
   updateComment: vi.fn(),
@@ -32,6 +33,9 @@ vi.mock('aws-amplify/data', () => ({
         list: mocks.comments,
         update: mocks.updateComment,
         delete: mocks.deleteComment,
+      },
+      AdminAuditLog: {
+        list: mocks.auditLogs,
       },
     },
     queries: { listAdminUsers: mocks.users },
@@ -88,6 +92,7 @@ describe('admin console workflows', () => {
       ],
     });
     mocks.users.mockResolvedValue({ data: users });
+    mocks.auditLogs.mockResolvedValue({ data: [] });
     mocks.updateRecipe.mockResolvedValue({
       data: { ...recipes[0], name: 'Updated recipe' },
     });
@@ -293,8 +298,14 @@ describe('admin console workflows', () => {
     const recipesRail = screen.getByRole('button', { name: 'Recipes · 12' });
     const commentsRail = screen.getByRole('button', { name: 'Comments · 1' });
     const usersRail = screen.getByRole('button', { name: 'Users · 2' });
+    const activityRail = screen.getByRole('button', { name: 'Activity log' });
 
-    for (const railButton of [recipesRail, commentsRail, usersRail]) {
+    for (const railButton of [
+      recipesRail,
+      commentsRail,
+      usersRail,
+      activityRail,
+    ]) {
       expect(railButton).toHaveClass('min-h-11', 'min-w-11');
       expect(
         within(railButton).getByRole('tooltip', { hidden: true })
@@ -307,5 +318,55 @@ describe('admin console workflows', () => {
       screen.getByRole('heading', { name: 'Users', level: 2 })
     ).toBeInTheDocument();
     expect(usersRail).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('lazy-loads the activity log, renders audit entries, and filters by category', async () => {
+    const user = userEvent.setup();
+    mocks.auditLogs.mockResolvedValue({
+      data: [
+        {
+          id: 'a1',
+          actorUserId: 'u1',
+          action: 'transferOwnership',
+          targetType: 'RecipeBatch',
+          targetId: 'r1',
+          createdAt: '2026-01-01T10:00:00.000Z',
+        },
+        {
+          id: 'a2',
+          actorUserId: 'u2',
+          action: 'ban',
+          targetType: 'UserProfile',
+          targetId: 'u1',
+          createdAt: '2026-01-02T11:00:00.000Z',
+        },
+      ],
+    });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    expect(mocks.auditLogs).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Activity log' }));
+    expect(
+      screen.getByRole('heading', { name: 'Activity log', level: 2 })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Admin actions recorded in the audit log')
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText('Transferred ownership')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Banned account')).toBeInTheDocument();
+    expect(mocks.auditLogs).toHaveBeenCalledWith({
+      authMode: 'userPool',
+      nextToken: undefined,
+    });
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Category' }),
+      'Reassignments'
+    );
+    expect(screen.getByText('Transferred ownership')).toBeInTheDocument();
+    expect(screen.queryByText('Banned account')).not.toBeInTheDocument();
   });
 });
