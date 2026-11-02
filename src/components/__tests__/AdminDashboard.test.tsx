@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   recipes: vi.fn(),
   comments: vi.fn(),
   users: vi.fn(),
+  userProfiles: vi.fn(),
   auditLogs: vi.fn(),
   updateRecipe: vi.fn(),
   deleteRecipe: vi.fn(),
@@ -37,6 +38,9 @@ vi.mock('aws-amplify/data', () => ({
       AdminAuditLog: {
         list: mocks.auditLogs,
       },
+      UserProfile: {
+        list: mocks.userProfiles,
+      },
     },
     queries: { listAdminUsers: mocks.users },
     mutations: { adminActions: mocks.moderate },
@@ -46,26 +50,41 @@ vi.mock('aws-amplify/data', () => ({
 const recipes = Array.from({ length: 12 }, (_, index) => ({
   id: `r${index + 1}`,
   name: `Recipe ${index + 1}`,
-  ownerId: 'u1',
+  ownerId: index === 0 || index === 4 ? 'u1' : 'u5',
   description: 'A community recipe',
   isHidden: index === 11,
 }));
 const users = [
   {
-    id: 'u1',
     userId: 'u1',
     username: 'moon_cook',
     displayName: 'Moon Cook',
     email: 'moon@example.com',
+    status: 'CONFIRMED',
     enabled: true,
   },
   {
-    id: 'u2',
     userId: 'u2',
     username: 'spice_mage',
     displayName: 'Spice Mage',
-    isBanned: true,
+    email: 'spice@example.com',
+    status: 'FORCE_CHANGE_PASSWORD',
     enabled: false,
+  },
+];
+const profiles = [
+  {
+    userId: 'u1',
+    username: 'moon_cook',
+    isBanned: false,
+    isDeleted: false,
+    contentHidden: false,
+  },
+  {
+    userId: 'u2',
+    username: 'spice_mage',
+    isBanned: true,
+    isDeleted: false,
     contentHidden: true,
   },
 ];
@@ -92,6 +111,7 @@ describe('admin console workflows', () => {
       ],
     });
     mocks.users.mockResolvedValue({ data: users });
+    mocks.userProfiles.mockResolvedValue({ data: profiles });
     mocks.auditLogs.mockResolvedValue({ data: [] });
     mocks.updateRecipe.mockResolvedValue({
       data: { ...recipes[0], name: 'Updated recipe' },
@@ -107,6 +127,7 @@ describe('admin console workflows', () => {
     ).toBeInTheDocument();
     expect(mocks.recipes).not.toHaveBeenCalled();
     expect(mocks.users).not.toHaveBeenCalled();
+    expect(mocks.userProfiles).not.toHaveBeenCalled();
   });
 
   it('loads backend pages and supports search, filters, and navigable result pages', async () => {
@@ -485,5 +506,109 @@ describe('admin console workflows', () => {
       screen.queryByRole('button', { name: 'Load more' })
     ).not.toBeInTheDocument();
     expect(screen.getByText('Transferred ownership')).toBeInTheDocument();
+  });
+
+  it('merges UserProfile moderation flags onto Cognito rows', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: /^Users/ }));
+    expect(mocks.userProfiles).toHaveBeenCalled();
+    const row = screen.getByText('Spice Mage').closest('tr')!;
+    expect(within(row).getByText('Banned')).toBeInTheDocument();
+    expect(
+      within(row).getByRole('button', { name: 'Unban' })
+    ).toBeInTheDocument();
+    expect(within(row).getByText('Content hidden')).toBeInTheDocument();
+  });
+
+  it('labels accounts with a pending password change', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: /^Users/ }));
+    const row = screen.getByText('Spice Mage').closest('tr')!;
+    expect(
+      within(row).getByText('Password change pending')
+    ).toBeInTheDocument();
+    const activeRow = screen.getByText('Moon Cook').closest('tr')!;
+    expect(
+      within(activeRow).queryByText('Password change pending')
+    ).not.toBeInTheDocument();
+  });
+
+  it('gates deletion behind a typed email and keeps reassignment optional', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: /^Users/ }));
+    expect(
+      screen.getByRole('columnheader', { name: 'Danger zone' })
+    ).toBeInTheDocument();
+    const row = screen.getByText('Moon Cook').closest('tr')!;
+    await user.click(within(row).getByRole('button', { name: 'Delete user' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent(
+      'disables the account and hides their content'
+    );
+    expect(dialog).toHaveTextContent(/\b2 recipes\b/);
+    expect(dialog).toHaveTextContent('reversible');
+    const confirm = within(dialog).getByRole('button', {
+      name: 'Delete account',
+    });
+    expect(confirm).toBeDisabled();
+    const input = within(dialog).getByRole('textbox', {
+      name: 'Type the account email to confirm deletion',
+    });
+    await user.type(input, 'wrong@example.com');
+    expect(confirm).toBeDisabled();
+    await user.clear(input);
+    await user.type(input, 'moon@example.com');
+    expect(confirm).toBeEnabled();
+
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: 'Reassign first (recommended)',
+      })
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mocks.moderate).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('heading', { name: 'Recipes', level: 2 })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Search recipes' })).toHaveValue(
+      'moon_cook'
+    );
+    expect(screen.getByText('Recipe 1')).toBeInTheDocument();
+    expect(screen.getByText('Recipe 5')).toBeInTheDocument();
+    expect(screen.queryByText('Recipe 2')).not.toBeInTheDocument();
+    expect(screen.getByText('2 of 12 recipes')).toBeInTheDocument();
+  });
+
+  it('deletes a user only after the typed email matches', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: /^Users/ }));
+    const row = screen.getByText('Moon Cook').closest('tr')!;
+    await user.click(within(row).getByRole('button', { name: 'Delete user' }));
+    const dialog = screen.getByRole('dialog');
+    const confirm = within(dialog).getByRole('button', {
+      name: 'Delete account',
+    });
+    const input = within(dialog).getByRole('textbox', {
+      name: 'Type the account email to confirm deletion',
+    });
+    await user.type(input, 'moon@example.com');
+    await user.click(confirm);
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Updated moderation for moon_cook.'
+    );
+    expect(mocks.moderate).toHaveBeenCalledWith(
+      { action: 'delete', userId: 'u1' },
+      { authMode: 'userPool' }
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

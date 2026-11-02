@@ -207,7 +207,36 @@ export default function AdminDashboard({
             client.models.Comment.list({ authMode: 'userPool', nextToken })
           ).then((data) => ({ data })),
           hasAdminUserQuery
-            ? client.queries.listAdminUsers({ authMode: 'userPool' })
+            ? (async () => {
+                const [userRows, profileRows] = await Promise.all([
+                  client.queries.listAdminUsers({ authMode: 'userPool' }),
+                  readAllAdminPages<any>((nextToken) =>
+                    client.models.UserProfile.list({
+                      authMode: 'userPool',
+                      nextToken,
+                    })
+                  ),
+                ]);
+                const rowErrors = (userRows.errors ?? []).map(
+                  (queryError: any) => errorText(queryError)
+                );
+                if (rowErrors.length)
+                  throw new Error(rowErrors.filter(Boolean).join('; '));
+                const profileFlags = new Map(
+                  profileRows.map((profile: any) => [profile.userId, profile])
+                );
+                return {
+                  data: (userRows.data ?? []).map((user: any) => {
+                    const flags = profileFlags.get(user.userId);
+                    return {
+                      ...user,
+                      isBanned: flags?.isBanned ?? false,
+                      isDeleted: flags?.isDeleted ?? false,
+                      contentHidden: flags?.contentHidden ?? false,
+                    };
+                  }),
+                };
+              })()
             : Promise.resolve({ data: [] }),
         ]);
 
@@ -420,23 +449,14 @@ export default function AdminDashboard({
     );
   };
 
-  const moderateUser = async (user: UserProfile, action: ModerationAction) => {
-    const descriptions = {
-      delete: 'disable this user and hide their content',
-      ban: 'disable this user and hide their content',
-      unban: 're-enable this user without deleting their records',
-      hideContent:
-        "hide this user's recipes and comments without disabling access",
-      restoreContent:
-        "restore this user's recipe and comment visibility without changing account access",
-      restore: 're-enable this user and restore their content visibility',
-    };
-    if (
-      !(await confirmAction(
-        `ADMIN ACTION: ${descriptions[action]}?\n\nUser: @${user.username} (${user.userId})`
-      ))
-    )
-      return;
+  const [pendingDeleteUser, setPendingDeleteUser] =
+    useState<UserProfile | null>(null);
+  const [deleteEmailInput, setDeleteEmailInput] = useState('');
+
+  const performModerateUser = async (
+    user: UserProfile,
+    action: ModerationAction
+  ) => {
     await runAction(
       `${action}:${user.userId}`,
       `Updated moderation for ${user.username || user.displayName}.`,
@@ -510,6 +530,57 @@ export default function AdminDashboard({
         }
       }
     );
+  };
+
+  const moderateUser = async (user: UserProfile, action: ModerationAction) => {
+    if (action === 'delete') {
+      setDeleteEmailInput('');
+      setPendingDeleteUser(user);
+      return;
+    }
+    const descriptions = {
+      ban: 'disable this user and hide their content',
+      unban: 're-enable this user without deleting their records',
+      hideContent:
+        "hide this user's recipes and comments without disabling access",
+      restoreContent:
+        "restore this user's recipe and comment visibility without changing account access",
+      restore: 're-enable this user and restore their content visibility',
+    };
+    if (
+      !(await confirmAction(
+        `ADMIN ACTION: ${descriptions[action]}?\n\nUser: @${user.username} (${user.userId})`
+      ))
+    )
+      return;
+    await performModerateUser(user, action);
+  };
+
+  const pendingDeleteOwnedCount = pendingDeleteUser
+    ? recipes.filter((recipe) => recipe.ownerId === pendingDeleteUser.userId)
+        .length
+    : 0;
+  const pendingDeleteExpected = (
+    pendingDeleteUser?.email ||
+    pendingDeleteUser?.username ||
+    ''
+  ).toLowerCase();
+  const closeDeleteDialog = () => {
+    setPendingDeleteUser(null);
+    setDeleteEmailInput('');
+  };
+  const confirmDeleteUser = async () => {
+    const user = pendingDeleteUser;
+    if (!user) return;
+    closeDeleteDialog();
+    await performModerateUser(user, 'delete');
+  };
+  const reassignBeforeDelete = () => {
+    const user = pendingDeleteUser;
+    if (!user) return;
+    closeDeleteDialog();
+    selectTab('recipes');
+    setSearch(user.username);
   };
 
   const transferOwnership = async (
@@ -1055,6 +1126,83 @@ export default function AdminDashboard({
           </div>
         </div>
       </div>
+      {pendingDeleteUser && (
+        <AccessibleDialog
+          label="Confirm user deletion"
+          onClose={closeDeleteDialog}
+        >
+          <section className="ak-panel mx-auto my-12 max-w-lg p-6 sm:p-8">
+            <ShieldCheck
+              className="mb-4 h-8 w-8 text-red-700"
+              aria-hidden="true"
+            />
+            <p className="ak-eyebrow text-red-700">Danger zone</p>
+            <h2 className="mt-2 text-2xl">
+              Delete @{pendingDeleteUser.username}?
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--theme-text-muted)]">
+              This disables the account and hides their content. It is
+              reversible — Restore brings the account and their visibility back.
+            </p>
+            <p className="mt-3 text-sm leading-6">
+              They own{' '}
+              <strong>
+                {pendingDeleteOwnedCount}{' '}
+                {pendingDeleteOwnedCount === 1 ? 'recipe' : 'recipes'}
+              </strong>{' '}
+              in this workspace.
+            </p>
+            {pendingDeleteOwnedCount > 0 && (
+              <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                Reassign first (recommended) so their recipes stay available to
+                the community after the account is disabled.
+              </p>
+            )}
+            <label className="mt-4 block text-sm">
+              <span className="block text-[var(--theme-text-muted)]">
+                Type <span className="font-mono">{pendingDeleteExpected}</span>{' '}
+                to confirm
+              </span>
+              <input
+                value={deleteEmailInput}
+                onChange={(event) => setDeleteEmailInput(event.target.value)}
+                aria-label="Type the account email to confirm deletion"
+                autoComplete="off"
+                className="ak-input mt-2 min-h-11 w-full rounded-xl px-3 py-2"
+              />
+            </label>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              {pendingDeleteOwnedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={reassignBeforeDelete}
+                  className="ak-button-secondary mr-auto rounded-xl px-4 py-3 text-sm font-semibold"
+                >
+                  Reassign first (recommended)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={closeDeleteDialog}
+                className="ak-button-secondary rounded-xl px-4 py-3 text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeleteUser()}
+                disabled={
+                  deleteEmailInput.trim().toLowerCase() !==
+                  pendingDeleteExpected
+                }
+                className="ak-button-danger rounded-xl px-4 py-3 text-sm font-semibold disabled:opacity-50"
+              >
+                Delete account
+              </button>
+            </div>
+          </section>
+        </AccessibleDialog>
+      )}
       {confirmation && (
         <AccessibleDialog
           label="Confirm admin action"

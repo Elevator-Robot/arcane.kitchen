@@ -1,6 +1,11 @@
 import { userModerationStatus } from '../../utils/adminConsole';
 import type { AdminUserProfile, ModerationAction } from './types';
 
+const PASSWORD_PENDING_STATUSES = new Set([
+  'FORCE_CHANGE_PASSWORD',
+  'RESET_REQUIRED',
+]);
+
 export default function UsersPanel({
   users,
   loading,
@@ -42,6 +47,9 @@ export default function UsersPanel({
               <th className="px-4 py-3">Cognito status</th>
               <th className="px-4 py-3">Moderation</th>
               <th className="px-4 py-3">Actions</th>
+              <th className="border-l-2 border-red-200 px-4 py-3 text-red-800">
+                Danger zone
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -65,8 +73,17 @@ export default function UsersPanel({
                   {user.userId}
                 </td>
                 <td className="px-4 py-3">
-                  {user.status || 'UNKNOWN'}
-                  {user.enabled === false ? ' · Disabled' : ''}
+                  <div>{user.status || 'UNKNOWN'}</div>
+                  {user.enabled === false && (
+                    <div className="text-xs text-[var(--theme-text-muted)]">
+                      Disabled
+                    </div>
+                  )}
+                  {PASSWORD_PENDING_STATUSES.has(user.status || '') && (
+                    <span className="mt-1 inline-flex whitespace-nowrap rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                      Password change pending
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -104,19 +121,21 @@ export default function UsersPanel({
                     >
                       {user.contentHidden ? 'Restore content' : 'Hide content'}
                     </button>
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(
-                          user,
-                          user.isDeleted ? 'restore' : 'delete'
-                        )
-                      }
-                      className="ak-button-danger-soft rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.isDeleted ? 'Restore user' : 'Delete user'}
-                    </button>
                   </div>
+                </td>
+                <td className="border-l-2 border-red-200 bg-red-50/40 px-4 py-3">
+                  <button
+                    disabled={pendingUserAction !== null}
+                    onClick={() =>
+                      onModerateUser(
+                        user,
+                        user.isDeleted ? 'restore' : 'delete'
+                      )
+                    }
+                    className="ak-button-danger-soft rounded-xl px-3 py-2 text-xs disabled:opacity-50"
+                  >
+                    {user.isDeleted ? 'Restore user' : 'Delete user'}
+                  </button>
                 </td>
               </tr>
             ))}
