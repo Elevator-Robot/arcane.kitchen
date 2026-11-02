@@ -10,8 +10,6 @@ import userEvent from '@testing-library/user-event';
 import { render } from '../../test/test-utils';
 import AdminDashboard from '../AdminDashboard';
 
-vi.setConfig({ testTimeout: 15000 });
-
 const mocks = vi.hoisted(() => ({
   recipes: vi.fn(),
   comments: vi.fn(),
@@ -112,21 +110,25 @@ describe('admin console workflows', () => {
   });
 
   it('loads backend pages and supports search, filters, and navigable result pages', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderAdmin();
     await screen.findByText('Showing 1–10 of 12');
     expect(mocks.recipes).toHaveBeenCalledWith({
       authMode: 'userPool',
       nextToken: 'more',
     });
-    await user.click(screen.getByRole('button', { name: 'Next page' }));
+    const pageNav = screen.getByRole('navigation', {
+      name: 'Collection pages',
+    });
+    await user.click(
+      within(pageNav).getByRole('button', { name: 'Next page' })
+    );
     expect(
       screen.getByRole('heading', { name: 'Recipe 12' })
     ).toBeInTheDocument();
-    await user.type(
-      screen.getByRole('textbox', { name: 'Search recipes' }),
-      'Recipe 12'
-    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search recipes' }), {
+      target: { value: 'Recipe 12' },
+    });
     expect(screen.getByText('Showing 1–1 of 1')).toBeInTheDocument();
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Visibility' }),
@@ -143,7 +145,7 @@ describe('admin console workflows', () => {
   });
 
   it('filters users by moderation state and identity', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderAdmin();
     await screen.findByText('Showing 1–10 of 12');
     await user.click(screen.getByRole('button', { name: /^Users/ }));
@@ -157,16 +159,15 @@ describe('admin console workflows', () => {
       screen.getByRole('combobox', { name: 'Account state' }),
       'All'
     );
-    await user.type(
-      screen.getByRole('textbox', { name: 'Search users' }),
-      'moon@example.com'
-    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search users' }), {
+      target: { value: 'moon@example.com' },
+    });
     expect(screen.getByText('Moon Cook')).toBeInTheDocument();
     expect(screen.queryByText('Spice Mage')).not.toBeInTheDocument();
   });
 
   it('keeps data when deletion fails and lets confirmation be canceled', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mocks.deleteRecipe.mockResolvedValue({
       data: null,
       errors: [{ message: 'Not authorized: internal details' }],
@@ -206,7 +207,7 @@ describe('admin console workflows', () => {
   });
 
   it('deduplicates pending saves and reports success after the backend responds', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     let finish!: (value: unknown) => void;
     mocks.updateRecipe.mockReturnValue(
       new Promise((resolve) => {
@@ -239,22 +240,28 @@ describe('admin console workflows', () => {
   });
 
   it('transfers ownership through the audited admin operation after confirmation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderAdmin();
     await screen.findByText('Showing 1–10 of 12');
+    const row = (
+      await screen.findByRole('heading', { name: 'Recipe 1' })
+    ).closest('article')!;
     await user.click(
-      screen.getByRole('button', {
+      within(row).getByRole('button', {
         name: 'Transfer Recipe 1 from Moon Cook',
       })
     );
-    await user.click(screen.getByRole('button', { name: /Spice Mage/ }));
-    const reassign = screen.getByRole('button', {
+    await user.click(within(row).getByRole('button', { name: /Spice Mage/ }));
+    const reassign = within(row).getByRole('button', {
       name: 'Reassign to Spice Mage',
     });
     await user.click(reassign);
-    expect(screen.getByRole('dialog')).toHaveTextContent('spice_mage');
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('spice_mage');
     expect(mocks.moderate).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Confirm action' }));
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Confirm action' })
+    );
     expect(
       await screen.findByText('Transferred “Recipe 1” to spice_mage.')
     ).toBeInTheDocument();
@@ -267,14 +274,14 @@ describe('admin console workflows', () => {
     );
     expect(mocks.updateRecipe).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('button', {
+      within(row).getByRole('button', {
         name: 'Transfer Recipe 1 from Spice Mage',
       })
     ).toBeInTheDocument();
   });
 
   it('keeps previously loaded records visible when refresh fails', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderAdmin();
     await screen.findByRole('heading', { name: 'Recipe 1' });
     mocks.recipes.mockRejectedValue(new Error('Network error'));
@@ -288,7 +295,7 @@ describe('admin console workflows', () => {
   });
 
   it('updates account status only after successful moderation', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderAdmin();
     await screen.findByText('Showing 1–10 of 12');
     await user.click(screen.getByRole('button', { name: /^Users/ }));
@@ -308,7 +315,7 @@ describe('admin console workflows', () => {
   });
 
   it('hides recipes through direct updates without showing raw IDs on cards', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mocks.updateRecipe.mockResolvedValue({
       data: { ...recipes[0], isHidden: true },
     });
@@ -332,6 +339,7 @@ describe('admin console workflows', () => {
   });
 
   it('exposes labelled 44px rail targets and shows the active panel title in the header', async () => {
+    const user = userEvent.setup({ delay: null });
     renderAdmin();
     await screen.findByText('Showing 1–10 of 12');
 
@@ -353,7 +361,17 @@ describe('admin console workflows', () => {
     }
 
     expect(recipesRail).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(usersRail);
+
+    // The active color is memoized per mount and must not be re-rolled
+    // when unrelated state (the search input) re-renders the rail.
+    const activeStyleBefore = recipesRail.getAttribute('style');
+    expect(activeStyleBefore).toContain('background-color');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search recipes' }), {
+      target: { value: 'x' },
+    });
+    expect(recipesRail.getAttribute('style')).toBe(activeStyleBefore);
+
+    await user.click(usersRail);
     expect(
       screen.getByRole('heading', { name: 'Users', level: 2 })
     ).toBeInTheDocument();
@@ -361,7 +379,7 @@ describe('admin console workflows', () => {
   });
 
   it('lazy-loads the activity log, renders audit entries, and filters by category', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mocks.auditLogs.mockResolvedValue({
       data: [
         {
@@ -412,7 +430,7 @@ describe('admin console workflows', () => {
   });
 
   it('pages the activity log by nextToken through Load more', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     mocks.auditLogs
       .mockResolvedValueOnce({
         data: [
