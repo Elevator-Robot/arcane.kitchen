@@ -71,6 +71,22 @@ const users = [
     status: 'FORCE_CHANGE_PASSWORD',
     enabled: false,
   },
+  {
+    userId: 'u3',
+    username: 'cedar_sage',
+    displayName: 'Cedar Sage',
+    email: 'cedar@example.com',
+    status: 'CONFIRMED',
+    enabled: true,
+  },
+  {
+    userId: 'u4',
+    username: 'gone_grill',
+    displayName: 'Gone Grill',
+    email: 'gone@example.com',
+    status: 'CONFIRMED',
+    enabled: true,
+  },
 ];
 const profiles = [
   {
@@ -86,6 +102,13 @@ const profiles = [
     isBanned: true,
     isDeleted: false,
     contentHidden: true,
+  },
+  {
+    userId: 'u4',
+    username: 'gone_grill',
+    isBanned: false,
+    isDeleted: true,
+    contentHidden: false,
   },
 ];
 const renderAdmin = () =>
@@ -272,33 +295,68 @@ describe('admin console workflows', () => {
         name: 'Transfer Recipe 1 from Moon Cook',
       })
     );
-    await user.click(within(row).getByRole('button', { name: /Spice Mage/ }));
+    await user.click(within(row).getByRole('button', { name: /Cedar Sage/ }));
     const reassign = within(row).getByRole('button', {
-      name: 'Reassign to Spice Mage',
+      name: 'Reassign to Cedar Sage',
     });
     await user.click(reassign);
     const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveTextContent('spice_mage');
+    expect(dialog).toHaveTextContent('cedar_sage');
     expect(mocks.moderate).not.toHaveBeenCalled();
     await user.click(
       within(dialog).getByRole('button', { name: 'Confirm action' })
     );
     expect(
-      await screen.findByText('Transferred “Recipe 1” to spice_mage.')
+      await screen.findByText('Transferred “Recipe 1” to cedar_sage.')
     ).toBeInTheDocument();
     expect(mocks.moderate).toHaveBeenCalledWith(
       {
         action: 'transferOwnership',
-        transfers: [{ recipeId: 'r1', newOwnerId: 'u2' }],
+        transfers: [{ recipeId: 'r1', newOwnerId: 'u3' }],
       },
       { authMode: 'userPool' }
     );
     expect(mocks.updateRecipe).not.toHaveBeenCalled();
     expect(
       within(row).getByRole('button', {
-        name: 'Transfer Recipe 1 from Spice Mage',
+        name: 'Transfer Recipe 1 from Cedar Sage',
       })
     ).toBeInTheDocument();
+  });
+
+  it('excludes the owner, banned, and deleted accounts from transfer destinations', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    const row = (
+      await screen.findByRole('heading', { name: 'Recipe 1' })
+    ).closest('article')!;
+    await user.click(
+      within(row).getByRole('button', {
+        name: 'Transfer Recipe 1 from Moon Cook',
+      })
+    );
+    expect(
+      within(row).getByRole('button', { name: /cedar@example.com/ })
+    ).toBeInTheDocument();
+    expect(
+      within(row).queryByRole('button', { name: /moon@example.com/ })
+    ).not.toBeInTheDocument();
+    expect(
+      within(row).queryByRole('button', { name: /spice@example.com/ })
+    ).not.toBeInTheDocument();
+    expect(
+      within(row).queryByRole('button', { name: /gone@example.com/ })
+    ).not.toBeInTheDocument();
+
+    const search = within(row).getByPlaceholderText(
+      'Search name, handle, or email'
+    );
+    await user.type(search, 'spice');
+    expect(
+      within(row).getByText('No cooks match that search.')
+    ).toBeInTheDocument();
+    expect(mocks.moderate).not.toHaveBeenCalled();
   });
 
   it('keeps previously loaded records visible when refresh fails', async () => {
@@ -366,7 +424,7 @@ describe('admin console workflows', () => {
 
     const recipesRail = screen.getByRole('button', { name: 'Recipes · 12' });
     const commentsRail = screen.getByRole('button', { name: 'Comments · 1' });
-    const usersRail = screen.getByRole('button', { name: 'Users · 2' });
+    const usersRail = screen.getByRole('button', { name: 'Users · 4' });
     const activityRail = screen.getByRole('button', { name: 'Activity log' });
 
     for (const railButton of [

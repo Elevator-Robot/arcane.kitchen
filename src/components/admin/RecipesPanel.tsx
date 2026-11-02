@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightLeft, Ellipsis, Eye, EyeOff, X } from 'lucide-react';
 import VisibilityBadge from './VisibilityBadge';
-import { matchesAdminSearch } from '../../utils/adminConsole';
+import {
+  matchesAdminSearch,
+  userModerationStatus,
+} from '../../utils/adminConsole';
 import { MERLIN_PALETTE } from '../../theme/merlinPalette';
 import type { AdminRecipe, AdminUserProfile } from './types';
 
@@ -63,19 +66,21 @@ export default function RecipesPanel({
     return counts;
   }, [users]);
 
-  const transferCandidates = useMemo(
-    () =>
-      users.filter((user) =>
-        matchesAdminSearch(
-          transferQuery,
-          user.displayName,
-          user.username,
-          user.email,
-          user.userId
-        )
-      ),
-    [users, transferQuery]
-  );
+  const transferCandidates = useMemo(() => {
+    const recipe = recipes.find((entry) => entry.id === transferFor);
+    return users.filter((user) => {
+      if (user.userId === recipe?.ownerId) return false;
+      const moderation = userModerationStatus(user);
+      if (moderation === 'Banned' || moderation === 'Deleted') return false;
+      return matchesAdminSearch(
+        transferQuery,
+        user.displayName,
+        user.username,
+        user.email,
+        user.userId
+      );
+    });
+  }, [users, transferQuery, transferFor, recipes]);
 
   const busy = pendingUserAction !== null;
 
@@ -367,7 +372,9 @@ export default function RecipesPanel({
                   ))}
                   {!transferCandidates.length && (
                     <li className="px-3 py-4 text-center text-sm text-[var(--theme-text-muted)]">
-                      No cooks match that search.
+                      {transferQuery
+                        ? 'No cooks match that search.'
+                        : 'No other eligible accounts.'}
                     </li>
                   )}
                 </ul>
