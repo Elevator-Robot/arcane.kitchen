@@ -457,6 +457,94 @@ describe('admin console workflows', () => {
     expect(usersRail).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('edits and toggles comment visibility through the card actions', async () => {
+    const user = userEvent.setup({ delay: null });
+    mocks.updateComment.mockImplementation(async (input: any) => ({
+      data: { id: 'c1', ...input },
+    }));
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: /^Comments/ }));
+
+    expect(screen.getByText('@moon_cook')).toBeInTheDocument();
+    expect(screen.getByText('Wonderful soup!')).toBeInTheDocument();
+    const card = screen.getByText('Wonderful soup!').closest('article')!;
+    expect(card).toHaveTextContent('On recipe r1…');
+    expect(
+      within(card).getByRole('link', { name: 'View conversation' })
+    ).toHaveAttribute('href', '/discover?recipe=r1');
+    expect(within(card).getByText('Visible')).toBeInTheDocument();
+
+    await user.click(within(card).getByRole('button', { name: 'Edit' }));
+    fireEvent.change(
+      within(card).getByRole('textbox', { name: 'Comment content' }),
+      { target: { value: 'Edited soup!' } }
+    );
+    await user.click(within(card).getByRole('button', { name: 'Save' }));
+    expect(mocks.updateComment).toHaveBeenCalledWith(
+      { id: 'c1', content: 'Edited soup!' },
+      { authMode: 'userPool' }
+    );
+    expect(
+      await screen.findByText('Comment changes saved.')
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(card).getByRole('button', { name: 'Hide comment by @moon_cook' })
+    );
+    expect(mocks.updateComment).toHaveBeenLastCalledWith(
+      { id: 'c1', isHidden: true },
+      { authMode: 'userPool' }
+    );
+    expect(
+      await screen.findByText('Hid comment by @moon_cook.')
+    ).toBeInTheDocument();
+    expect(within(card).getByText('Hidden')).toBeInTheDocument();
+    expect(
+      within(card).getByRole('button', { name: 'Show comment by @moon_cook' })
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(card).getByRole('button', { name: 'Show comment by @moon_cook' })
+    );
+    expect(mocks.updateComment).toHaveBeenLastCalledWith(
+      { id: 'c1', isHidden: false },
+      { authMode: 'userPool' }
+    );
+    expect(
+      await screen.findByText('Restored comment by @moon_cook.')
+    ).toBeInTheDocument();
+    expect(within(card).getByText('Visible')).toBeInTheDocument();
+    expect(mocks.deleteComment).not.toHaveBeenCalled();
+  });
+
+  it('deletes a comment through the more menu after confirmation', async () => {
+    const user = userEvent.setup({ delay: null });
+    mocks.deleteComment.mockResolvedValue({ data: { id: 'c1' } });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+    await user.click(screen.getByRole('button', { name: /^Comments/ }));
+
+    await user.click(
+      screen.getByRole('button', {
+        name: 'More actions for comment by @moon_cook',
+      })
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Delete comment…' }));
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('permanently delete this comment');
+    expect(mocks.deleteComment).not.toHaveBeenCalled();
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Confirm action' })
+    );
+    expect(mocks.deleteComment).toHaveBeenCalledWith(
+      { id: 'c1' },
+      { authMode: 'userPool' }
+    );
+    expect(await screen.findByText('Comment deleted.')).toBeInTheDocument();
+    expect(await screen.findByText('No comments found.')).toBeInTheDocument();
+  });
+
   it('lazy-loads the activity log, renders audit entries, and filters by category', async () => {
     const user = userEvent.setup({ delay: null });
     mocks.auditLogs.mockResolvedValue({

@@ -112,6 +112,29 @@ export default function AdminDashboard({
       }
     );
   };
+  const hideComment = async (comment: Comment) => {
+    const nextHidden = !comment.isHidden;
+    await runAction(
+      `hideComment:${comment.id}`,
+      nextHidden
+        ? `Hid comment by ${comment.author}.`
+        : `Restored comment by ${comment.author}.`,
+      async () => {
+        const result = await client.models.Comment.update(
+          { id: comment.id, isHidden: nextHidden },
+          { authMode: 'userPool' }
+        );
+        const updated = requireAdminResult<Comment>(result);
+        setComments((current) =>
+          current.map((entry) =>
+            entry.id === updated.id
+              ? { ...entry, isHidden: updated.isHidden ?? nextHidden }
+              : entry
+          )
+        );
+      }
+    );
+  };
   const AUDIT_PAGE_SIZE = 20;
   const [auditEntries, setAuditEntries] = useState<AdminAuditEntry[]>([]);
   const [auditLoading, setAuditLoading] = useState(false);
@@ -1061,6 +1084,7 @@ export default function AdminDashboard({
                         setCommentForm={setCommentForm}
                         saveComment={saveComment}
                         removeComment={removeComment}
+                        onHideComment={hideComment}
                         loading={loading || !loadedOnce}
                       />
                     )}
