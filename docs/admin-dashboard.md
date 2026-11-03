@@ -2,7 +2,7 @@
 
 Status: implemented console UI; backend enforcement and linked-record cleanup follow-ups remain
 
-Current UI branch: `deploy/profile-refresh-admin-polish`
+Current UI branch: `feat/admin-dashboard-redesign`
 
 This document is the source of truth for the admin-dashboard work. Update the
 progress and decisions sections as implementation proceeds.
@@ -123,7 +123,7 @@ ordinary users.
 - [x] Build protected admin routing and access-denied behavior.
 - [x] Build the initial admin dashboard shell and navigation.
 - [x] Build initial recipe and comment moderation views with explicit admin
-  action confirmations.
+      action confirmations.
 - [x] Build the initial scrollable user-management table.
 - [x] Build ownership-transfer UI and confirmation flows.
 - [x] Add visible admin-context and destructive-action confirmations.
@@ -138,22 +138,22 @@ All initial product decisions below are confirmed. Implementation details may
 still be refined as the backend capabilities are validated.
 
 - [x] Admin membership uses a Cognito `Admins` group. The initial admin is
-  assigned manually through Cognito/AWS administration.
+      assigned manually through Cognito/AWS administration.
 - [x] User deletion is a soft delete: disable access and retain records.
 - [x] Banning prevents sign-in and all content writes.
 - [x] Hiding content removes it from public and owner views while retaining it
-  for admin review.
+      for admin review.
 - [x] Content hiding applies to recipes and comments.
 - [x] Admin actions are recorded in an audit log with actor, action, target,
-  timestamp, and relevant before/after values.
+      timestamp, and relevant before/after values.
 - [x] Ownership transfer makes the destination user the displayed owner and
-  updates `createdBy` to the destination user's `@username`.
+      updates `createdBy` to the destination user's `@username`.
 - [x] Ownership transfer must support safe multi-recipe swaps, not only
-  one-recipe-at-a-time updates.
+      one-recipe-at-a-time updates.
 - [x] Soft deletion hides the user's recipes and comments as well as disabling
-  the account.
+      the account.
 - [x] Admins can restore a soft-deleted user from the user-management table,
-  re-enable access, and restore content visibility.
+      re-enable access, and restore content visibility.
 
 ## Current Context
 
@@ -206,3 +206,24 @@ still be refined as the backend capabilities are validated.
 - The application feed and recipe comment view exclude records marked
   `isHidden`; backend read rules still need a dedicated filtered feed operation
   before hidden records can be considered inaccessible through direct API reads.
+
+### 2026-11-03
+
+- Redesigned the console on branch `feat/admin-dashboard-redesign` from the
+  static mockups (Recipes, Comments, Users, Activity log): extracted panels into
+  `src/components/admin/*` behind an icon rail, then restyled each panel.
+- Recipes: monogram cards, inline owner transfer (destination search excludes
+  the current owner and banned/deleted accounts), hide/show, and delete behind
+  the more menu.
+- Comments: author avatars, visibility chips, truncated recipe meta with a
+  conversation link, visibility toggles, and more-menu deletion behind
+  confirmation.
+- Users: `UserProfile` moderation flags merged onto `listAdminUsers` rows for
+  display/filtering, a "Password change pending" badge, and a danger-zone
+  column with a typed-email delete confirmation plus a recommended
+  reassign-first path.
+- Activity: audit reads page by `nextToken` with a `Load more` control.
+- Mockup filter pills were adapted to the existing shell search/select row so
+  every panel shares one search, filter, count, and clear-filter surface.
+- The mockup's Reports section is deferred: no report model or queue exists in
+  the backend or app.
