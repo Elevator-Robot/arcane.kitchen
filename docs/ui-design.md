@@ -98,6 +98,7 @@ familiars, and signs give the community its world.
 
 ## Verification
 
+- [Desktop and mobile review screenshots](screenshots/culinary-guild/README.md) show the local demo preview used for PR #114.
 - `npm run build`, `npm run lint`, and `npm run test:run`.
 - `node --test scripts/resolve-ampx-entry.test.cjs scripts/migrate-aws-account.test.cjs`.
 - Browser checks at desktop, tablet, 390px, and 320px: search/filter/sort, featured
