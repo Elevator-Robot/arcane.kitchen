@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { ArrowUpRight, Check, Compass, Feather, X } from 'lucide-react';
+import { Check, Compass, X } from 'lucide-react';
 import type { Recipe, User } from '../../types/profile';
 import {
   KITCHEN_CLASSES,
@@ -13,7 +13,7 @@ import {
 } from '../../utils/kitchenIdentity';
 import { getUserFacingErrorMessage } from '../../utils/userFacingErrors';
 import AccessibleDialog from '../AccessibleDialog';
-import SanctuaryMotif from '../ui/SanctuaryMotif';
+import PageBanner from '../ui/PageBanner';
 import Button from '../ui/Button';
 import ColorSchemeImage from '../ui/ColorSchemeImage';
 import { BIRTHSIGN_ARTWORK } from '../../theme/birthsignArtwork';
@@ -83,7 +83,6 @@ export function SanctuaryBanner({
   onChangePortrait,
   actions,
   onCustomize,
-  compact = false,
 }: {
   identity: KitchenIdentity;
   username: string;
@@ -91,31 +90,16 @@ export function SanctuaryBanner({
   onChangePortrait?: () => void;
   actions?: ReactNode;
   onCustomize?: () => void;
-  compact?: boolean;
 }) {
   const theme = kitchenTheme(identity.theme);
   const calling = kitchenCalling(identity.calling);
-  const hasArtwork = Boolean(SANCTUARY_ARTWORK[calling.id]);
   return (
-    <div
-      className={`ak-artwork-surface relative isolate overflow-hidden text-white ${compact ? 'rounded-2xl px-5 py-6' : 'px-5 py-7 sm:px-8 sm:py-9'}`}
-      style={{ background: theme.background }}
+    <PageBanner
+      as="div"
+      callingId={calling.id}
+      className="ak-profile-cover"
+      background={theme.background}
     >
-      {hasArtwork ? (
-        <>
-          <SanctuaryArtwork
-            callingId={calling.id}
-            pictureClassName="absolute inset-0"
-            imageClassName="h-full w-full object-cover"
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"
-            aria-hidden="true"
-          />
-        </>
-      ) : (
-        <SanctuaryMotif />
-      )}
       {onCustomize && (
         <button
           type="button"
@@ -125,13 +109,11 @@ export function SanctuaryBanner({
         ></button>
       )}
       {actions && (
-        <div className="pointer-events-none relative z-20 flex flex-wrap justify-end gap-2 [&>*]:pointer-events-auto">
+        <div className="ak-profile-banner-actions pointer-events-none relative z-20 flex flex-wrap justify-end gap-2 [&>*]:pointer-events-auto">
           {actions}
         </div>
       )}
-      <div
-        className={`pointer-events-none relative z-20 flex min-w-0 items-end ${compact ? 'mt-4' : 'mt-7'}`}
-      >
+      <div className="ak-profile-banner-identity pointer-events-none relative z-20 flex min-w-0 items-end">
         <div className="ak-portrait-medallion ak-artwork-surface relative h-24 w-24 shrink-0 sm:h-32 sm:w-32">
           {avatarUrl ? (
             <img
@@ -179,13 +161,13 @@ export function SanctuaryBanner({
           )}
         </div>
         <h1
-          className={`ak-banner-title relative z-10 -ml-6 min-w-0 truncate whitespace-nowrap leading-tight [text-shadow:0_2px_8px_rgb(0_0_0_/_90%)] sm:-ml-7 ${compact ? 'text-2xl' : 'text-3xl sm:text-4xl'}`}
+          className="ak-banner-title relative z-10 -ml-6 min-w-0 truncate whitespace-nowrap leading-tight [text-shadow:0_2px_8px_rgb(0_0_0_/_90%)] sm:-ml-7"
           title={username}
         >
           {username}
         </h1>
       </div>
-    </div>
+    </PageBanner>
   );
 }
 
@@ -204,16 +186,14 @@ export function SanctuaryDetails({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   return (
-    <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-border)] md:grid-cols-3">
-      <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
-        <h2 className="font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-          Familiar
-        </h2>
+    <div className="ak-sanctuary-details">
+      <section className="ak-familiar-card">
+        <h3 className="ak-eyebrow">Familiar</h3>
         {isOwnProfile && onSave ? (
           <button
             type="button"
             aria-label="Change familiar"
-            className="ak-artwork-trigger relative mt-4 block w-full overflow-hidden rounded-2xl"
+            className="ak-profile-art-frame ak-artwork-trigger relative"
             onClick={() => {
               setSelected(identity.familiar);
               setError('');
@@ -222,23 +202,19 @@ export function SanctuaryDetails({
           >
             <FamiliarArtwork
               familiarId={familiar.id}
-              pictureClassName="block"
-              imageClassName="aspect-[3/2] w-full object-cover"
+              pictureClassName="h-full w-full"
+              imageClassName="h-full w-full object-contain"
             />
           </button>
         ) : (
           <FamiliarArtwork
             familiarId={familiar.id}
-            pictureClassName="mt-4 block overflow-hidden rounded-2xl"
-            imageClassName="aspect-[3/2] w-full object-cover"
+            pictureClassName="ak-profile-art-frame"
+            imageClassName="h-full w-full object-contain"
           />
         )}
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="font-heading text-lg">{familiar.name}</p>
-        </div>
-        <p className="mt-3 text-xs leading-6 text-[var(--theme-text-muted)]">
-          {familiar.note}
-        </p>
+        <p className="ak-familiar-name">{familiar.name}</p>
+        <p className="ak-familiar-note">{familiar.note}</p>
         {choosing && isOwnProfile && onSave && (
           <AccessibleDialog
             label="Who's your familiar?"
@@ -246,7 +222,7 @@ export function SanctuaryDetails({
               if (!pending) setChoosing(false);
             }}
           >
-            <div className="mx-auto w-full max-w-2xl rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-6">
+            <div className="ak-art-picker mx-auto w-full max-w-3xl rounded-3xl border border-[var(--theme-border)] bg-[var(--theme-surface)] p-5 sm:p-8">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="text-2xl">Who's your familiar?</h2>
                 <Button
@@ -330,77 +306,23 @@ export function SanctuaryDetails({
           </AccessibleDialog>
         )}
       </section>
-      <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-          <Compass className="h-3.5 w-3.5" aria-hidden="true" />
-          Main quest
-        </h2>
-        <p className="mt-5 break-words font-heading text-lg leading-7">
-          Coming soon
-        </p>
-      </section>
-      <section className="bg-[var(--theme-surface)] p-5 sm:p-6">
-        <h2 className="flex items-center gap-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--theme-text-muted)]">
-          <Compass className="h-3.5 w-3.5" aria-hidden="true" />
-          Side quest
-        </h2>
-        <p className="mt-5 break-words font-heading text-lg leading-7">
-          Coming soon
-        </p>
-      </section>
+      <div className="ak-profile-quests">
+        <section className="ak-profile-quest">
+          <h3 className="ak-eyebrow flex items-center gap-2">
+            <Compass className="h-3.5 w-3.5" aria-hidden="true" />
+            Main quest
+          </h3>
+          <p className="ak-quest-coming-soon">Coming soon</p>
+        </section>
+        <section className="ak-profile-quest">
+          <h3 className="ak-eyebrow flex items-center gap-2">
+            <Compass className="h-3.5 w-3.5" aria-hidden="true" />
+            Side quest
+          </h3>
+          <p className="ak-quest-coming-soon">Coming soon</p>
+        </section>
+      </div>
     </div>
-  );
-}
-
-export function SignatureRecipe({
-  recipe,
-  onOpen,
-}: {
-  recipe: Recipe;
-  onOpen: (id: Recipe['id']) => void;
-}) {
-  return (
-    <section className="relative overflow-hidden rounded-2xl border border-[var(--theme-border)] bg-[var(--theme-surface)]">
-      <Button
-        variant="unstyled"
-        size="none"
-        type="button"
-        onClick={() => onOpen(recipe.id)}
-        className="group grid w-full text-left sm:grid-cols-[220px_1fr]"
-      >
-        {recipe.image ? (
-          <img
-            src={recipe.image}
-            alt=""
-            loading="lazy"
-            className="h-44 w-full object-cover sm:h-full sm:min-h-44"
-          />
-        ) : (
-          <div className="grid min-h-36 place-items-center bg-[var(--theme-surface-alt)]">
-            <Feather
-              className="h-12 w-12 text-[var(--theme-accent)]"
-              aria-hidden="true"
-            />
-          </div>
-        )}
-        <div className="min-w-0 p-6 sm:p-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--theme-accent)]">
-            Signature creation · pinned by the cook
-          </p>
-          <h2 className="mt-3 break-words text-2xl">{recipe.title}</h2>
-          <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-            Selected from this cook’s collected work.
-          </p>
-          <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[var(--theme-accent)]">
-            Open recipe
-            <ArrowUpRight
-              className="h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              aria-hidden="true"
-            />
-          </span>
-        </div>
-      </Button>
-    </section>
   );
 }
 

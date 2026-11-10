@@ -31,8 +31,8 @@ borders, and quiet constellation details now extend to the rest of the app.
   and a preview styled like a recipe card. Mobile uses one scrolling column; desktop
   keeps two work panes. Guests receive a normal sign-in panel instead of a floating
   panel obscuring disabled fields.
-- **Saved / Drafts:** collection headers using the viewer's saved atmosphere, consistent empty states,
-  and matching recipe/draft cards.
+- **Saved:** the owner's profile collection uses their Sanctuary banner and matching cards.
+  The separate Drafts page is retired; unfinished recipes resume in the editor.
 - **Authentication:** the original member-kitchen image beside the form on desktop
   and above it on mobile, with parchment form controls,
   including the default Amplify screens. Shared inputs have associated labels and
@@ -47,7 +47,7 @@ borders, and quiet constellation details now extend to the rest of the app.
 - Changed frontend files lint with zero errors and eight existing hook/fast-refresh warnings.
 - Existing automated tests cover recipe navigation, search/sort, author collections,
   saving, draft autosave, publishing, profiles, and error recovery.
-- Desktop and 390px mobile checks cover Discover, Saved, Drafts, Build, sign-in,
+- Desktop and 390px mobile checks cover Discover, Saved, Build, sign-in,
   and the admin access screen.
 - Signed-in visuals use isolated in-browser model stubs. Live data verification is
   still limited by the missing Identity Pool referenced by local outputs. No fixture

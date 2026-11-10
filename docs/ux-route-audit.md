@@ -5,7 +5,7 @@
 - Supplied catwitch artwork appears on missing recipes/profiles, unknown routes, rendering crashes, configuration failures, script-load failures, and the service worker's offline/server-error fallback. Discover feed failures use a text-only retry panel. The original caption is preserved in the responsive image.
 - Discover opens directly with search, Create recipe, filters, and the feed. Search counts are truthful, with distinct empty/error states, filter reset, and retry recovery.
 - Search no longer matches unrelated recipes against the viewer's own username. The placeholder accurately describes indexed content.
-- Saved recipes and recipe drafts are reachable through the shared account dropdown. Guest routes explain the benefit and offer sign-in in context.
+- Saved recipes are reached through the profile collections. The editor resumes the latest local unfinished recipe directly; the Drafts page and menu item are retired. Guest routes offer sign-in in context.
 - Shared recipe and profile links accept trailing slashes. Invalid URI escapes are handled safely and query-string recipe IDs are decoded once.
 - Unknown URLs show a recovery page. Admin route matching is exact. Each primary route has a descriptive browser title.
 - Auth, recipe, and image dialogs contain keyboard focus, close with Escape, and restore focus. Account dropdowns close on Escape or when focus leaves.
@@ -21,7 +21,7 @@
 | `/discover`, `/discover/` | Browse, search, sort, create | Desktop/mobile browser; mocked-data integration tests |
 | `/build` | Contextual back action; guest sign-in invitation | Desktop/mobile browser; editor/autosave/publish integration tests |
 | `/saved` | Saved collection or guest invitation | Desktop/mobile browser; authenticated integration test |
-| `/drafts` | Resume a draft or guest invitation | Desktop/mobile browser; autosave/resume/delete/publish integration tests |
+| `/drafts`, `/drafts/` | Replace with `/build`, preserving query and hash | Route redirect tests; direct editor autosave/restore/publish checks |
 | `/u/:username`, `/profile/:username/` | Public profile or recovery | Desktop/mobile browser for missing profile; profile/author integration tests |
 | `/recipe/:id`, `?recipe=:id` | In-place recipe with close/back behavior | Browser failure path; mocked-data open/close/share integration tests |
 | `/admin` | Admin-only dashboard or access-required state | Guest desktop browser; privileged mutations need live verification |
