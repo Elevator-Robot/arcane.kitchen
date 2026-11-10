@@ -37,6 +37,22 @@ Authentication submission:
 - Custom sign-in and account creation requests are deduplicated while in flight so one attempt cannot send multiple confirmation codes
 - Recipe ownership uses the Cognito subject (`sub`/`userId`), never the Cognito login username, when publishing or mutating recipes
 
+## Local Preview
+
+- Local previews can set `VITE_MOCK_PREVIEW=true` in ignored `.env.local`. The preview strip switches between guests, a fictional Rowan account, and an admin preview. Demo model writes persist for the current tab in `arcaneKitchen.previewData.v1` sessionStorage and restore on reload; login reconciles the restored profile before displaying it. `src/dataClient.ts` loads fixtures before mounting the app. Production builds and normal tests exclude preview mode; no Amplify outputs are needed locally. Fixtures and photography credits live in `src/preview/`.
+
+## Culinary Guild UI
+
+- The visual direction is a living culinary guild: quiet parchment, ink/amethyst accents, Almendra branding, editorial food photography, and fine bookplate borders. `src/styles/guild.css` owns the responsive workspace compositions; shared theme tokens remain in `src/index.css` and `src/theme/`.
+- `PageBanner` owns every page/profile artwork frame: the shared rail width, 200px height (180px below 640px), shared padding/title size/crop, and borderless 12px corners. Profile collections and Backrooms keep the same banner dimensions. The editor banner spans both desktop panes.
+- Emporium remains search-first. Its community sidebar shows an admin-selected featured recipe and a concise Community cooks section with real recipe authors, loaded recipe totals, and profile links. A plain saved-collection/sign-in link sits below the cook list. The desktop feed uses three columns where space permits; phones use one.
+- Feed, featured, and profile card photos share exact grid-track dimensions and the `ak-recipe-media` 16:10 frame. Profiles use four/three/two/one fixed columns at the shared desktop/tablet/phone breakpoints; short collections retain the same card width. Editor photos and admin thumbnails share the crop ratio. `RecipeImage` supplies a local CookingPot fallback; `CookAvatar` handles portraits and `formatRecipeTime()` formats stored `HH:mm` durations.
+- `RecipeCookingGuide` always shows ingredient/step checkboxes and the step-completion bar for members and guests, with no start/stop/reset panel. Checks are reversible and persist for the current tab in `sessionStorage`, scoped to the recipe and its current ingredients/instructions. Guest ingredient reads use `identityPool` authorization.
+- `RecipeReadiness` links to the editor's name/photo/ingredients/method sections and shows real completeness. Existing publish validation remains authoritative.
+- Profiles keep recipes in a full-width shared grid. A pinned recipe appears first with a small Pinned recipe badge and the same image size. The note, sign, familiar, and quest placeholders live in one downward-expanding `ChefNote` disclosure, closed by default. It remembers each cook's expansion state for the current tab; collapsed content is inert, and portrait dialogs remain independent. Sign/familiar artwork shares matching 3:2 frames and matching picker dimensions.
+- Emporium search, tag selections/colors, author selection, and sort order persist for the current tab through `src/utils/discoverPreferences.ts`, including refresh. UI preference storage failures fall back to usable in-memory state.
+- See `docs/ui-design.md` for the design rationale and verification workflow.
+
 ## User-Facing Errors
 
 - `ErrorArtwork` uses the supplied catwitch image at `/images/catwitch.webp` on unavailable-content and recovery screens. Keep the complete image and caption visible; do not crop it.
@@ -75,13 +91,14 @@ Authentication submission:
 
 - The community recipe page is named **Emporium** in headings, document titles, navigation, and user-facing copy. Its existing `/discover` URL and internal `Discover` view key remain compatible with shared links.
 
-- Unknown routes show a dedicated recovery page; route-aware document titles distinguish Discover, Build, Saved, Drafts, Profile, and Admin. Admin matching is exact, not a prefix match.
+- Unknown routes show a dedicated recovery page; route-aware document titles distinguish Emporium, Build, Saved, Profile, and Backrooms. Admin matching is exact, not a prefix match.
 - Shared recipe/profile paths accept trailing slashes and malformed URI escapes cannot crash route parsing. Query-string recipe IDs are decoded once.
 - Returning to a profile URL without `?recipe=` dismisses the recipe overlay; renaming your profile replaces its route with the new handle.
-- Account menus include Profile and Drafts, with no separate Saved recipes item. Saved is accessed from the profile collection panels. Legacy `/saved` links redirect signed-in users to `/u/:username?collection=saved` while preserving recipe parameters; guests receive a sign-in invitation.
+- The account menu is removed. `ProfileLink` is an etched, illuminated portrait sigil that navigates directly to the viewer's own profile; hover/focus motion respects reduced motion. Log out is a discreet, muted text action at the bottom-right of the owner's profile, with nearby pending/error feedback. `WorkspaceFooter` exposes the X Feedback & Support link on every workspace.
+- The Drafts page is retired; `/drafts` and `/drafts/` replace their route with `/build`, preserving query parameters and hashes. Saved is accessed from profile collections. Legacy `/saved` links redirect signed-in users to `/u/:username?collection=saved` while preserving recipe parameters; guests receive a sign-in invitation.
 - All `AccessibleDialog` overlays dismiss on backdrop click by default, alongside keyboard containment, Escape dismissal, and focus restoration. Clicks within dialog content do not dismiss it; existing pending-save guards still apply.
-- Discover distinguishes request failures (with Retry), empty collections, empty filters (with Clear all filters), and successful search counts. Search covers recipe text, tags, and authors; it does not claim to index ingredient records.
-- Nonempty drafts autosave without requiring a photo or ingredients, and the debounce survives navigation between workspace views. Browser refresh/unmount during the debounce is still a follow-up.
+- Discover distinguishes request failures (with Retry), empty collections, empty filters (with Clear all filters), and successful search counts. Search requires every query word to match recipe text, tags, or authors; it does not index ingredient records or internal owner IDs.
+- Nonempty editor work autosaves locally without requiring a photo or ingredients; the latest unfinished recipe for the signed-in owner restores directly in the editor. The debounce survives navigation between workspace views. Browser refresh/unmount during the debounce is still a follow-up.
 - Authentication initialization waits for the live session check before showing the workspace, including when cached auth exists.
 - Shared styles provide visible keyboard focus, higher-contrast muted text, and reduced-motion support.
 
@@ -94,19 +111,19 @@ Authentication submission:
 - `RecipeBuilder` derives view + modal from the URL via `useLocation`/`useNavigate`:
   - `recipeId = getRecipeIdFromPath(pathname + search)` → expanded recipe modal (`expandRecipe`), resolved from the feed or a direct `Recipe.get` for deep links.
   - `/u/:username` (`getProfileUsernameFromPath`) → Profile view.
-  - `/discover` `/build` `/saved` `/drafts` → mapped by `viewForPath`; bare `/` redirects to `/discover`.
-- Closing the recipe modal removes its `recipe` parameter while preserving the profile collection selection (legacy `/recipe/:id` deep links fall back to Home on close).
-- A `/u/:username` route matching the signed-in user's normalized username renders the editable private profile view, including published recipes, drafts, and saved recipes; other matching profiles render the read-only public view.
-- Public profiles show published recipes only; Drafts and Saved tabs are private and must not render for another user's profile.
+  - `/discover` `/build` `/saved` → mapped by `viewForPath`; bare `/` redirects to `/discover`.
+- Closing the recipe modal removes its `recipe` parameter while preserving the profile collection and Backrooms workspace selection (legacy `/recipe/:id` deep links fall back to Home on close).
+- A `/u/:username` route matching the signed-in user's normalized username renders the editable private profile view, including published and saved recipes; other matching profiles render the read-only public view.
+- Public profiles show published recipes only; the Saved tab is private and must not render for another user's profile.
 - `UserProfileView`'s `RecipeCard` click must only fall back to `window.location.assign('/recipe/<id>')` when there is NO `onOpenRecipe` handler — never use `onOpenRecipe?.(id) ?? window.location.assign(...)`, because `onOpenRecipe` returns `undefined` (void) and `??` would then always hard-navigate to the legacy deep-link route, forcing a `Recipe.get` load instead of the in-place modal.
 - The route-sync `useEffect` (`syncRecipeRoute`) must NOT re-open a recipe that was just dismissed: the effect depends on `expandedRecipeId`, so `collapseExpandedRecipe` sets `justClosedRecipeIdRef` to the id being closed and the effect skips re-expanding that id while the URL's `?recipe=` param is still pending a `navigate` flush. Without this guard, closing would reset `expandedRecipeId` → the effect re-runs → finds the recipe still in the URL → reopens the modal.
 - Keep all URL writes on `navigate()`/`useNavigate()` — do NOT mix raw `history.pushState`/`replaceState` with the router.
-- Discover and Build are not global navigation tabs. The recipe explorer is the home surface, its search row owns the responsive `Create recipe` action, and the editor header owns the contextual `Back to recipes` action.
+- Discover and Build are not global navigation tabs. Create recipe lives in the upper-right banner action area on the Emporium and the owner's profile; the Emporium search uses the full row beneath it. The editor header owns the contextual Back to recipes action.
 - The Discover search bar groups standard search, clear, and newest/oldest sort controls in one responsive surface; sorting is a labeled icon toggle rather than a separate select.
 - Discover opens directly with search, Create recipe, filters, and the feed; there is no promotional welcome card above the search controls.
 - The Emporium banner (`.ak-discover-intro`) must not shrink in its scrolling flex column. Keep `flex-shrink: 0` so long feeds cannot collapse the banner and clip search controls.
-- Discover filters come only from tags on loaded community recipes. There are no All/Favorites/New/My recipes shortcut chips or New card badges. Selecting an active tag again clears it; names such as “All” are valid ordinary community tags. Counts deduplicate each recipe's tags case-insensitively.
-- Primary content uses centered `max-w-6xl` rails where practical; profile cards use shared theme tokens, profile identity stacks on narrow screens, and forms/body copy remain left-aligned for readability.
+- Discover filters come only from tags on loaded community recipes. Multiple tags can be selected; recipes must match every selected tag, plus the search and author filters. Each tag toggles independently, Clear tags preserves search/author, and Clear all filters resets everything. There are no All/Favorites/New/My recipes shortcut chips or New card badges; “All” remains a valid community tag. Counts deduplicate each recipe's tags case-insensitively.
+- Every page, loading/recovery surface, header, and footer uses the shared `ak-page-rail` width and responsive gutters in `src/styles/guild.css`: 1400px maximum, 1560px from 1700px screens, with 36px/24px/14px side padding. Page sections and profiles fill that rail without narrower nested caps. Profile identity stacks on narrow screens; forms/body copy remain left-aligned.
 
 ## Profile & Avatars
 
@@ -117,15 +134,15 @@ Authentication submission:
 - The portrait dialog is titled “Who are you?” and expands to show its responsive preset grid without an internal scroll area. Character names reveal on hover/focus and remain visible on touch devices. Only the outer overlay scrolls on constrained screens.
 - Familiar selection opens by clicking its image. Owner-only artwork controls show hover/focus hints and a gentle press response, respecting reduced motion. Cancel discards selection; Save waits for backend success and failures retain the selection for retry.
 - The familiar section heading is “Familiar.” Portrait, Sanctuary, and Familiar hover states brighten the artwork without visible change-label overlays; accessible control names remain. Profile Share always copies the profile URL to the clipboard, showing Copying… then Copied! with a checkmark. Failures offer Try again; it never opens native sharing.
-- There is no general Customize profile button. The Sanctuary banner opens its picker, and the rectangular sign artwork beside the bio opens the sign picker. The portrait has a thin antique-brass rim with delicate etched arcs; the username is bottom-aligned and slightly overlaps its right edge. Clicking the portrait opens “Who are you?” directly, without a camera button. Quests are non-editable Coming soon placeholders; Recipes has a Pin recipe/Change pinned recipe action. Each focused dialog preserves other profile choices.
-- Profile sharing lives in the Sanctuary banner. The bio appears beside the portrait as “A note from the chef” without a nested card. Owners click the text area (or activate it with the keyboard) to edit; there is no separate Edit button.
-- Saved recipes have no separate authenticated page; the profile's private Saved collection is URL-backed through `?collection=saved`, including refresh and back/forward navigation. Drafts use the viewer's Sanctuary artwork and shared banner typography.
+- There is no general Customize profile button. The Sanctuary banner opens its picker; sign/familiar artwork inside the chef-note disclosure opens their pickers. The portrait has a thin antique-brass rim with etched arcs, and clicking it opens “Who are you?” even while the note is collapsed. Quests remain non-editable Coming soon placeholders. Profile Pin recipe/Change pinned recipe controls appear only in the owner's admin-only Backrooms workspace; each focused dialog preserves unrelated choices.
+- Sharing and Create recipe live in the profile banner. A note from the chef is collapsed by default and expands downward to reveal bio, sign, familiar, and compact quest rows. Owners activate the bio itself to edit; there is no separate Edit button.
+- Saved recipes have no separate authenticated page; the profile's private Saved collection is URL-backed through `?collection=saved`, including refresh and back/forward navigation.
 
 - Profile customization includes nine sign presets, six Sanctuary choices (The Library, The Cottage, The Inn, The Garden, The Observatory, The Manor), six named familiars, and one optional pinned published recipe. Main and side quests temporarily show Coming soon with no edit actions; stored quest data is preserved. Focused dialogs use “Save changes.” Sanctuary is stored in the legacy `calling` field with stable option IDs. Signs theme the full application palette. Tenet and pantry customization/display have been removed; legacy JSON is preserved for compatibility.
 - Identity copy evokes an old culinary archive with restrained occult unease. Use original omens, vocations, and named companions (Salem is the black cat; Luna is the rabbit); avoid cute magic slogans and franchise-specific lore. See `docs/profile-sanctuaries.md` for the roster.
 - The recipe editor groups essentials, ingredients, and method into spaced manuscript-style sections. Tags and notes/equipment use optional disclosures; the form includes photo selection/replacement. Prep time is entered in minutes and stored in the existing `HH:mm` duration format. Step fields have explicit accessible labels and resize vertically.
 - `UserProfile.kitchenIdentity` is optional JSON, normalized through `src/utils/kitchenIdentity.ts` and persisted through `saveKitchenIdentityToBackend`. Customization waits for a successful owner-authenticated backend write before updating caches/UI; errors leave the editor open for retry. No Cognito attributes are added.
-- Public profiles show published recipes only. Owners switch between Recipes and Saved in a full-width two-column tab-style row: each option takes half the width, with centered labels, small counts, and an active underline; no artwork icons or descriptions. Saved has a screen-reader privacy description. Drafts remain at `/drafts` through the account menu, not on the profile. Signature recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
+- Public profiles show published recipes only. Owners switch between Recipes and Saved in an equal-width tab row with centered labels, small counts, and an active underline. Admins get a third, plain-text Backrooms tab with no icon or artificial count. Saved has a screen-reader privacy description. Pinned recipes resolve only against that profile’s published collection; missing/deleted pins are hidden.
 - Profile customization and avatar selection use `AccessibleDialog`; the customization form previews choices before save and Cancel discards them. Community save totals derive from published-recipe favorites, with no placeholder follower, level, or achievement counts.
 - The 500-character About bio edits in place with identical reading/editing text metrics. A hidden text mirror sizes the editor immediately to the full bio without a height cap or internal scrolling; focus does not scroll the page.
 - Deploy the updated Amplify data schema and regenerate outputs before using Kitchen Sanctuary persistence in a live environment.
@@ -148,7 +165,7 @@ Authentication submission:
 
 - `amplify/backend.ts` creates a CloudFront distribution (via CDK escape hatch) and exports its domain via `CfnOutput` + `backend.addOutput({ custom: { CloudFrontDomain } })`
 - On bootstrap, `src/main.tsx` reads `outputs.custom.CloudFrontDomain` from `amplify_outputs.json` and stores it via `setCloudFrontDomain()` in `src/amplifyConfig.ts`
-- `getRecipeImageSource` in `RecipeBuilder.tsx` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var
+- `getRecipeImageSource` in `src/utils/recipeImages.ts` reads it dynamically at image-resolution time via `getCloudFrontDomain()`, falling back to `VITE_CLOUDFRONT_DOMAIN` env var. The feed and admin previews share this resolver; `RecipePhoto` resolves storage keys only for mounted admin thumbnails.
 - No env var needed after `npx ampx sandbox deploy` — the domain is auto-detected from the outputs
 
 ## Sanctuary Design Language
@@ -158,7 +175,7 @@ Authentication submission:
 - Birthsign artwork lives in `src/assets/birthsigns/` as 1536×1024 WebP files, mapped to stable theme IDs by `src/theme/birthsignArtwork.ts`. The picker and saved artwork use uncropped 3:2 frames, independent of bio height. Saved artwork feathers only the outer 3% on each edge; the interior remains fully opaque, without an oval mask or rounded crop. Picker artwork stays unfaded. Artwork hover brightens the image rather than outlining the frame; keyboard focus remains visible.
 - Birthsign order is The Wanderer, The Raven, The Wyrm, The Watcher, The Sage, The Fae, The Witch, The Sorcerer, The Mage. Legacy theme IDs remain stable for saved profiles. The Mage uses the former Witch mulberry palette, the Witch uses muted yellow-green, and the Sorcerer pairs crimson accents with pale blue reading surfaces and a crimson/deep-blue banner.
 
-- `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets across Saved, Drafts, Build, and Admin. Build uses the signed-in viewer's Sanctuary artwork instead of the generic motif and shows only New recipe/Edit recipe plus its contextual back action.
+- `SanctuaryHeading` and `SanctuaryMotif` in `src/components/ui/` share the profile atmosphere presets across Build and Backrooms. Build uses the signed-in viewer's Sanctuary artwork instead of the generic motif and shows only New recipe/Edit recipe plus its contextual back action.
 - Profile, Discover, and Build banners use responsive Sanctuary artwork. Profiles do not repeat the Sanctuary icon or name beside the identity; the banner image is the public indicator. Discover and Build use the signed-in viewer's Sanctuary.
 - Profile banners show the username as a single truncated line over the artwork; do not repeat it in the profile body or add a generic Sanctuary heading, Birthsign name, symbol, or lore line. The former username area presents the bio as an About section. Discover has no eyebrow label above Emporium, and shared empty states have no decorative pseudo-icon.
 - Banner titles use the `Almendra` display face with Fraunces/serif fallbacks; body copy and form controls retain the existing typography.
@@ -172,7 +189,7 @@ Authentication submission:
 - Discover remains search-first with no promotional hero. Recipe cards and expanded recipes use parchment surfaces, clear serif headings, restrained jewel accents, and keyboard-activatable recipe titles.
 - Shared `ak-panel`, `ak-recipe-card`, `ak-eyebrow`, `ak-banner-action`, and `ak-empty-state` classes live in `src/index.css`. Button/Input/Card/Badge use these theme tokens instead of separate dark/neon styling.
 - Glass controls share `--ak-glass-*` tokens and explicit `ak-button-*` variants. `ui/Button` forwards native refs, defaults to `type="button"`, and provides loading, choice, image, menu, banner, overlay, and quiet variants. Native framework controls keep scoped adapters; never apply glass styling to every raw button or alert-dismiss control.
-- `RecipeTagFilters` owns the community tag row and overflow disclosure. Primary navigation/logo buttons remain visually transparent and spring on press (except reduced motion); the sort toggle has fixed narrow/wide widths so Newest/Oldest cannot shift layout.
+- `RecipeTagFilters` shows six community tags plus every selected overflow tag, with Show all and Clear tags actions. Phones use one horizontally scrolling collapsed row and wrap expanded tags without clipping. Primary navigation/logo buttons remain visually transparent and spring on press (except reduced motion); the sort toggle has fixed narrow/wide widths so Newest/Oldest cannot shift layout.
 - Shared controls have a smaller press bounce than the logo and respect reduced motion. Headings and static login-modal text are non-selectable; login inputs retain native text selection/editing.
 - The Build workspace scrolls as one column below 1024px, with preview following the form; desktop retains independently scrolling editor and preview panes. Keep the `ak-workspace-build` and `ak-editor-fields` hooks when adjusting layout.
 - Catwitch remains the complete, uncropped recovery artwork. Shared auth inputs associate labels and errors with their fields; pale-on-parchment error colors must not be reintroduced.
@@ -181,7 +198,7 @@ Authentication submission:
 
 - `src/theme/merlinPalette.ts` is the centralized Merlin/wizard accent palette (`MERLIN_PALETTE`) plus `randomMerlinColor()`.
 - Add/remove hex entries there; every consumer updates automatically.
-- The Discover tag filters pick a random palette color on every filter click, applied as the selected button's background via inline `style` (Tailwind can't do dynamic arbitrary colors). All palette colors read well with white text.
+- Each Discover tag selection receives its own random palette color, retained while other tags toggle and applied through inline `style`. All palette colors read well with white text.
 - Recipe tags in the Build editor/preview and expanded recipe modal receive stable random colors from the same palette when they load; dynamic colors use inline `style` values.
 - Profile collection underlines use a cool-to-warm left-to-right progression from the same palette: Recipes, then Saved.
 - `StartupLoading` presents a parchment startup scene with an Almendra title and lightweight inline pot illustration. Steam, embers, and activity dots use CSS motion with reduced-motion support; one Merlin accent is chosen per display. The live startup status remains until auth resolves, without artificial delay or progress percentages. After 12 seconds it offers a reload action with an honest long-wait message; the timer is cleared on unmount.
@@ -196,16 +213,21 @@ Authentication submission:
 - Caches left behind by an unregistered dev SW can hold stale/mangled copies of unhashed source modules (e.g. the old pre-router `RecipeBuilder.tsx`), so dev boot also runs `caches.delete()` on every recognized cache name.
 - If the dev console still shows the duplicate-React error after a code fix, unregister the SW + clear site data once (DevTools → Application → Service Workers).
 
-## Admin Dashboard
+## Backrooms (Admin)
+
+- **Backrooms** is the admin's private profile workspace at `/u/:username?workspace=backrooms`. It is rendered only for the signed-in admin's own profile; another cook's profile never mounts admin tools. Legacy `/admin` links replace their route with this workspace for admins, preserving query parameters and hashes; other visitors receive the access-required screen.
+
+- `AdminDashboard` renders embedded in the profile, using the same shared banner dimensions and outer header/footer as other profile collections. Collection selectors sit inside the tool header. The Your profile sidebar action owns profile pin selection; the separate featured-recipe card controls the community spotlight. Recipe rows, ownership transfer, user/comment moderation, search, paging, and guarded mutations remain available. Admin recipe/conversation links open in place over Backrooms; successful mutations refresh the parent feed, featured selection, profiles, and detail caches. `src/styles/admin.css` owns these layouts.
+
+- The sidebar feature uses the `FeaturedRecipe` model's fixed `emporium` record (`recipeId`, nullable when cleared). Only the Cognito `Admins` group can write; members and guests can read. Admins choose Feature on a visible recipe or Clear featured recipe in their Backrooms workspace. Writes use existing pending-action guards and update the UI after backend success. The public card resolves independently of feed pagination and hides for an empty, hidden, missing, or unavailable selection. Deploy the updated data schema and regenerate Amplify outputs before using this feature live.
 
 - Admin collections provide search, visibility/account-state filters, ten-row result pages, status badges, and links to recipes/conversations. Recipe/comment loading follows backend pagination; refresh failures retain existing records and distinguish unavailable collections from empty results.
 - Existing destructive actions use a keyboard-accessible confirmation dialog. All admin writes are deduplicated while pending, check GraphQL errors before changing UI state, and show success/error feedback. Refresh and mutation controls are disabled during conflicting operations.
 - Planning and progress are tracked in `docs/admin-dashboard.md`.
 - Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
 - Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.
-- The initial protected admin UI is available at `/admin` and reads the live Cognito session group claim; group membership is not persisted in localStorage.
-- Primary routes remain consistent: Discover is `/discover`, Build is `/build`, and the admin dashboard is `/admin` from the profile dropdown.
-- The authenticated profile dropdown is shared by the main app and admin dashboard through `src/components/ProfileDropdown.tsx`; keep its identity data, menu items, icons, and styling consistent across routes.
+- Backrooms reads the live Cognito session group claim; group membership is not persisted in localStorage. Primary routes are Emporium `/discover`, Build `/build`, and the owner's profile with its private workspace query parameter.
+- `WorkspaceHeader` uses `ProfileLink` for direct profile navigation. There is no dropdown or separate Backrooms navigation item in the header.
 - User deletion, banning, content hiding, restoration, audit logging, and ownership transfers use the admin-only `adminActions` backend mutation; public feed filtering and a fully atomic multi-record ownership transaction remain follow-up work.
 - `Recipe` and `Comment` include moderation visibility metadata; `UserProfile` stores moderation state and `AdminAuditLog` stores admin-action history. Privileged operations and feed filtering must still be backend-enforced before these fields are used in production flows.
 - The admin Users tab reads all Cognito users through the admin-authorized `listAdminUsers` query; `UserProfile` remains the source for app profile and moderation metadata.

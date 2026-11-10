@@ -28,19 +28,22 @@ labels and cooking instructions remain clear and practical.
 - Familiar selection uses uncropped 3:2 light/dark artwork cards, with names shown on hover/focus and always on touchscreens. The selected portrait appears in public profile details. Assets live in `src/assets/familiars/` and map to stable IDs through `src/theme/familiarArtwork.ts`.
 - **Main quest and side quest:** temporarily non-editable Coming soon placeholders. Existing saved values remain in profile JSON but are not displayed.
 - Sign and familiar pickers are titled “What's your sign?” and “Who's your familiar?” No profile modal has a Reset button. Profile modal footers have no horizontal dividers.
-- Pin recipe/Change pinned recipe lives beside the Recipes collection heading and offers published recipes plus No pinned recipe. Focused editors preserve unrelated fields; there is no general customization menu.
+- Pin recipe/Change pinned recipe appears only in the owner's admin-only Backrooms workspace, under Your profile. It offers the owner's published recipes plus No pinned recipe. Focused editors preserve unrelated fields; there is no general customization menu.
 - Legacy Tenet and pantry values remain in stored JSON for compatibility; neither is displayed or editable.
-- **Signature creation:** one of the cook's own published recipes, featured above the collection.
+- **Pinned recipe:** one of the cook's own published recipes, ordered first in the ordinary collection grid with a small badge and matching image dimensions.
 - Existing avatar presets and the 500-character bio remain available. The About editor shares the read view's width and typography and shows the full existing text immediately, without a height cap or internal scrolling. A text mirror keeps its height responsive while editing; bio copy encourages kitchen lore.
 
 ## Public and owner views
 
 - Visitors see the sanctuary, identity, creative details, optional signature recipe,
   and published recipe grimoire. The redundant single Recipes tab is removed.
-- Owners switch between Recipes and Saved in a full-width, equal two-column tab-style row with centered labels, small counts, and an active underline, without icons or descriptions. Saved remains private, with a screen-reader privacy description. Drafts stay in the account menu at `/drafts`.
+- A note from the chef is a collapsed-by-default disclosure below the banner. It expands downward to show the bio, equally sized 3:2 sign/familiar artwork, and compact quest placeholders. Expansion is remembered per cook for this tab; closing preserves an in-progress bio edit in memory. Closed content is inert and hidden from assistive navigation. The portrait picker opens independently of the disclosure.
+- Owners switch between Recipes and Saved in a full-width, equal-width tab row with centered labels, small counts, and an active underline. Admin owners also have a plain-text Backrooms tab. Saved remains private. Recipe photos match Emporium and featured-card dimensions at each breakpoint, including the pinned card.
+- Backrooms uses `?workspace=backrooms` and embeds all existing admin tools. All collections retain the same 200px banner frame (180px on phones), typography, crop, and gutters as the Emporium and editor. Its recipe overlays preserve workspace/search state. Admin tools never mount on someone else's profile or for a non-admin.
+- The header portrait is a direct profile link with an etched, illuminated ring. There is no account dropdown. Owner-only Log out is a small, muted action at the bottom-right of the profile, with pending-state deduplication and nearby retry feedback. The X Feedback & Support link remains in the workspace footer.
 - Saved is selected with `?collection=saved` on the owner's profile URL through its collection panels; there is no Saved recipes menu item. Legacy `/saved` links redirect there after sign-in. Recipe overlays preserve the selected collection when opened and closed.
-- Drafts uses the viewer's light/dark Sanctuary banner and is labeled “Drafts” in the menu. Dialog backdrops dismiss on click unless a save is pending; clicks inside the content do not dismiss.
-- Sharing lives in the artwork banner. The bio is a quiet “A note from the chef” section beside the portrait; owners click the text area to edit, with keyboard activation and full-length inline editing.
+- The Drafts page and menu item are removed; old `/drafts` links open the editor. Dialog backdrops dismiss on click unless a save is pending; clicks inside the content do not dismiss.
+- Sharing and Create recipe live in the artwork banner's upper-right action area. Within the chef-note disclosure, owners click the bio to edit with keyboard activation and full-length inline editing.
 - Birthsign artwork stays in a 3:2 frame rather than stretching to the bio height. The banner portrait uses a thin antique-brass rim with delicate etched arcs. The username is bottom-aligned and slightly overlaps its right edge. Hover brightens the artwork itself instead of outlining its border.
 - The Witch portrait is retired from the picker and random signup assignment; existing saved portraits remain compatible.
 - Saved collections and draft titles are never rendered for visitors. Public recipe

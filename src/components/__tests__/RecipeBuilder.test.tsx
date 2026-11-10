@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, screen, within, waitFor } from '@testing-library/react';
 import { kitchenTheme } from '../../utils/kitchenIdentity';
+import { loadRecipeDraftsForOwner } from '../../utils/recipeDrafts';
 import userEvent from '@testing-library/user-event';
 import {
   render,
@@ -37,9 +38,20 @@ const {
   mockCommentList,
   mockRecipeGetUrl,
   mockRecipeUploadData,
+  mockIngredientGet,
+  mockRecipeIngredientList,
+  mockFeaturedRecipeGet,
 } = vi.hoisted(() => ({
   mockRecipeList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
   mockRecipeGet: vi.fn().mockResolvedValue({ data: null, errors: undefined }),
+  mockFeaturedRecipeGet: vi.fn().mockResolvedValue({ data: null }),
+  mockIngredientGet: vi.fn().mockResolvedValue({
+    data: { name: 'Test Ingredient' },
+    errors: undefined,
+  }),
+  mockRecipeIngredientList: vi
+    .fn()
+    .mockResolvedValue({ data: [], errors: undefined }),
   mockFavoriteList: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
   mockUserProfileUpdate: vi
     .fn()
@@ -74,6 +86,7 @@ vi.mock('aws-amplify', () => ({
 vi.mock('aws-amplify/data', () => ({
   generateClient: () => ({
     models: {
+      FeaturedRecipe: { get: mockFeaturedRecipeGet },
       Recipe: {
         list: mockRecipeList,
         get: mockRecipeGet,
@@ -88,13 +101,10 @@ vi.mock('aws-amplify/data', () => ({
           data: { id: 'ing-1' },
           errors: undefined,
         }),
-        get: vi.fn().mockResolvedValue({
-          data: { name: 'Test Ingredient' },
-          errors: undefined,
-        }),
+        get: mockIngredientGet,
       },
       RecipeIngredient: {
-        list: vi.fn().mockResolvedValue({ data: [], errors: undefined }),
+        list: mockRecipeIngredientList,
         create: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
         delete: vi.fn().mockResolvedValue({ data: {}, errors: undefined }),
       },
@@ -158,6 +168,14 @@ describe('RecipeBuilder Component', () => {
     window.history.replaceState({}, '', '/');
     mockRecipeList.mockResolvedValue({ data: [], errors: undefined });
     mockRecipeGet.mockResolvedValue({ data: null, errors: undefined });
+    mockFeaturedRecipeGet.mockResolvedValue({ data: null });
+    mockIngredientGet.mockReset().mockResolvedValue({
+      data: { name: 'Test Ingredient' },
+      errors: undefined,
+    });
+    mockRecipeIngredientList
+      .mockReset()
+      .mockResolvedValue({ data: [], errors: undefined });
     mockFavoriteList.mockResolvedValue({ data: [], errors: undefined });
     mockUserProfileList.mockResolvedValue({ data: [], errors: undefined });
     mockCommentList.mockResolvedValue({ data: [], errors: undefined });
@@ -216,6 +234,9 @@ describe('RecipeBuilder Component', () => {
     expect(
       within(section).getByRole('heading', { name: 'test' })
     ).toBeInTheDocument();
+    await user.click(
+      within(section).getByRole('button', { name: 'A note from the chef' })
+    );
     await user.click(within(section).getByRole('button', { name: 'edit bio' }));
     const editor = within(section).getByRole('textbox', { name: 'bio' });
     await user.clear(editor);
@@ -265,7 +286,7 @@ describe('RecipeBuilder Component', () => {
     ).not.toBeInTheDocument();
   });
 
-  it.each(['/discover', '/saved', '/drafts', '/build', '/u/other_chef'])(
+  it.each(['/discover', '/saved', '/build', '/u/other_chef'])(
     'uses the viewer’s saved atmosphere on %s',
     async (path) => {
       window.history.replaceState({}, '', path);
@@ -372,6 +393,9 @@ describe('RecipeBuilder Component', () => {
     });
     const user = userEvent.setup();
     await renderRecipeBuilder(defaultRecipeBuilderProps);
+    await user.click(
+      await screen.findByRole('button', { name: 'A note from the chef' })
+    );
     await user.click(
       await screen.findByRole('button', { name: 'Change sign' })
     );
@@ -637,6 +661,100 @@ describe('RecipeBuilder Component', () => {
     expect(onRequestAuth).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['guests', unauthenticatedRecipeBuilderProps],
+    ['members', defaultRecipeBuilderProps],
+  ])(
+    'lets %s combine tags with search, deselect independently, and clear empty results',
+    async (_role, props) => {
+      const user = userEvent.setup();
+      mockRecipeList.mockResolvedValue({
+        data: [
+          createMockRecipe({
+            name: 'Quick garden soup',
+            tags: ['Vegetarian', 'Quick'],
+          }),
+          createMockRecipe({
+            id: 'roast',
+            name: 'Garden roast',
+            tags: ['vegetarian'],
+          }),
+          createMockRecipe({ id: 'eggs', name: 'Quick eggs', tags: ['Quick'] }),
+          createMockRecipe({
+            id: 'cake',
+            name: 'Chocolate cake',
+            tags: ['Dessert'],
+          }),
+        ],
+      });
+      await renderRecipeBuilder(props);
+      const vegetarian = await screen.findByRole('button', {
+        name: 'Filter by Vegetarian',
+      });
+      const quick = screen.getByRole('button', { name: 'Filter by Quick' });
+      await user.click(vegetarian);
+      await user.click(quick);
+      expect(vegetarian).toHaveAttribute('aria-pressed', 'true');
+      expect(quick).toHaveAttribute('aria-pressed', 'true');
+      expect(
+        screen.getByRole('heading', { name: 'Quick garden soup' })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Garden roast' })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Quick eggs' })
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent(
+        '1 recipe found matching all 2 selected tags'
+      );
+
+      await user.type(
+        screen.getByRole('textbox', { name: 'Search recipes' }),
+        'roast'
+      );
+      expect(
+        screen.getByText('No recipes match these filters')
+      ).toBeInTheDocument();
+      await user.click(quick);
+      expect(vegetarian).toHaveAttribute('aria-pressed', 'true');
+      expect(quick).toHaveAttribute('aria-pressed', 'false');
+      expect(
+        screen.getByRole('heading', { name: 'Garden roast' })
+      ).toBeInTheDocument();
+      await user.click(
+        screen.getByRole('button', { name: 'Clear tag filters' })
+      );
+      expect(
+        screen.getByRole('textbox', { name: 'Search recipes' })
+      ).toHaveValue('roast');
+      expect(vegetarian).toHaveAttribute('aria-pressed', 'false');
+
+      await user.click(vegetarian);
+      await user.click(
+        screen.getByRole('button', { name: 'Filter by Dessert' })
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'Clear all filters' })
+      );
+      expect(
+        screen.getByRole('textbox', { name: 'Search recipes' })
+      ).toHaveValue('');
+      for (const name of [
+        'Quick garden soup',
+        'Garden roast',
+        'Quick eggs',
+        'Chocolate cake',
+      ]) {
+        expect(screen.getByRole('heading', { name })).toBeInTheDocument();
+      }
+      expect(vegetarian).toHaveAttribute('aria-pressed', 'false');
+      expect(
+        screen.getByRole('button', { name: 'Filter by Dessert' })
+      ).toHaveAttribute('aria-pressed', 'false');
+    }
+  );
+
   it('treats community tags named All as real tags rather than a shortcut', async () => {
     const user = userEvent.setup();
     mockRecipeList.mockResolvedValue({
@@ -828,8 +946,9 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    await user.click(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    );
 
     const card = (await screen.findAllByText('Test Recipe'))[0];
     await user.click(card);
@@ -1069,6 +1188,137 @@ describe('RecipeBuilder Component', () => {
     );
   }, 20000);
 
+  it('loads checkable ingredients for guests using identity-pool authorization', async () => {
+    mockRecipeList.mockResolvedValue({
+      data: [createMockRecipe()],
+      errors: undefined,
+    });
+    mockRecipeIngredientList.mockResolvedValue({
+      data: [{ ingredientId: 'flour', quantity: { amount: '500', unit: 'g' } }],
+      errors: undefined,
+    });
+    mockIngredientGet.mockResolvedValue({
+      data: { name: 'flour' },
+      errors: undefined,
+    });
+    const user = userEvent.setup();
+    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    await user.click(
+      await screen.findByRole('button', { name: 'Test Recipe' })
+    );
+    expect(
+      await screen.findByRole('checkbox', { name: '500 g flour' })
+    ).toBeInTheDocument();
+    expect(mockIngredientGet).toHaveBeenCalledWith(
+      { id: 'flour' },
+      { authMode: 'identityPool' }
+    );
+  });
+
+  it('does not match unrelated possessives when searching for a dish', async () => {
+    mockRecipeList.mockResolvedValue({
+      data: [
+        createMockRecipe({ id: 'mushroom', name: 'Mushroom pasta' }),
+        createMockRecipe({ id: 'garden', name: 'The gardener’s bowl' }),
+      ],
+      errors: undefined,
+    });
+    const user = userEvent.setup();
+    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    await screen.findByRole('button', { name: 'Mushroom pasta' });
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search recipes' }),
+      'mushroom'
+    );
+    expect(
+      screen.getByRole('button', { name: 'Mushroom pasta' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'The gardener’s bowl' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens an admin-selected feature even when it is outside the loaded feed', async () => {
+    const featured = createMockRecipe({
+      id: 'featured-recipe',
+      name: 'Featured hearth bread',
+    });
+    mockFeaturedRecipeGet.mockResolvedValue({
+      data: { id: 'emporium', recipeId: featured.id },
+    });
+    mockRecipeGet.mockResolvedValue({ data: featured });
+    const user = userEvent.setup();
+    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    const feature = await screen.findByRole('region', {
+      name: 'Featured recipe',
+    });
+    expect(
+      within(feature).getByRole('heading', { name: featured.name })
+    ).toBeInTheDocument();
+    expect(
+      within(feature).queryByRole('link', { name: 'Manage featured recipe' })
+    ).not.toBeInTheDocument();
+    await user.click(
+      within(feature).getByRole('button', { name: 'View recipe' })
+    );
+    expect(
+      await screen.findByRole('dialog', { name: featured.name })
+    ).toBeInTheDocument();
+  });
+
+  it('restores search, selected tags, their colors, and sorting after reopening the workspace', async () => {
+    mockRecipeList.mockResolvedValue({
+      data: [
+        createMockRecipe({
+          id: 'older',
+          name: 'Lemon soup',
+          tags: ['Dinner'],
+          createdAt: '2026-01-01T00:00:00Z',
+        }),
+        createMockRecipe({
+          id: 'newer',
+          name: 'Lemon pasta',
+          tags: ['Dinner'],
+          createdAt: '2026-02-01T00:00:00Z',
+        }),
+        createMockRecipe({ id: 'other', name: 'Berry pie', tags: ['Dessert'] }),
+      ],
+      errors: undefined,
+    });
+    const user = userEvent.setup();
+    const view = await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    await user.type(
+      screen.getByRole('textbox', { name: 'Search recipes' }),
+      'lemon'
+    );
+    await user.click(
+      await screen.findByRole('button', { name: 'Filter by Dinner' })
+    );
+    const color = screen.getByRole('button', { name: 'Filter by Dinner' }).style
+      .backgroundColor;
+    await user.click(
+      screen.getByRole('button', { name: /Sort recipes: newest first/ })
+    );
+    view.unmount();
+    await renderRecipeBuilder(unauthenticatedRecipeBuilderProps);
+    expect(screen.getByRole('textbox', { name: 'Search recipes' })).toHaveValue(
+      'lemon'
+    );
+    const tag = await screen.findByRole('button', { name: 'Filter by Dinner' });
+    expect(tag).toHaveAttribute('aria-pressed', 'true');
+    expect(tag.style.backgroundColor).toBe(color);
+    expect(
+      screen.getByRole('button', { name: /Sort recipes: oldest first/ })
+    ).toBeInTheDocument();
+    const results = within(
+      screen.getByRole('region', { name: 'Recipe results' })
+    );
+    expect(results.getAllByRole('heading')[1]).toHaveTextContent('Lemon soup');
+    expect(
+      results.queryByRole('button', { name: 'Berry pie' })
+    ).not.toBeInTheDocument();
+  });
+
   it('shows saved recipes from existing favorites', async () => {
     const user = userEvent.setup();
     window.localStorage.setItem(
@@ -1085,8 +1335,9 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    await user.click(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    );
     expect(
       screen.queryByRole('link', { name: 'Saved recipes' })
     ).not.toBeInTheDocument();
@@ -1096,9 +1347,9 @@ describe('RecipeBuilder Component', () => {
     expect(screen.getAllByText('Saved Recipe').length).toBeGreaterThan(0);
   }, 20000);
 
-  it('autosaves recipe drafts and restores them from the drafts view', async () => {
+  it('autosaves unfinished recipes across navigation and restores them directly in the editor', async () => {
     const user = userEvent.setup();
-    await renderRecipeBuilder({
+    const view = await renderRecipeBuilder({
       ...defaultRecipeBuilderProps,
       onSignOut: vi.fn(),
     });
@@ -1110,41 +1361,35 @@ describe('RecipeBuilder Component', () => {
     )[0];
     await user.type(titleInput, 'Moonlit Porridge');
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
-
-    const draftsHeading = await screen.findByRole('heading', {
-      name: 'Drafts',
+    await user.click(screen.getByRole('button', { name: 'Back to recipes' }));
+    await waitFor(async () => {
+      const records = await loadRecipeDraftsForOwner('testuser');
+      expect(records[0]?.draft.name).toBe('Moonlit Porridge');
     });
-    expect(draftsHeading).toBeInTheDocument();
-    expect(
-      draftsHeading
-        .closest('header')
-        ?.querySelector('.ak-color-scheme-image-dark')
-    ).toBeInTheDocument();
-
-    const draftsSection = draftsHeading.closest('section');
-    expect(draftsSection).not.toBeNull();
-
-    expect(
-      await within(draftsSection as HTMLElement).findByText('Moonlit Porridge')
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Resume' }));
+    await user.click(screen.getByRole('button', { name: 'Create a recipe' }));
 
     expect(
       screen.getAllByDisplayValue('Moonlit Porridge')[0]
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(screen.getByRole('link', { name: 'Drafts' }));
-    await user.click(
-      within(document.getElementById('drafts')!).getByRole('button', {
-        name: 'Delete',
-      })
+    view.unmount();
+    await renderRecipeBuilder({
+      ...defaultRecipeBuilderProps,
+      onSignOut: vi.fn(),
+    });
+    expect(
+      await screen.findByDisplayValue('Moonlit Porridge')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    ).toHaveAttribute('href', '/u/test');
+    expect(
+      screen.queryByRole('link', { name: 'Drafts' })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(async () =>
+      expect(await loadRecipeDraftsForOwner('testuser')).toEqual([])
     );
-
-    expect(screen.queryByText('Moonlit Porridge')).not.toBeInTheDocument();
   }, 20000);
 
   it('removes the active draft after publishing', async () => {
@@ -1189,32 +1434,16 @@ describe('RecipeBuilder Component', () => {
     });
     await user.upload(fileInput as HTMLInputElement, imageFile);
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
-    const draftsHeading = await screen.findByRole('heading', {
-      name: 'Drafts',
+    await waitFor(async () => {
+      const records = await loadRecipeDraftsForOwner('testuser');
+      expect(records[0]?.draft.name).toBe('Published Draft');
+      expect(records[0]?.imageDataUrl).toBeTruthy();
     });
-    const draftsSection = draftsHeading.closest('section');
-    expect(draftsSection).not.toBeNull();
-    expect(
-      await within(draftsSection as HTMLElement).findByText('Published Draft')
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Resume' }));
     await user.click(screen.getByRole('button', { name: 'Publish' }));
-
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('link', { name: 'Drafts' }));
-    const refreshedDraftsHeading = await screen.findByRole('heading', {
-      name: 'Drafts',
-    });
-    const refreshedDraftsSection = refreshedDraftsHeading.closest('section');
-    expect(refreshedDraftsSection).not.toBeNull();
-    expect(
-      within(refreshedDraftsSection as HTMLElement).queryByText(
-        'Published Draft'
-      )
-    ).not.toBeInTheDocument();
+    await waitFor(() => expect(window.location.pathname).toBe('/discover'));
+    await waitFor(async () =>
+      expect(await loadRecipeDraftsForOwner('testuser')).toEqual([])
+    );
 
     createObjectUrlSpy.mockRestore();
     revokeObjectUrlSpy.mockRestore();
@@ -1238,8 +1467,9 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    await user.click(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    );
 
     await user.click(
       await screen.findByRole('button', { name: /update avatar/i })
@@ -1267,7 +1497,7 @@ describe('RecipeBuilder Component', () => {
     expect(saved['testuser'].avatar).toBe(chosenFile);
 
     const headerAvatar = screen
-      .getByRole('button', { name: 'Account for test' })
+      .getByRole('link', { name: 'View your profile, test' })
       .querySelector('img')!;
     expect(headerAvatar.getAttribute('src')).toContain(chosenFile as string);
 
@@ -1299,8 +1529,9 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    await user.click(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    );
 
     await user.click(
       await screen.findByRole('button', { name: /update avatar/i })
@@ -1330,8 +1561,9 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    await user.click(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    );
 
     await user.click(
       await screen.findByRole('button', { name: /update avatar/i })
@@ -1354,7 +1586,7 @@ describe('RecipeBuilder Component', () => {
     );
 
     const headerAvatar = screen
-      .getByRole('button', { name: 'Account for test' })
+      .getByRole('link', { name: 'View your profile, test' })
       .querySelector('img')!;
     expect(headerAvatar.getAttribute('src')).toContain(chosenFile as string);
   }, 20000);
@@ -1366,9 +1598,13 @@ describe('RecipeBuilder Component', () => {
       onSignOut: vi.fn(),
     });
 
-    await user.click(screen.getByRole('button', { name: /test/i }));
-    await user.click(await screen.findByRole('button', { name: 'Profile' }));
+    await user.click(
+      screen.getByRole('link', { name: 'View your profile, test' })
+    );
 
+    await user.click(
+      screen.getByRole('button', { name: 'A note from the chef' })
+    );
     await user.click(await screen.findByRole('button', { name: /edit bio/i }));
     await user.type(screen.getByLabelText('bio'), 'Brewer of arcane stews');
     await user.click(screen.getByRole('button', { name: 'Save' }));

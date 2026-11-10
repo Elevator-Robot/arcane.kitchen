@@ -9,6 +9,7 @@ const {
   confirmSignUpMock,
   getCurrentUserMock,
   fetchUserAttributesMock,
+  fetchAuthSessionMock,
   signOutMock,
   recipeBuilderMock,
 } = vi.hoisted(() => ({
@@ -16,6 +17,7 @@ const {
   confirmSignUpMock: vi.fn(),
   getCurrentUserMock: vi.fn(),
   fetchUserAttributesMock: vi.fn(),
+  fetchAuthSessionMock: vi.fn(),
   signOutMock: vi.fn(),
   recipeBuilderMock: vi.fn(),
 }));
@@ -32,6 +34,7 @@ vi.mock('aws-amplify/auth', async () => {
     confirmSignUp: confirmSignUpMock,
     getCurrentUser: getCurrentUserMock,
     fetchUserAttributes: fetchUserAttributesMock,
+    fetchAuthSession: fetchAuthSessionMock,
     signOut: signOutMock,
   };
 });
@@ -66,6 +69,9 @@ vi.mock('./components/SignInForm', () => ({
 describe('App auth initialization', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchAuthSessionMock.mockResolvedValue({
+      tokens: { accessToken: { payload: { 'cognito:groups': [] } } },
+    });
     confirmSignUpMock.mockResolvedValue({
       isSignUpComplete: true,
       nextStep: { signUpStep: 'COMPLETE_AUTO_SIGN_IN' },
@@ -93,6 +99,114 @@ describe('App auth initialization', () => {
       window.history.replaceState({}, '', '/');
     }
   );
+
+  it.each(['/drafts', '/drafts/'])(
+    'redirects retired %s links to the editor without losing recipe parameters',
+    async (path) => {
+      getCurrentUserMock.mockRejectedValue(new Error('No session'));
+      window.history.replaceState(
+        {},
+        '',
+        `${path}?recipe=shared%2Frecipe#details`
+      );
+      const historyLength = window.history.length;
+      render(
+        <BrowserRouter>
+          <AppRouteAware />
+        </BrowserRouter>
+      );
+      await waitFor(() => expect(window.location.pathname).toBe('/build'));
+      expect(window.location.search).toBe('?recipe=shared%2Frecipe');
+      expect(window.location.hash).toBe('#details');
+      expect(window.history.length).toBe(historyLength);
+      expect(document.title).toBe('Create a recipe · Arcane Kitchen');
+      await screen.findByText('RecipeBuilder');
+      window.history.replaceState({}, '', '/');
+    }
+  );
+
+  it('redirects legacy Backrooms links to the admin owner’s profile workspace', async () => {
+    getCurrentUserMock.mockResolvedValue({
+      userId: 'admin-1',
+      username: 'admin_cook',
+    });
+    fetchUserAttributesMock.mockResolvedValue({
+      sub: 'admin-1',
+      nickname: 'admin_cook',
+    });
+    fetchAuthSessionMock.mockResolvedValue({
+      tokens: { accessToken: { payload: { 'cognito:groups': ['Admins'] } } },
+    });
+    window.history.replaceState(
+      {},
+      '',
+      '/admin/?recipe=shared%2Frecipe#details'
+    );
+    const historyLength = window.history.length;
+    render(
+      <BrowserRouter>
+        <AppRouteAware />
+      </BrowserRouter>
+    );
+    await waitFor(() => expect(window.location.pathname).toBe('/u/admin_cook'));
+    expect(new URLSearchParams(window.location.search).get('workspace')).toBe(
+      'backrooms'
+    );
+    expect(new URLSearchParams(window.location.search).get('recipe')).toBe(
+      'shared/recipe'
+    );
+    expect(window.location.hash).toBe('#details');
+    expect(window.history.length).toBe(historyLength);
+    expect(document.title).toBe('Backrooms · Arcane Kitchen');
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('keeps legacy admin access restricted for ordinary members', async () => {
+    getCurrentUserMock.mockResolvedValue({
+      userId: 'cook-1',
+      username: 'cook',
+    });
+    fetchUserAttributesMock.mockResolvedValue({
+      sub: 'cook-1',
+      nickname: 'cook',
+    });
+    window.history.replaceState({}, '', '/admin');
+    render(
+      <BrowserRouter>
+        <AppRouteAware />
+      </BrowserRouter>
+    );
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Administrator access required',
+      })
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/admin');
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('does not label another cook’s public profile as the viewer’s Backrooms', async () => {
+    getCurrentUserMock.mockResolvedValue({
+      userId: 'admin-1',
+      username: 'admin_cook',
+    });
+    fetchUserAttributesMock.mockResolvedValue({
+      sub: 'admin-1',
+      nickname: 'admin_cook',
+    });
+    fetchAuthSessionMock.mockResolvedValue({
+      tokens: { accessToken: { payload: { 'cognito:groups': ['Admins'] } } },
+    });
+    window.history.replaceState({}, '', '/u/another_cook?workspace=backrooms');
+    render(
+      <BrowserRouter>
+        <AppRouteAware />
+      </BrowserRouter>
+    );
+    await screen.findByText('RecipeBuilder');
+    expect(document.title).toBe('Cook profile · Arcane Kitchen');
+    window.history.replaceState({}, '', '/');
+  });
 
   it('does not render the unauthenticated experience before auth resolves', async () => {
     getCurrentUserMock.mockResolvedValue({

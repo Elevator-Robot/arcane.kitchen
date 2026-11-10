@@ -1,0 +1,1561 @@
+/* The culinary guild: quiet parchment, ink, etched rules, and food in focus. */
+:root {
+  --ak-page-width: 1400px;
+  --ak-page-gutter: 36px;
+  --ak-page-top: 24px;
+  --ak-page-bottom: 12px;
+  --ak-banner-height: 200px;
+  --ak-banner-padding: 24px;
+  --ak-banner-title-size: 44px;
+  --ak-recipe-aspect: 16 / 10;
+  --ak-card-gap: 20px;
+  --ak-profile-art-width: 160px;
+}
+.ak-page-rail {
+  width: 100%;
+  min-width: 0;
+  max-width: var(--ak-page-width);
+  margin-inline: auto;
+  padding-inline: var(--ak-page-gutter);
+}
+.ak-app-shell {
+  isolation: isolate;
+}
+.ak-app-header {
+  border-bottom: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+}
+.ak-app-header-inner {
+  min-height: 76px;
+  padding-block: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.ak-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-align: left;
+}
+.ak-brand-mark {
+  width: 51px;
+  height: 57px;
+  object-fit: contain;
+  filter: brightness(0.35);
+}
+.ak-brand-wordmark {
+  font-family: Almendra, Georgia, serif;
+  font-size: 27px;
+  line-height: 1.2;
+  color: var(--theme-text);
+}
+.ak-brand-caption {
+  display: block;
+  margin-top: 5px;
+  font:
+    500 9px/1.4 Nunito,
+    sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.19em;
+  color: var(--theme-text-muted);
+}
+.ak-header-flourish {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--theme-border-strong);
+}
+.ak-header-flourish > span {
+  width: 56px;
+  height: 1px;
+  background: var(--theme-border);
+}
+.ak-header-note {
+  font:
+    italic 14px Georgia,
+    serif;
+  color: var(--theme-text-muted);
+}
+.ak-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 1px 6px 1px 1px;
+  border-radius: 30px;
+  color: var(--theme-text);
+  text-align: left;
+}
+.ak-profile-sigil {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  color: var(--ak-profile-link-accent);
+}
+.ak-profile-sigil::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: color-mix(
+    in srgb,
+    var(--ak-profile-link-accent) 15%,
+    transparent
+  );
+  box-shadow: 0 0 16px
+    color-mix(in srgb, var(--ak-profile-link-accent) 12%, transparent);
+  transition: box-shadow 200ms ease;
+}
+.ak-profile-orbit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition:
+    transform 600ms ease,
+    opacity 200ms ease;
+  opacity: 0.65;
+}
+.ak-profile-sigil-portrait {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid
+    color-mix(in srgb, var(--ak-profile-link-accent) 65%, var(--theme-border));
+  background: var(--theme-surface-alt);
+  overflow: hidden;
+  font:
+    600 20px Georgia,
+    serif;
+}
+.ak-profile-sigil-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ak-profile-sigil-star {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--theme-surface);
+  font-size: 19px;
+  line-height: 1;
+}
+.ak-profile-link-label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ak-profile-link-label > span:first-child {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ak-profile-link-label > span:last-child {
+  color: var(--theme-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.ak-profile-link:hover .ak-profile-orbit,
+.ak-profile-link:focus-visible .ak-profile-orbit {
+  transform: rotate(45deg);
+  opacity: 1;
+}
+.ak-profile-link:hover .ak-profile-sigil::before,
+.ak-profile-link[aria-current='page'] .ak-profile-sigil::before {
+  box-shadow: 0 0 20px
+    color-mix(in srgb, var(--ak-profile-link-accent) 27%, transparent);
+}
+.ak-profile-link[aria-current='page'] .ak-profile-orbit {
+  opacity: 1;
+}
+.ak-profile-link:active .ak-profile-sigil {
+  transform: scale(0.96);
+}
+.ak-workspace {
+  padding-block: var(--ak-page-top) var(--ak-page-bottom);
+}
+.ak-discover-scroll {
+  scrollbar-gutter: stable;
+}
+.ak-discover-content {
+  padding-bottom: 12px;
+}
+.ak-page-banner {
+  position: relative;
+  isolation: isolate;
+  flex-shrink: 0;
+  width: 100%;
+  height: var(--ak-banner-height);
+  padding: var(--ak-banner-padding);
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--theme-text) 5%, transparent);
+}
+.ak-page-banner .ak-color-scheme-image img {
+  object-position: 50% 58%;
+}
+.ak-banner-shade {
+  background: linear-gradient(
+    100deg,
+    rgb(24 21 29 / 93%) 0%,
+    rgb(30 24 34 / 73%) 45%,
+    rgb(24 21 29 / 26%) 100%
+  );
+}
+.ak-page-banner .ak-banner-title {
+  font-size: var(--ak-banner-title-size);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+.ak-page-banner-content {
+  height: 100%;
+}
+.ak-discover-intro {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ak-emporium-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  color: white;
+}
+.ak-emporium-heading p {
+  margin-top: 8px;
+  color: #e7dfdb;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+.ak-search-row {
+  margin-top: 12px;
+}
+.ak-discover-search {
+  border-radius: 9px;
+  background: var(--theme-surface);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 10%);
+}
+.ak-search-row > button {
+  border-radius: 9px;
+}
+.ak-discover-filters {
+  margin: 0 0 23px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--theme-border);
+}
+.ak-discover-filters > section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ak-discover-filters .ak-eyebrow {
+  margin: 0;
+  font-size: 9px;
+  flex-shrink: 0;
+}
+.ak-discover-filters .ak-tag-list {
+  gap: 7px;
+  padding: 3px;
+  flex: 1;
+}
+.ak-tag-list .ak-button-choice {
+  border: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+  box-shadow: none;
+  border-radius: 7px;
+  min-height: 36px;
+  padding: 7px 12px;
+  font-weight: 600;
+}
+.ak-tag-list .ak-button-choice:hover {
+  border-color: var(--theme-accent);
+}
+.ak-tag-list .ak-button-choice[aria-pressed='true'] {
+  color: white;
+  border-color: transparent;
+}
+.ak-tag-list .ak-button-choice > span:last-child {
+  background: none;
+  padding: 0 0 0 4px;
+  border-left: 1px solid var(--theme-border);
+  border-radius: 0;
+  font-size: 10px;
+}
+.ak-tag-list .ak-button-choice[aria-pressed='true'] > span:last-child {
+  border-color: rgb(255 255 255 / 30%);
+}
+.ak-discover-layout {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--ak-card-gap);
+}
+.ak-discover-layout > .min-w-0 {
+  grid-column: span 3;
+}
+.ak-feed-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ak-card-gap);
+}
+.ak-profile-recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ak-card-gap);
+}
+.ak-collection-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 3px 0 22px;
+}
+.ak-collection-heading .ak-eyebrow {
+  font-size: 9px;
+  letter-spacing: 0.17em;
+  color: var(--theme-text-muted);
+}
+.ak-collection-heading h2 {
+  margin-top: 7px;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.ak-result-count {
+  padding-bottom: 3px;
+  flex-shrink: 0;
+  color: var(--theme-text-muted);
+  font-size: 11px;
+}
+.ak-feed-card {
+  display: flex;
+  flex-direction: column;
+}
+.ak-recipe-media {
+  width: 100%;
+  aspect-ratio: var(--ak-recipe-aspect);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.ak-pinned-recipe {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: var(--theme-surface);
+  color: var(--theme-accent);
+  font-size: 10px;
+  font-weight: 700;
+}
+.ak-food-image {
+  display: block;
+}
+.ak-photo-caption {
+  position: absolute;
+  bottom: 13px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+.ak-photo-tag {
+  padding: 5px 10px;
+  border-radius: 4px;
+  border: 1px solid rgb(255 255 255 / 45%);
+  background: rgb(255 253 248 / 94%);
+  color: #39323d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+}
+.ak-feed-card-body {
+  padding: 17px 18px 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.ak-card-byline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ak-author-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--theme-text-muted);
+}
+.ak-author-link:hover {
+  color: var(--theme-accent);
+}
+.ak-cook-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 27px;
+  height: 27px;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid var(--theme-border-strong);
+  background: var(--theme-surface-alt);
+  font:
+    600 13px Georgia,
+    serif;
+  color: var(--theme-accent);
+}
+.ak-cook-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ak-card-open {
+  color: var(--theme-border-strong);
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+.ak-feed-card:hover .ak-card-open {
+  color: var(--theme-accent);
+  transform: translate(2px, -2px);
+}
+.ak-feed-title {
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.ak-card-description {
+  margin-top: 9px;
+  margin-bottom: 18px;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--theme-text-muted);
+}
+.ak-card-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--theme-border);
+  padding-top: 8px;
+  font-size: 11px;
+  color: var(--theme-text-muted);
+}
+.ak-card-save {
+  min-height: 36px;
+  border-radius: 7px;
+  padding: 7px 9px;
+  color: var(--theme-text-muted);
+  font-size: 12px;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
+}
+.ak-card-save:hover {
+  background: var(--theme-surface-alt);
+  color: var(--theme-accent);
+}
+.ak-card-save[aria-pressed='true'] {
+  color: var(--theme-accent);
+  background: color-mix(in srgb, var(--theme-accent) 9%, var(--theme-surface));
+}
+.ak-community-hearth {
+  display: grid;
+  gap: 27px;
+  padding-top: 3px;
+}
+.ak-featured-recipe {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid #5f4e63;
+  background: linear-gradient(140deg, #342d40, #504156);
+  color: #fffaf0;
+}
+.ak-featured-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  gap: 12px;
+}
+.ak-featured-heading .ak-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #dbcbb2;
+}
+.ak-featured-heading a {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 5px;
+  color: #fffaf0;
+}
+.ak-featured-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--ak-recipe-aspect);
+  overflow: hidden;
+}
+.ak-featured-photo img {
+  transition: transform 200ms ease;
+}
+.ak-featured-photo:hover img {
+  transform: scale(1.035);
+}
+.ak-featured-body {
+  padding: 20px 18px 12px;
+}
+.ak-featured-recipe h2 {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+}
+.ak-featured-recipe h2 button {
+  text-align: left;
+}
+.ak-featured-recipe .ak-author-link {
+  margin-top: 13px;
+  color: #e7dfe9;
+  font-size: 11px;
+}
+.ak-featured-recipe .ak-cook-avatar {
+  border-color: #9c879f;
+}
+.ak-featured-description {
+  font-size: 12px;
+  line-height: 1.85;
+  color: #e1d8e2;
+  margin: 13px 0 17px;
+}
+.ak-featured-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid rgb(255 255 255 / 20%);
+  padding-top: 7px;
+  font-size: 11px;
+}
+.ak-featured-footer > * {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ak-featured-footer > button {
+  min-height: 36px;
+  color: #fffaf0;
+  font-weight: 700;
+}
+.ak-featured-recipe :focus-visible {
+  outline-color: #fffaf0;
+  outline-offset: -3px;
+}
+.ak-featured-recipe button:hover,
+.ak-featured-heading a:hover {
+  color: #f2d9b2;
+}
+.ak-community-heading {
+  color: var(--theme-text);
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+.ak-cook-list {
+  border-top: 1px solid var(--theme-border);
+}
+.ak-cook-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 1px;
+  border-bottom: 1px solid var(--theme-border);
+  transition: background-color 150ms ease;
+}
+.ak-cook-link .ak-cook-avatar {
+  width: 39px;
+  height: 39px;
+}
+.ak-cook-link strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--theme-text);
+}
+.ak-cook-link span span {
+  font-size: 10px;
+  color: var(--theme-text-muted);
+}
+.ak-cook-link > svg {
+  color: var(--theme-text-muted);
+}
+.ak-cook-link:hover strong,
+.ak-cook-link:hover > svg {
+  color: var(--theme-accent);
+}
+.ak-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--theme-accent);
+  font-size: 11px;
+  font-weight: 700;
+  min-height: 32px;
+}
+.ak-text-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.ak-hearth-collection-link {
+  grid-column: 1 / -1;
+  justify-self: start;
+  font-size: 12px;
+}
+.ak-hearth-footnote {
+  text-align: center;
+  font:
+    italic 12px/1.9 Georgia,
+    serif;
+  color: var(--theme-text-muted);
+}
+.ak-feed-endnote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 35px 0 16px;
+  font:
+    italic 13px Georgia,
+    serif;
+  color: var(--theme-text-muted);
+}
+.ak-feed-endnote > span {
+  height: 1px;
+  max-width: 60px;
+  flex: 1;
+  background: var(--theme-border);
+}
+.ak-feed-endnote svg {
+  color: var(--theme-accent);
+}
+.ak-app-footer {
+  padding-block: 8px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--theme-text-muted);
+  border-top: 1px solid var(--theme-border);
+  background: var(--theme-surface);
+}
+.ak-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ak-footer-credit {
+  margin: 0;
+  white-space: nowrap;
+}
+.ak-footer-support {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  font-weight: 600;
+  color: var(--theme-text);
+  white-space: nowrap;
+}
+.ak-footer-support:hover {
+  color: var(--theme-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ak-recipe-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  min-height: 160px;
+  background: var(--theme-surface-alt);
+  color: var(--theme-accent);
+}
+.ak-recipe-placeholder-seal {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 1px solid var(--theme-border-strong);
+  outline: 1px solid var(--theme-border);
+  outline-offset: 5px;
+}
+.ak-recipe-placeholder-seal svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.25;
+}
+.ak-recipe-placeholder .ak-eyebrow {
+  font-size: 8px;
+}
+.ak-placeholder-rule {
+  font-size: 18px;
+  color: var(--theme-border-strong);
+}
+.ak-recipe-dialog {
+  padding: 24px;
+}
+.ak-recipe-dialog-frame {
+  max-width: 1000px;
+  margin-bottom: 24px;
+}
+.ak-recipe-dialog-toolbar {
+  position: sticky;
+  top: -24px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 20px;
+  background: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+}
+.ak-recipe-dialog-toolbar > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font:
+    italic 13px Georgia,
+    serif;
+  color: var(--theme-text-muted);
+}
+.ak-recipe-detail {
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 15%);
+}
+.ak-detail-photo {
+  height: 350px;
+}
+.ak-detail-photo > div:first-child {
+  height: 100%;
+}
+.ak-detail-body {
+  padding: 36px 42px;
+}
+.ak-detail-title {
+  font-size: clamp(29px, 4vw, 42px);
+  line-height: 1.15;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+.ak-detail-description {
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--theme-text-muted);
+  max-width: 680px;
+}
+.ak-detail-facts {
+  display: flex;
+  gap: 30px;
+  flex-wrap: wrap;
+  padding: 17px 0;
+  border-block: 1px solid var(--theme-border);
+  color: var(--theme-text-muted);
+  font-size: 12px;
+}
+.ak-detail-facts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ak-cooking-columns {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 40px;
+}
+.ak-cooking-columns .ak-eyebrow {
+  font-size: 8px;
+  color: var(--theme-text-muted);
+  margin-bottom: 9px;
+}
+.ak-cooking-columns h4 {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 25px;
+  font-weight: 500;
+}
+.ak-cooking-columns h4 > span {
+  font:
+    500 12px Nunito,
+    sans-serif;
+  align-self: center;
+  padding: 4px 8px;
+  border: 1px solid var(--theme-border);
+  border-radius: 5px;
+}
+.ak-ingredient-checklist {
+  margin-top: 19px;
+}
+.ak-ingredient-checklist li {
+  border-bottom: 1px solid var(--theme-border);
+}
+.ak-ingredient-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 0;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.ak-ingredient-checklist input,
+.ak-method-steps input {
+  margin-top: 3px;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  accent-color: var(--theme-accent);
+  cursor: pointer;
+}
+.ak-ingredient-checklist input:checked + span {
+  text-decoration: line-through;
+  color: var(--theme-text-muted);
+}
+.ak-checklist-note {
+  font-size: 10px;
+  margin-top: 15px;
+  color: var(--theme-text-muted);
+}
+.ak-method-steps {
+  list-style: none;
+  padding: 0;
+  margin-top: 22px;
+}
+.ak-method-steps li {
+  padding-bottom: 24px;
+}
+.ak-method-steps label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+.ak-step-text {
+  font-size: 13px;
+  line-height: 1.9;
+}
+.ak-step-number {
+  margin-right: 8px;
+  color: var(--theme-accent);
+  font:
+    500 14px Georgia,
+    serif;
+}
+.ak-method-steps .is-complete .ak-step-text {
+  color: var(--theme-text-muted);
+}
+.ak-cooking-progress {
+  margin: 16px 0 22px;
+}
+.ak-cooking-progress p {
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--theme-accent);
+}
+.ak-cooking-progress progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--theme-surface-alt);
+  accent-color: var(--theme-accent);
+}
+.ak-cooking-progress progress::-webkit-progress-bar {
+  background: var(--theme-surface-alt);
+}
+.ak-cooking-progress progress::-webkit-progress-value {
+  background: var(--theme-accent);
+  transition: width 200ms ease;
+}
+.ak-cooking-progress progress::-moz-progress-bar {
+  background: var(--theme-accent);
+}
+.ak-recipe-readiness {
+  padding: 17px 24px;
+  background: var(--theme-surface);
+  border-bottom: 1px solid var(--theme-border);
+  font-size: 11px;
+  color: var(--theme-text-muted);
+}
+.ak-readiness-items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 13px;
+}
+.ak-readiness-items button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 3px;
+  border-top: 2px solid var(--theme-border);
+  text-align: left;
+  font-size: 10px;
+}
+.ak-readiness-items button > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-size: 9px;
+  background: var(--theme-surface-alt);
+}
+.ak-readiness-items .is-ready {
+  border-color: var(--theme-accent);
+  color: var(--theme-accent);
+}
+.ak-readiness-items .is-ready > span {
+  background: var(--theme-accent);
+  color: white;
+}
+.ak-editor-chapter {
+  font:
+    400 17px Georgia,
+    serif;
+  color: var(--theme-accent);
+  padding-right: 11px;
+  margin-right: 9px;
+  border-right: 1px solid var(--theme-border);
+}
+.ak-editor-section {
+  border-radius: 8px;
+}
+.ak-editor-section h3 {
+  scroll-margin-top: 20px;
+}
+.ak-editor-fields label,
+.ak-editor-fields input:not([type='file']),
+.ak-editor-fields textarea {
+  min-width: 0;
+}
+.ak-editor-fields input:not([type='file']),
+.ak-editor-fields textarea {
+  width: 100%;
+}
+.ak-workspace-build {
+  gap: 24px;
+}
+.ak-build-banner {
+  margin-bottom: 24px;
+}
+@media (min-width: 1024px) {
+  .ak-build-banner {
+    margin-bottom: 0;
+  }
+}
+.ak-workspace-build .ak-editor-fields {
+  padding: 24px;
+  gap: 22px;
+  background: var(--theme-bg);
+}
+.ak-profile-identity {
+  border-radius: 12px;
+}
+.ak-profile-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+.ak-profile-logout {
+  min-height: 36px;
+  padding: 6px 2px 6px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--theme-text-muted);
+}
+.ak-profile-logout:hover:not(:disabled) {
+  background: transparent;
+  color: var(--theme-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ak-profile-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ak-profile-banner-actions {
+  align-self: flex-end;
+}
+.ak-profile-banner-identity {
+  margin-top: auto;
+  width: 100%;
+}
+.ak-profile-banner-identity .ak-portrait-medallion {
+  width: 80px;
+  height: 80px;
+}
+.ak-profile-banner-identity .ak-banner-title {
+  margin-left: -16px;
+}
+.ak-profile-layout {
+  margin-top: 22px;
+  min-width: 0;
+}
+.ak-chef-note {
+  margin-top: 8px;
+  border-bottom: 1px solid var(--theme-border);
+}
+.ak-chef-note-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 10px 4px;
+  text-align: left;
+  font:
+    600 13px Nunito,
+    sans-serif;
+  color: var(--theme-text-muted);
+}
+.ak-chef-note-toggle:hover {
+  color: var(--theme-accent);
+}
+.ak-chef-note-toggle svg {
+  transition: transform 220ms ease;
+}
+.ak-chef-note-toggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+.ak-chef-note-reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    grid-template-rows 240ms ease,
+    opacity 180ms ease,
+    visibility 0s linear 240ms;
+}
+.ak-chef-note-reveal.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+.ak-chef-note-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.ak-chef-note-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, var(--ak-profile-art-width));
+  grid-template-areas: 'bio sign familiar' 'quests quests quests';
+  align-items: start;
+  gap: 20px 24px;
+  padding: 18px 24px 20px;
+  border-radius: 10px;
+  background: var(--theme-surface);
+}
+.ak-chef-note-grid .ak-eyebrow {
+  margin-bottom: 10px;
+  font-size: 9px;
+  color: var(--theme-text-muted);
+}
+.ak-chef-bio {
+  grid-area: bio;
+}
+.ak-profile-sign-entry {
+  grid-area: sign;
+  min-width: 0;
+}
+.ak-profile-art-frame {
+  display: grid;
+  width: 100%;
+  max-width: var(--ak-profile-art-width);
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  border: 0;
+  border-radius: 6px;
+}
+.ak-profile-sign {
+  border-radius: 0;
+}
+.ak-sanctuary-details {
+  display: contents;
+}
+.ak-familiar-card {
+  grid-area: familiar;
+  min-width: 0;
+}
+.ak-familiar-name {
+  margin-top: 9px;
+  font:
+    500 14px Fraunces,
+    Georgia,
+    serif;
+}
+.ak-familiar-note {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--theme-text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ak-profile-quests {
+  grid-area: quests;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--theme-border);
+}
+.ak-profile-quest {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ak-profile-quest .ak-eyebrow {
+  margin: 0;
+  font-size: 8px;
+  letter-spacing: 0.09em;
+}
+.ak-quest-coming-soon {
+  padding: 4px 7px;
+  border: 1px solid var(--theme-border);
+  border-radius: 4px;
+  font:
+    400 9px Nunito,
+    sans-serif;
+  color: var(--theme-text-muted);
+  white-space: nowrap;
+}
+.ak-profile-collection-heading h2 {
+  font-weight: 500;
+}
+.ak-profile-layout .ak-profile-collection-heading:first-child {
+  margin-top: 0;
+}
+.ak-profile-page .ak-profile-workspaces {
+  margin-top: 14px;
+}
+.ak-skip-link {
+  position: fixed;
+  left: 16px;
+  top: -100px;
+  z-index: 100;
+  background: var(--theme-surface);
+  color: var(--theme-text);
+  padding: 12px 18px;
+  border-radius: 6px;
+}
+.ak-skip-link:focus {
+  top: 16px;
+}
+.ak-preview-controls {
+  min-height: 29px;
+  padding: 4px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: #292331;
+  color: #eee5ef;
+  font-size: 10px;
+}
+.ak-preview-controls > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ak-preview-controls button {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 21px;
+}
+.ak-mock-preview .ak-app-shell {
+  height: calc(100dvh - 29px);
+}
+
+@media (min-width: 1200px) {
+  .ak-feed-title {
+    font-size: 21px;
+  }
+}
+@media (min-width: 1700px) {
+  :root {
+    --ak-page-width: 1560px;
+  }
+  .ak-feed-title {
+    font-size: 21px;
+  }
+}
+@media (max-width: 1199px) {
+  .ak-discover-layout {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ak-discover-layout > .min-w-0 {
+    grid-column: span 2;
+  }
+  .ak-feed-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ak-profile-recipe-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 1100px) {
+  :root {
+    --ak-page-gutter: 24px;
+    --ak-page-top: 22px;
+  }
+  .ak-feed-card-body {
+    padding: 16px 16px 10px;
+  }
+  .ak-feed-title {
+    font-size: 21px;
+  }
+}
+@media (max-width: 900px) {
+  .ak-discover-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ak-discover-layout > .min-w-0 {
+    grid-column: 1;
+  }
+  .ak-profile-recipe-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ak-community-hearth {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ak-card-gap);
+    padding-top: 10px;
+  }
+  .ak-hearth-footnote {
+    grid-column: 1 / -1;
+  }
+  .ak-header-flourish {
+    display: none;
+  }
+}
+@media (max-width: 767px) {
+  .ak-chef-note-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'bio bio' 'sign familiar' 'quests quests';
+    gap: 18px;
+    padding: 16px 18px;
+  }
+}
+@media (max-width: 639px) {
+  .ak-profile-link {
+    padding: 0;
+  }
+  .ak-profile-sigil {
+    width: 54px;
+    height: 54px;
+  }
+  .ak-profile-sigil-portrait {
+    width: 38px;
+    height: 38px;
+  }
+  .ak-profile-link-label {
+    display: none;
+  }
+  .ak-profile-workspaces > button {
+    padding-inline: 4px;
+    gap: 5px;
+    font-size: 12px;
+  }
+  .ak-profile-workspaces > button > span.rounded-full {
+    padding-inline: 6px;
+    font-size: 10px;
+  }
+  .ak-page-banner .ak-banner-action {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+  :root {
+    --ak-page-gutter: 14px;
+    --ak-page-top: 14px;
+    --ak-page-bottom: 8px;
+    --ak-banner-height: 180px;
+    --ak-banner-padding: 18px;
+    --ak-banner-title-size: 36px;
+  }
+  .ak-profile-banner-identity .ak-portrait-medallion {
+    width: 64px;
+    height: 64px;
+  }
+  .ak-feed-grid,
+  .ak-profile-recipe-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ak-profile-collection-heading > div:last-child {
+    gap: 8px;
+  }
+  .ak-profile-collection-heading button {
+    padding: 9px 12px;
+    font-size: 11px;
+  }
+  .ak-profile-layout {
+    gap: 24px;
+    margin-top: 20px;
+  }
+  .ak-app-header-inner {
+    min-height: 70px;
+    padding-block: 7px;
+    gap: 10px;
+  }
+  .ak-brand-mark {
+    width: 39px;
+    height: 45px;
+  }
+  .ak-brand-lockup {
+    gap: 7px;
+  }
+  .ak-brand-wordmark {
+    font-size: 22px;
+  }
+  .ak-brand-caption {
+    font-size: 7px;
+    letter-spacing: 0.11em;
+  }
+  .ak-header-note {
+    display: none;
+  }
+  .ak-app-header .ak-button-primary {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .ak-emporium-heading p {
+    font-size: 12px;
+    margin-top: 9px;
+  }
+  .ak-search-row {
+    margin-top: 12px;
+    gap: 8px;
+  }
+  .ak-discover-search input {
+    font-size: 16px;
+    padding-left: 10px;
+  }
+  .ak-discover-search > svg {
+    margin-left: 12px;
+    width: 16px;
+  }
+  .ak-search-row > button {
+    padding-inline: 13px;
+  }
+  .ak-discover-search > button {
+    width: 37px;
+  }
+  .ak-discover-filters {
+    padding-block: 15px;
+    margin-bottom: 20px;
+  }
+  .ak-discover-filters > section {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 7px;
+  }
+  .ak-discover-filters .ak-eyebrow {
+    margin: 0 0 0 3px;
+    font-size: 8px;
+  }
+  .ak-discover-filters .ak-tag-actions > button {
+    margin: 0;
+    min-height: 28px;
+    padding: 3px;
+    font-size: 10px;
+  }
+  .ak-discover-filters .ak-tag-list {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .ak-discover-filters [data-expanded='true'] .ak-tag-list {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .ak-discover-filters .ak-tag-list > button {
+    flex-shrink: 0;
+  }
+  .ak-tag-list .ak-button-choice {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+  .ak-collection-heading {
+    margin-bottom: 18px;
+  }
+  .ak-collection-heading h2 {
+    font-size: 22px;
+  }
+  .ak-collection-heading .ak-eyebrow {
+    font-size: 8px;
+  }
+  .ak-result-count {
+    font-size: 10px;
+  }
+  .ak-feed-card-body {
+    padding: 18px 20px 12px;
+  }
+  .ak-feed-title {
+    font-size: 25px;
+  }
+  .ak-card-description {
+    font-size: 13px;
+  }
+  .ak-card-byline {
+    margin-bottom: 12px;
+  }
+  .ak-card-save {
+    min-height: 40px;
+    padding-inline: 12px;
+  }
+  .ak-community-hearth {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+  .ak-hearth-footnote {
+    display: none;
+  }
+  .ak-feed-endnote {
+    gap: 8px;
+    font-size: 11px;
+    flex-wrap: wrap;
+  }
+  .ak-app-footer {
+    padding-block: 6px;
+    font-size: 9px;
+  }
+  .ak-recipe-dialog {
+    padding: 9px;
+  }
+  .ak-recipe-dialog-toolbar {
+    top: -9px;
+    padding: 7px 14px;
+  }
+  .ak-detail-photo {
+    height: 235px;
+  }
+  .ak-detail-body {
+    padding: 25px 20px;
+    gap: 22px;
+  }
+  .ak-detail-body > .ak-eyebrow {
+    font-size: 8px;
+  }
+  .ak-detail-description {
+    font-size: 14px;
+  }
+  .ak-detail-facts {
+    gap: 16px;
+    font-size: 11px;
+  }
+  .ak-cooking-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
+  }
+  .ak-workspace-build .ak-editor-fields {
+    padding: 14px;
+  }
+  .ak-editor-fields input:not([type='file']),
+  .ak-editor-fields textarea {
+    font-size: 16px;
+  }
+  .ak-recipe-readiness {
+    padding: 16px;
+  }
+  .ak-readiness-items {
+    gap: 4px;
+  }
+  .ak-readiness-items button {
+    font-size: 9px;
+    gap: 4px;
+  }
+  .ak-preview-controls {
+    padding-inline: 14px;
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 359px) {
+  .ak-footer-credit-label {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ak-profile-link:hover .ak-profile-orbit,
+  .ak-profile-link:focus-visible .ak-profile-orbit,
+  .ak-profile-link:active .ak-profile-sigil {
+    transform: none;
+  }
+}
