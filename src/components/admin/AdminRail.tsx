@@ -3,6 +3,7 @@ import {
   ChefHat,
   MessageCircle,
   Users as UsersIcon,
+  Flag,
   ScrollText,
 } from 'lucide-react';
 import { randomMerlinColor } from '../../theme/merlinPalette';
@@ -32,6 +33,7 @@ export default function AdminRail({
       count: counts.comments,
     },
     { id: 'users', label: 'Users', icon: UsersIcon, count: counts.users },
+    { id: 'reports', label: 'Reports', icon: Flag, count: 0 },
     { id: 'activity', label: 'Activity log', icon: ScrollText },
   ];
 
@@ -42,7 +44,12 @@ export default function AdminRail({
     >
       {items.map(({ id, label, icon: Icon, count }) => {
         const isActive = active === id;
-        const name = count !== undefined ? `${label} · ${count}` : label;
+        const name =
+          id === 'reports'
+            ? 'Reports · 0 open'
+            : count !== undefined
+              ? `${label} · ${count}`
+              : label;
         return (
           <button
             key={id}

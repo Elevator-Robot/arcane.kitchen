@@ -29,7 +29,12 @@ export type AdminUserProfile = {
   contentHidden?: boolean | null;
 };
 
-export type AdminTab = 'recipes' | 'comments' | 'users' | 'activity';
+export type AdminTab =
+  | 'recipes'
+  | 'comments'
+  | 'users'
+  | 'reports'
+  | 'activity';
 
 export type ModerationAction =
   | 'delete'
