@@ -24,6 +24,7 @@ import AdminRail from './admin/AdminRail';
 import ActivityPanel from './admin/ActivityPanel';
 import RecipesPanel from './admin/RecipesPanel';
 import CommentsPanel from './admin/CommentsPanel';
+import ReportsPanel from './admin/ReportsPanel';
 import UsersPanel from './admin/UsersPanel';
 import type {
   AdminRecipe as Recipe,
@@ -740,7 +741,9 @@ export default function AdminDashboard({
         ? comments.length
         : tab === 'users'
           ? users.length
-          : auditEntries.length;
+          : tab === 'reports'
+            ? 0
+            : auditEntries.length;
   const filteredCount =
     tab === 'recipes'
       ? filteredRecipes.length
@@ -748,7 +751,9 @@ export default function AdminDashboard({
         ? filteredComments.length
         : tab === 'users'
           ? filteredUsers.length
-          : filteredAudit.length;
+          : tab === 'reports'
+            ? 0
+            : filteredAudit.length;
   const pageSize = 10;
   const pages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const currentPage = Math.min(page, pages);
@@ -897,9 +902,11 @@ export default function AdminDashboard({
                     <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
                       {tab === 'activity'
                         ? 'Admin actions recorded in the audit log'
-                        : lastRefreshed
-                          ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Admin access`
-                          : 'Live community records · Admin access'}
+                        : tab === 'reports'
+                          ? 'Concerns raised by your community'
+                          : lastRefreshed
+                            ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Admin access`
+                            : 'Live community records · Admin access'}
                     </p>
                   </div>
                   <button
@@ -915,79 +922,86 @@ export default function AdminDashboard({
                     {loading || auditLoading ? 'Refreshing...' : 'Refresh'}
                   </button>
                 </div>
-                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                  <label className="ak-input flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3">
-                    <Search
-                      className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)]"
-                      aria-hidden="true"
-                    />
-                    <span className="sr-only">Search {tab}</span>
-                    <input
-                      aria-label={`Search ${tab}`}
-                      value={search}
-                      onChange={(event) => {
-                        setSearch(event.target.value);
-                        setPage(1);
-                      }}
-                      placeholder={
-                        tab === 'users'
-                          ? 'Name, handle, email, or user ID'
-                          : tab === 'recipes'
-                            ? 'Recipe, author, or ID'
-                            : tab === 'activity'
-                              ? 'Action, actor, or target ID'
-                              : 'Comment, author, recipe ID, or user ID'
-                      }
-                      className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
-                    />
-                    {search && (
-                      <button
-                        type="button"
-                        aria-label="Clear search"
-                        onClick={() => {
-                          setSearch('');
+                {tab !== 'reports' && (
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <label className="ak-input flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3">
+                      <Search
+                        className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)]"
+                        aria-hidden="true"
+                      />
+                      <span className="sr-only">Search {tab}</span>
+                      <input
+                        aria-label={`Search ${tab}`}
+                        value={search}
+                        onChange={(event) => {
+                          setSearch(event.target.value);
                           setPage(1);
                         }}
-                        className="ak-button-ghost rounded-lg p-2"
+                        placeholder={
+                          tab === 'users'
+                            ? 'Name, handle, email, or user ID'
+                            : tab === 'recipes'
+                              ? 'Recipe, author, or ID'
+                              : tab === 'activity'
+                                ? 'Action, actor, or target ID'
+                                : 'Comment, author, recipe ID, or user ID'
+                        }
+                        className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                      />
+                      {search && (
+                        <button
+                          type="button"
+                          aria-label="Clear search"
+                          onClick={() => {
+                            setSearch('');
+                            setPage(1);
+                          }}
+                          className="ak-button-ghost rounded-lg p-2"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      )}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-[var(--theme-text-muted)]">
+                      <span>
+                        {tab === 'users'
+                          ? 'Account state'
+                          : tab === 'activity'
+                            ? 'Category'
+                            : 'Visibility'}
+                      </span>
+                      <select
+                        value={statusFilter}
+                        onChange={(event) => {
+                          setStatusFilter(event.target.value);
+                          setPage(1);
+                        }}
+                        className="ak-input min-h-11 rounded-xl px-3 py-2"
                       >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
-                    )}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-[var(--theme-text-muted)]">
-                    <span>
-                      {tab === 'users'
-                        ? 'Account state'
-                        : tab === 'activity'
-                          ? 'Category'
-                          : 'Visibility'}
-                    </span>
-                    <select
-                      value={statusFilter}
-                      onChange={(event) => {
-                        setStatusFilter(event.target.value);
-                        setPage(1);
-                      }}
-                      className="ak-input min-h-11 rounded-xl px-3 py-2"
-                    >
-                      {(tab === 'users'
-                        ? [
-                            'All',
-                            'Active',
-                            'Banned',
-                            'Disabled',
-                            'Content hidden',
-                            'Deleted',
-                          ]
-                        : tab === 'activity'
-                          ? ['All', 'Reassignments', 'Moderation', 'Deletions']
-                          : ['All', 'Visible', 'Hidden']
-                      ).map((value) => (
-                        <option key={value}>{value}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+                        {(tab === 'users'
+                          ? [
+                              'All',
+                              'Active',
+                              'Banned',
+                              'Disabled',
+                              'Content hidden',
+                              'Deleted',
+                            ]
+                          : tab === 'activity'
+                            ? [
+                                'All',
+                                'Reassignments',
+                                'Moderation',
+                                'Deletions',
+                              ]
+                            : ['All', 'Visible', 'Hidden']
+                        ).map((value) => (
+                          <option key={value}>{value}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
                 {pendingUserAction && (
                   <p
                     role="status"
@@ -996,19 +1010,20 @@ export default function AdminDashboard({
                     Applying changes…
                   </p>
                 )}
-                {(loading || (tab === 'activity' && auditLoading)) && (
-                  <p
-                    role="status"
-                    className="mt-4 text-sm text-[var(--theme-text-muted)]"
-                  >
-                    {loadedOnce
-                      ? tab === 'activity' && !auditEntries.length
-                        ? 'Loading activity log…'
-                        : 'Refreshing collections…'
-                      : 'Loading admin workspace…'}
-                  </p>
-                )}
-                {loadedOnce && !contentUnavailable && (
+                {tab !== 'reports' &&
+                  (loading || (tab === 'activity' && auditLoading)) && (
+                    <p
+                      role="status"
+                      className="mt-4 text-sm text-[var(--theme-text-muted)]"
+                    >
+                      {loadedOnce
+                        ? tab === 'activity' && !auditEntries.length
+                          ? 'Loading activity log…'
+                          : 'Refreshing collections…'
+                        : 'Loading admin workspace…'}
+                    </p>
+                  )}
+                {loadedOnce && tab !== 'reports' && !contentUnavailable && (
                   <p className="mt-4 text-xs text-[var(--theme-text-muted)]">
                     {filteredCount} of {total}{' '}
                     {tab === 'activity' ? 'entries' : tab}
@@ -1108,6 +1123,7 @@ export default function AdminDashboard({
                         onLoadMore={() => void loadMoreAuditLog()}
                       />
                     )}
+                    {tab === 'reports' && <ReportsPanel />}
                   </fieldset>
                 )}
                 {loadedOnce && filteredCount > 0 && (

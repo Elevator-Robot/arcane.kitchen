@@ -457,6 +457,39 @@ describe('admin console workflows', () => {
     expect(usersRail).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('opens a Reports placeholder with status pills and no search controls', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderAdmin();
+    await screen.findByText('Showing 1–10 of 12');
+
+    const reportsRail = screen.getByRole('button', {
+      name: 'Reports · 0 open',
+    });
+    expect(reportsRail).toHaveClass('min-h-11', 'min-w-11');
+    await user.click(reportsRail);
+
+    expect(
+      screen.getByRole('heading', { name: 'Reports', level: 2 })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Concerns raised by your community')
+    ).toBeInTheDocument();
+    expect(screen.getByText('No open reports')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', { name: 'Search reports' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Visibility' })
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Resolved' }));
+    expect(screen.getByText('No resolved reports')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Resolved' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
   it('edits and toggles comment visibility through the card actions', async () => {
     const user = userEvent.setup({ delay: null });
     mocks.updateComment.mockImplementation(async (input: any) => ({
