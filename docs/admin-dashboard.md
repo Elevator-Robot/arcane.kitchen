@@ -225,5 +225,7 @@ still be refined as the backend capabilities are validated.
 - Activity: audit reads page by `nextToken` with a `Load more` control.
 - Mockup filter pills were adapted to the existing shell search/select row so
   every panel shares one search, filter, count, and clear-filter surface.
-- The mockup's Reports section is deferred: no report model or queue exists in
-  the backend or app.
+- Reports: placeholder rail item ("Reports · 0 open") with Open/Resolved/Dismissed
+  status pills, per-status empty states, and no search or filter controls. There
+  is still no report model or queue in the backend, so the panel says flagging
+  has not shipped yet.
