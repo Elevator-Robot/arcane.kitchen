@@ -37,6 +37,10 @@ Simple model overview: [`docs/data-models.md`](docs/data-models.md)
 
 ## Local development
 
+For a backend-free UI preview, set `VITE_MOCK_PREVIEW=true` in `.env.local`, then run `npm ci` and `npm run dev`. The preview strip switches between a guest, the fictional Rowan account, and an admin preview. Demo recipes, saves, comments, uploads, profile changes, and featured-recipe selection persist across reloads in the current tab (`arcaneKitchen.previewData.v1` sessionStorage). Production builds exclude this mode and its fixtures. Remove the flag to use a real backend.
+
+The UI's culinary-guild design and cooking companion are documented in [UI design](docs/ui-design.md).
+
 Prerequisites:
 
 - Node.js 20+

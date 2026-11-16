@@ -225,13 +225,12 @@ textarea.ak-bio-text:focus-visible {
     --theme-glow: #8b5fb0;
     --theme-overlay: rgba(44, 24, 16, 0.64);
     --ak-glass-blur: blur(7px);
-    --ak-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 28%);
-    --ak-glass-shadow: 0 3px 10px rgb(44 24 16 / 9%);
+    --ak-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 12%);
+    --ak-glass-shadow: 0 2px 4px rgb(44 24 16 / 4%);
     --ak-glass-sheen: linear-gradient(
       180deg,
-      rgb(255 255 255 / 12%),
-      rgb(0 0 0 / 16%) 14%,
-      rgb(0 0 0 / 20%)
+      rgb(255 255 255 / 6%),
+      rgb(0 0 0 / 2%)
     );
   }
 
@@ -318,69 +317,7 @@ textarea.ak-bio-text:focus-visible {
   }
 
   .ak-page-glow {
-    background:
-      radial-gradient(
-        circle at 18% 8%,
-        color-mix(in srgb, var(--theme-glow) 14%, transparent),
-        transparent 34%
-      ),
-      radial-gradient(
-        circle at 82% 14%,
-        color-mix(in srgb, var(--theme-accent) 9%, transparent),
-        transparent 36%
-      ),
-      linear-gradient(
-        180deg,
-        color-mix(in srgb, var(--theme-surface) 62%, transparent),
-        color-mix(in srgb, var(--theme-bg) 96%, var(--theme-bg-soft))
-      );
-  }
-
-  .ak-discover-intro {
-    position: relative;
-    flex-shrink: 0;
-    isolation: isolate;
-    overflow: hidden;
-    padding: clamp(1rem, 3vw, 1.75rem);
-    border: 1px solid color-mix(in srgb, var(--theme-border) 82%, white);
-    border-radius: 1.75rem;
-    background: linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--theme-surface) 94%, transparent),
-      color-mix(in srgb, var(--theme-surface-alt) 78%, transparent)
-    );
-    box-shadow:
-      0 18px 60px color-mix(in srgb, var(--theme-text) 7%, transparent),
-      inset 0 1px 0 rgb(255 255 255 / 65%);
-  }
-
-  .ak-discover-intro::before,
-  .ak-discover-intro::after {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    border-radius: 999px;
-    pointer-events: none;
-  }
-
-  .ak-discover-intro::before {
-    top: -7rem;
-    right: -5rem;
-    width: 18rem;
-    height: 18rem;
-    border: 1px solid rgb(255 255 255 / 14%);
-    box-shadow:
-      0 0 0 2.25rem rgb(255 255 255 / 4%),
-      0 0 0 4.5rem rgb(255 255 255 / 3%);
-  }
-
-  .ak-discover-intro::after {
-    bottom: -3rem;
-    left: 12%;
-    width: 10rem;
-    height: 5rem;
-    background: rgb(255 255 255 / 9%);
-    filter: blur(28px);
+    background: var(--theme-bg);
   }
 
   .ak-discover-search {
@@ -420,7 +357,7 @@ textarea.ak-bio-text:focus-visible {
 
   .ak-panel {
     border: 1px solid var(--theme-border);
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     background: var(--theme-surface);
     box-shadow: 0 3px 12px rgba(44, 24, 16, 0.035);
   }
@@ -465,9 +402,9 @@ textarea.ak-bio-text:focus-visible {
 
   .ak-recipe-card {
     border: 1px solid var(--theme-border);
-    border-radius: 1.5rem;
+    border-radius: 0.85rem;
     background: var(--theme-surface);
-    box-shadow: 0 3px 12px color-mix(in srgb, var(--theme-text) 4%, transparent);
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--theme-text) 3%, transparent);
     transition:
       transform 180ms ease,
       box-shadow 180ms ease,
@@ -477,9 +414,9 @@ textarea.ak-bio-text:focus-visible {
   .ak-recipe-card:hover,
   .ak-recipe-card:focus-within {
     border-color: var(--theme-border-strong);
-    box-shadow: 0 12px 32px
-      color-mix(in srgb, var(--theme-text) 10%, transparent);
-    transform: translateY(-2px);
+    box-shadow: 0 10px 24px
+      color-mix(in srgb, var(--theme-text) 8%, transparent);
+    transform: translateY(-3px);
   }
 
   .ak-empty-state {
@@ -1526,7 +1463,7 @@ textarea.ak-bio-text:focus-visible {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: clamp(1.5rem, 5vh, 4rem) 1.5rem;
+  padding-block: clamp(1.5rem, 5vh, 4rem);
   color: var(--theme-text);
   background:
     radial-gradient(
@@ -1538,7 +1475,6 @@ textarea.ak-bio-text:focus-visible {
 }
 
 .ak-startup-content {
-  width: min(100%, 28rem);
   text-align: center;
 }
 .ak-startup-eyebrow {

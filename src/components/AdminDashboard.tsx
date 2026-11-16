@@ -1,11 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   Search,
   X,
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import AccessibleDialog from './AccessibleDialog';
 import {
   matchesAdminSearch,
@@ -14,12 +24,18 @@ import {
   userModerationStatus,
   adminAuditCategory,
 } from '../utils/adminConsole';
-import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '../../amplify/data/resource';
-import ProfileDropdown from './ProfileDropdown';
+import { client } from '../dataClient';
+import WorkspaceHeader from './WorkspaceHeader';
+import WorkspaceFooter from './WorkspaceFooter';
+import RecipePhoto from './ui/RecipePhoto';
 import SanctuaryHeading from './ui/SanctuaryHeading';
 import { sanctuaryThemeStyle } from '../theme/sanctuaryTheme';
+import { kitchenCalling } from '../utils/kitchenIdentity';
 import { getUserFacingErrorMessage } from '../utils/userFacingErrors';
+import {
+  readFeaturedSelection,
+  saveFeaturedRecipe,
+} from '../utils/featuredRecipe';
 import AdminRail from './admin/AdminRail';
 import ActivityPanel from './admin/ActivityPanel';
 import RecipesPanel from './admin/RecipesPanel';
@@ -35,17 +51,18 @@ import type {
   ModerationAction,
 } from './admin/types';
 
-const client: any = generateClient<Schema>();
-
 type Props = {
   isAuthenticated: boolean;
   isAdmin: boolean;
   onBack: () => void;
-  onSignOut?: () => void;
+  embedded?: boolean;
+  onContentChanged?: () => void;
+  profilePinAction?: ReactNode;
   profilePath?: string;
   profileLabel?: string;
   profileAvatar?: string | null;
   profileTheme?: string;
+  profileCalling?: string;
 };
 
 const errorText = (error: unknown) =>
@@ -58,12 +75,18 @@ export default function AdminDashboard({
   isAuthenticated,
   isAdmin,
   onBack,
-  onSignOut,
+  embedded = false,
+  onContentChanged,
+  profilePinAction,
   profilePath = '/discover',
   profileLabel = 'Admin',
   profileAvatar = null,
   profileTheme,
+  profileCalling,
 }: Props) {
+  const location = useLocation();
+  const [featuredRecipeId, setFeaturedRecipeId] = useState<string | null>(null);
+  const [featureLoaded, setFeatureLoaded] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -222,7 +245,7 @@ export default function AdminDashboard({
       typeof client.queries?.listAdminUsers === 'function';
     setUserListUnavailable(!hasAdminUserQuery);
     try {
-      const [recipeOutcome, commentOutcome, userOutcome] =
+      const [recipeOutcome, commentOutcome, userOutcome, featuredOutcome] =
         await Promise.allSettled([
           readAllAdminPages<Recipe>((nextToken) =>
             client.models.Recipe.list({ authMode: 'userPool', nextToken })
@@ -262,6 +285,7 @@ export default function AdminDashboard({
                 };
               })()
             : Promise.resolve({ data: [] }),
+          readFeaturedSelection(client, 'userPool'),
         ]);
 
       if (requestId !== loadRequest.current) return;
@@ -299,6 +323,21 @@ export default function AdminDashboard({
       const recipeResult = readResult(recipeOutcome, 'Recipes');
       const commentResult = readResult(commentOutcome, 'Comments');
       const userResult = readResult(userOutcome, 'Users');
+
+      if (featuredOutcome.status === 'fulfilled') {
+        setFeaturedRecipeId(featuredOutcome.value?.recipeId || null);
+        setFeatureLoaded(true);
+      } else {
+        console.error(
+          'Failed to load featured recipe settings:',
+          featuredOutcome.reason
+        );
+        failed.push('featured recipe');
+        queryErrors.push(
+          `Featured recipe: ${errorText(featuredOutcome.reason)}`
+        );
+        setFeatureLoaded(false);
+      }
 
       if (recipeResult) {
         setRecipes((recipeResult.data ?? []) as Recipe[]);
@@ -370,6 +409,7 @@ export default function AdminDashboard({
     try {
       await action();
       setSuccess(message);
+      onContentChanged?.();
     } catch (operationError) {
       console.error('Admin action failed:', operationError);
       setError(errorText(operationError));
@@ -377,6 +417,18 @@ export default function AdminDashboard({
       actionInFlight.current = false;
       setPendingUserAction(null);
     }
+  };
+
+  const featureRecipe = async (recipeId: string | null) => {
+    if (!featureLoaded) return;
+    await runAction(
+      'featuredRecipe',
+      recipeId ? 'Featured recipe updated.' : 'Featured recipe cleared.',
+      async () => {
+        await saveFeaturedRecipe(client, recipeId);
+        setFeaturedRecipeId(recipeId);
+      }
+    );
   };
 
   const removeRecipe = async (recipe: Recipe) => {
@@ -774,10 +826,20 @@ export default function AdminDashboard({
     setPage(1);
   };
   const contentUnavailable = failedCollections.includes(tab) && !total;
+  const featuredRecipe = recipes.find(
+    (recipe) => recipe.id === featuredRecipeId && !recipe.isHidden
+  );
+  const Frame = embedded ? 'section' : 'main';
+  const recipeHref = (recipeId: string) => {
+    if (!embedded) return `/discover?recipe=${encodeURIComponent(recipeId)}`;
+    const params = new URLSearchParams(location.search);
+    params.set('recipe', recipeId);
+    return `${location.pathname}?${params.toString()}`;
+  };
 
   if (!isAuthenticated || !isAdmin) {
     return (
-      <main
+      <Frame
         style={sanctuaryThemeStyle(isAuthenticated ? profileTheme : undefined)}
         className="ak-page-glow flex min-h-screen items-center justify-center p-6 text-[var(--theme-text)]"
       >
@@ -800,52 +862,56 @@ export default function AdminDashboard({
             Return home
           </button>
         </section>
-      </main>
+        {!embedded && <WorkspaceFooter />}
+      </Frame>
     );
   }
 
   return (
-    <main
+    <Frame
       style={sanctuaryThemeStyle(profileTheme)}
-      className="ak-page-glow min-h-screen text-[var(--theme-text)]"
+      id="backrooms-workspace"
+      aria-label="Backrooms"
+      className={
+        embedded
+          ? 'ak-admin-embedded text-[var(--theme-text)]'
+          : 'ak-page-glow min-h-screen text-[var(--theme-text)]'
+      }
     >
-      <header className="sticky top-0 z-20 border-b border-[var(--theme-border)] bg-[var(--theme-surface)]/92 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-1 sm:px-8">
-          <button
-            onClick={onBack}
-            aria-label="Go to the Emporium"
-            className="ak-logo-button flex items-center gap-2 p-0.5"
-          >
-            <img
-              src="/logo-no-background.svg"
-              alt=""
-              draggable={false}
-              className="h-14 w-14 object-contain brightness-[0.3]"
-            />
-            <span className="font-heading text-base font-semibold">
-              Arcane Kitchen
-            </span>
-          </button>
-          <span className="absolute left-1/2 hidden -translate-x-1/2 text-sm font-semibold uppercase tracking-[0.16em] text-[var(--theme-text-muted)] md:block">
-            Admin dashboard
-          </span>
-          <ProfileDropdown
+      {!embedded && (
+        <>
+          <a href="#admin-workspace" className="ak-skip-link">
+            Skip to admin content
+          </a>
+          <WorkspaceHeader
+            onHome={onBack}
+            homeLabel="Go to the Emporium"
             profilePath={profilePath}
             profileLabel={profileLabel}
             profileAvatar={profileAvatar}
-            isAdmin={isAdmin}
-            onSignOut={onSignOut || (() => undefined)}
+            isAuthenticated={isAuthenticated}
+            adminWorkspace
           />
-        </div>
-      </header>
+        </>
+      )}
 
-      <div className="px-4 py-6 sm:px-8">
+      <div id="admin-workspace" tabIndex={-1} className="px-4 py-6 sm:px-8">
         <div className="mx-auto max-w-6xl">
-          <SanctuaryHeading
-            eyebrow="Community stewardship"
-            title="Moderation desk"
-            description="Find a recipe, follow a conversation, or look after the cooks in your community."
-          />
+          {!embedded && (
+            <SanctuaryHeading
+              title="Backrooms"
+              callingId={kitchenCalling(profileCalling || 'kitchen-witch').id}
+              actions={
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="ak-banner-action"
+                >
+                  <ArrowLeft size={15} aria-hidden="true" /> Back to recipes
+                </button>
+              }
+            />
+          )}
           <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
             <AdminRail
               active={tab}
@@ -1085,6 +1151,10 @@ export default function AdminDashboard({
                         onTransfer={transferOwnership}
                         pendingUserAction={pendingUserAction}
                         loading={loading || !loadedOnce}
+                        recipeHref={recipeHref}
+                        featuredRecipeId={featuredRecipeId}
+                        featureLoaded={featureLoaded}
+                        onFeature={(recipeId) => void featureRecipe(recipeId)}
                       />
                     )}
                     {tab === 'comments' && (
@@ -1101,6 +1171,7 @@ export default function AdminDashboard({
                         removeComment={removeComment}
                         onHideComment={hideComment}
                         loading={loading || !loadedOnce}
+                        recipeHref={recipeHref}
                       />
                     )}
                     {tab === 'users' && (
@@ -1163,6 +1234,75 @@ export default function AdminDashboard({
                 )}
               </section>
             </div>
+            {tab === 'recipes' && (
+              <aside
+                className="w-full md:w-72 lg:w-80"
+                aria-label="Recipe administration"
+              >
+                <section
+                  className="ak-panel p-4"
+                  aria-label="Featured recipe settings"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles
+                      className="h-4 w-4 text-[var(--theme-accent)]"
+                      aria-hidden="true"
+                    />
+                    <h2 className="text-sm font-semibold">Featured recipe</h2>
+                  </div>
+                  {featureLoaded && featuredRecipe && (
+                    <a
+                      href={recipeHref(featuredRecipe.id)}
+                      className="mt-3 block overflow-hidden rounded-xl"
+                      aria-label={`Open featured recipe: ${featuredRecipe.name}`}
+                    >
+                      <RecipePhoto
+                        imageUrl={featuredRecipe.imageUrl}
+                        alt=""
+                        className="h-32 w-full object-cover"
+                      />
+                    </a>
+                  )}
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm">
+                      {!featureLoaded
+                        ? loading
+                          ? 'Loading featured recipe…'
+                          : 'Featured recipe settings are unavailable.'
+                        : featuredRecipeId
+                          ? featuredRecipe?.name ||
+                            'The selected recipe is unavailable.'
+                          : 'No recipe is currently featured.'}
+                    </p>
+                    <p className="text-xs text-[var(--theme-text-muted)]">
+                      Choose Feature on a recipe to update this spot.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void featureRecipe(null)}
+                      disabled={
+                        !featureLoaded ||
+                        !featuredRecipeId ||
+                        loading ||
+                        pendingUserAction !== null
+                      }
+                      className="ak-button-secondary w-full rounded-xl px-3 py-2 text-xs disabled:opacity-50"
+                    >
+                      Clear featured recipe
+                    </button>
+                  </div>
+                </section>
+                {profilePinAction && (
+                  <fieldset
+                    className="ak-panel mt-4 p-4"
+                    disabled={loading || pendingUserAction !== null}
+                  >
+                    <legend className="ak-eyebrow text-xs">Your profile</legend>
+                    {profilePinAction}
+                  </fieldset>
+                )}
+              </aside>
+            )}
           </div>
         </div>
       </div>
@@ -1279,6 +1419,7 @@ export default function AdminDashboard({
           </section>
         </AccessibleDialog>
       )}
-    </main>
+      {!embedded && <WorkspaceFooter />}
+    </Frame>
   );
 }

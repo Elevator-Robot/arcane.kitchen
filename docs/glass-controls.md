@@ -4,7 +4,7 @@
 
 - `src/components/ui/Button.tsx` is the reusable native-button primitive. It forwards
   refs, supports explicit submit semantics, and exposes loading through disabled and
-  `aria-busy` states. Standard actions, profile menus/tabs, presets, and tag controls
+  `aria-busy` states. Standard actions, profile tabs, presets, and tag controls
   consume it; existing native controls can use the same variant classes.
 - `src/index.css` owns the glass surfaces, inset highlights, blur, shadows, hover,
   selected, focus, and disabled states. Login controls use the shared blur token

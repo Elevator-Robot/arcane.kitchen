@@ -58,6 +58,9 @@ afterEach(() => {
   if (globalThis.localStorage) {
     globalThis.localStorage.clear();
   }
+  if (globalThis.sessionStorage) {
+    globalThis.sessionStorage.clear();
+  }
 });
 
 // Mock console methods to avoid noise in tests

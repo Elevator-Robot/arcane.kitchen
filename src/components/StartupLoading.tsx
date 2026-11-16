@@ -17,7 +17,7 @@ export default function StartupLoading() {
       style={{ '--startup-accent': accent } as CSSProperties}
       aria-label="Opening Arcane Kitchen"
     >
-      <div className="ak-startup-content">
+      <div className="ak-page-rail ak-startup-content">
         <p className="ak-startup-eyebrow">Recipes kept. Stories shared.</p>
         <h1 className="ak-startup-title">Arcane Kitchen</h1>
         <div className="ak-startup-illustration" aria-hidden="true">

@@ -1,4 +1,5 @@
 import { updateUserAttributes } from 'aws-amplify/auth';
+import { isMockPreview } from '../preview/config';
 
 export type CognitoProfileFields = {
   displayName?: string;
@@ -8,7 +9,7 @@ export type CognitoProfileFields = {
 
 /**
  * Best-effort mirror of profile edits into Cognito user attributes.
- * Cognito is the source of truth for user profiles; localStorage is only a
+ * The backend UserProfile is the source of truth; localStorage is only a
  * session/first-paint cache for the existing UI. Attribute mappings:
  *   displayName -> nickname
  *   bio          -> custom:bio
@@ -20,6 +21,7 @@ export type CognitoProfileFields = {
  * so it remains in localStorage + the DynamoDB-backed UserProfile model.
  */
 export const syncProfileToCognito = async (fields: CognitoProfileFields) => {
+  if (isMockPreview) return;
   const userAttributes: Record<string, string> = {};
 
   if (fields.displayName !== undefined) {

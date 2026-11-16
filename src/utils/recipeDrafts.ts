@@ -174,20 +174,31 @@ const removeLegacyLocalStorageDraft = () => {
   window.localStorage.removeItem(LEGACY_SINGLE_DRAFT_KEY);
 };
 
-const isRecipeDraftRecordLike = (value: unknown): value is Partial<RecipeDraftRecord> =>
-  Boolean(value && typeof value === 'object' && 'id' in value && 'draft' in value);
+const isRecipeDraftRecordLike = (
+  value: unknown
+): value is Partial<RecipeDraftRecord> =>
+  Boolean(
+    value && typeof value === 'object' && 'id' in value && 'draft' in value
+  );
 
-const normalizeStoredRecord = (value: Partial<RecipeDraftRecord>): RecipeDraftRecord =>
+const normalizeStoredRecord = (
+  value: Partial<RecipeDraftRecord>
+): RecipeDraftRecord =>
   toDraftRecord({
     id: typeof value.id === 'string' && value.id ? value.id : generateDraftId(),
     ownerId:
       typeof value.ownerId === 'string' && value.ownerId
         ? value.ownerId
         : 'legacy-local-owner',
-    draft: value.draft ? cloneDraft(value.draft) : cloneDraft(EMPTY_RECIPE_DRAFT),
-    editingRecipeId: typeof value.editingRecipeId === 'string' ? value.editingRecipeId : null,
-    imageDataUrl: typeof value.imageDataUrl === 'string' ? value.imageDataUrl : null,
-    updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : Date.now(),
+    draft: value.draft
+      ? cloneDraft(value.draft)
+      : cloneDraft(EMPTY_RECIPE_DRAFT),
+    editingRecipeId:
+      typeof value.editingRecipeId === 'string' ? value.editingRecipeId : null,
+    imageDataUrl:
+      typeof value.imageDataUrl === 'string' ? value.imageDataUrl : null,
+    updatedAt:
+      typeof value.updatedAt === 'number' ? value.updatedAt : Date.now(),
   });
 
 const openDraftDatabase = (): Promise<IDBDatabase> =>
@@ -213,8 +224,11 @@ const readLegacyDraftImage = async (): Promise<string | null> => {
     const db = await openDraftDatabase();
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(LEGACY_IMAGE_STORE_NAME, 'readonly');
-      const request = tx.objectStore(LEGACY_IMAGE_STORE_NAME).get(LEGACY_IMAGE_KEY);
-      request.onsuccess = () => resolve((request.result as string | null) || null);
+      const request = tx
+        .objectStore(LEGACY_IMAGE_STORE_NAME)
+        .get(LEGACY_IMAGE_KEY);
+      request.onsuccess = () =>
+        resolve((request.result as string | null) || null);
       request.onerror = () => reject(request.error);
     });
   } catch {
@@ -229,7 +243,9 @@ const removeLegacyDraftImage = async () => {
     const db = await openDraftDatabase();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(LEGACY_IMAGE_STORE_NAME, 'readwrite');
-      const request = tx.objectStore(LEGACY_IMAGE_STORE_NAME).delete(LEGACY_IMAGE_KEY);
+      const request = tx
+        .objectStore(LEGACY_IMAGE_STORE_NAME)
+        .delete(LEGACY_IMAGE_KEY);
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -256,7 +272,9 @@ const readIndexedDbDrafts = async (): Promise<RecipeDraftRecord[]> => {
   });
 };
 
-const writeIndexedDbDrafts = async (drafts: RecipeDraftRecord[]): Promise<void> => {
+const writeIndexedDbDrafts = async (
+  drafts: RecipeDraftRecord[]
+): Promise<void> => {
   const db = await openDraftDatabase();
 
   await new Promise<void>((resolve, reject) => {

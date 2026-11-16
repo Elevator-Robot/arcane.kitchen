@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react';
-import { sanctuaryBackground } from '../../theme/sanctuaryTheme';
-import { SANCTUARY_ARTWORK } from '../../theme/sanctuaryArtwork';
 import type { KITCHEN_CLASSES } from '../../utils/kitchenIdentity';
-import ColorSchemeImage from './ColorSchemeImage';
-import SanctuaryMotif from './SanctuaryMotif';
+import PageBanner from './PageBanner';
 
 type SanctuaryId = (typeof KITCHEN_CLASSES)[number]['id'];
 
@@ -25,31 +22,9 @@ export default function SanctuaryHeading({
   callingId,
 }: Props) {
   const Heading = level === 1 ? 'h1' : 'h2';
-  const artwork = callingId ? SANCTUARY_ARTWORK[callingId] : undefined;
   return (
-    <header
-      className="ak-sanctuary-heading relative isolate overflow-hidden rounded-3xl px-5 py-6 text-white sm:px-8 sm:py-7"
-      style={{ background: sanctuaryBackground }}
-    >
-      {artwork ? (
-        <>
-          <ColorSchemeImage
-            lightSrc={artwork.light}
-            darkSrc={artwork.dark}
-            width={2172}
-            height={724}
-            wrapperClassName="absolute inset-0"
-            imageClassName="h-full w-full object-cover"
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"
-            aria-hidden="true"
-          />
-        </>
-      ) : (
-        <SanctuaryMotif />
-      )}
-      <div className="relative flex flex-wrap items-center justify-between gap-5">
+    <PageBanner callingId={callingId} className="ak-sanctuary-heading">
+      <div className="ak-page-banner-content relative flex flex-wrap items-center justify-between gap-5">
         <div className="min-w-0 max-w-2xl">
           {eyebrow && <p className="ak-eyebrow text-white/80">{eyebrow}</p>}
           <Heading
@@ -67,6 +42,6 @@ export default function SanctuaryHeading({
           <div className="flex flex-wrap items-center gap-2">{actions}</div>
         )}
       </div>
-    </header>
+    </PageBanner>
   );
 }

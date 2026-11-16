@@ -88,6 +88,17 @@ const schema = a.schema({
       allow.guest().to(['read']),
     ]),
 
+  FeaturedRecipe: a
+    .model({
+      id: a.id(),
+      recipeId: a.id(),
+    })
+    .authorization((allow) => [
+      allow.group('Admins'),
+      allow.authenticated().to(['read']),
+      allow.guest().to(['read']),
+    ]),
+
   UserProfile: a
     .model({
       id: a.id(),

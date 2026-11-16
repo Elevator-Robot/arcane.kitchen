@@ -1,12 +1,15 @@
-import { Heart, MessageCircle, MoreVertical } from 'lucide-react';
+import { Clock3, Heart, MessageCircle, MoreVertical, Pin } from 'lucide-react';
 import type { Recipe } from '../../types/profile';
 import Button from '../ui/Button';
+import RecipeImage from '../ui/RecipeImage';
+import { formatRecipeTime } from '../../utils/recipeDisplay';
 
 type Props = {
   recipe: Recipe;
   onOptions?: (id: Recipe['id']) => void;
   onClick?: (id: Recipe['id']) => void;
   isFavorited?: boolean;
+  isPinned?: boolean;
   isPendingFavorite?: boolean;
   onToggleFavorite?: (id: string) => void;
 };
@@ -16,6 +19,7 @@ export default function RecipeCard({
   onOptions,
   onClick,
   isFavorited = false,
+  isPinned = false,
   isPendingFavorite = false,
   onToggleFavorite,
 }: Props) {
@@ -24,24 +28,22 @@ export default function RecipeCard({
       onClick={() => onClick?.(recipe.id)}
       className="ak-recipe-card flex cursor-pointer flex-col overflow-hidden"
     >
-      <div className="relative h-48 w-full">
-        {recipe.image ? (
-          <img
-            src={recipe.image}
-            alt=""
-            loading="lazy"
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[var(--theme-surface-alt)] text-sm text-[var(--theme-text-muted)]">
-            No photo
-          </div>
+      <div className="ak-recipe-media relative">
+        <RecipeImage
+          src={recipe.image}
+          alt={recipe.title}
+          className="w-full h-full object-cover"
+        />
+        {isPinned && (
+          <span className="ak-pinned-recipe">
+            <Pin size={12} aria-hidden="true" /> Pinned recipe
+          </span>
         )}
       </div>
 
       <div className="p-4 flex-1 flex flex-col justify-between">
         <div>
-          <h3 className="mb-1 line-clamp-2 font-semibold text-[var(--theme-text)]">
+          <h3 className="ak-feed-title mb-3 line-clamp-2 text-[var(--theme-text)]">
             <Button
               variant="unstyled"
               size="none"
@@ -55,8 +57,9 @@ export default function RecipeCard({
               {recipe.title}
             </Button>
           </h3>
-          <p className="mb-4 text-xs text-[var(--theme-text-muted)]">
-            {recipe.time}
+          <p className="mb-4 flex items-center gap-1.5 text-xs text-[var(--theme-text-muted)]">
+            <Clock3 size={14} aria-hidden="true" />{' '}
+            {formatRecipeTime(recipe.time)}
           </p>
         </div>
 

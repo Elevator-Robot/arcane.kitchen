@@ -33,6 +33,20 @@ Auth:
 - Authenticated users can read
 - Guests can read
 
+## `FeaturedRecipe`
+
+Purpose: stores the administrator-selected recipe shown in the Emporium sidebar.
+
+- The application uses the fixed record ID `emporium`.
+- `recipeId` references a recipe; `null` clears the selection.
+- Only members of the Cognito `Admins` group can create, update, or delete records.
+- Authenticated users and guests can read.
+- The public card directly resolves the selected recipe, independently of the loaded
+  feed. Missing, hidden, and cleared selections render no card.
+- Admin writes re-check recipe availability and wait for a successful backend
+  response before updating the selection in the UI.
+- Deploy the data schema and regenerate Amplify outputs to enable live persistence.
+
 ## `Ingredient`
 
 Purpose: stores ingredient names.

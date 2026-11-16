@@ -1,4 +1,9 @@
-# Admin Dashboard
+# Backrooms
+
+Backrooms is the private admin workspace inside the signed-in administrator's
+profile at `/u/:username?workspace=backrooms`. `/admin` redirects admins there,
+preserving query parameters and hashes. Other accounts receive an access-required
+screen. Public profiles never render Backrooms, even for an admin viewer.
 
 Status: implemented console UI; backend enforcement and linked-record cleanup follow-ups remain
 
@@ -8,6 +13,32 @@ This document is the source of truth for the admin-dashboard work. Update the
 progress and decisions sections as implementation proceeds.
 
 ## Console usability update
+
+- A private, plain-text Backrooms profile tab opens the existing admin tools in place.
+  Its banner matches all other page/profile frames; chef details remain in the same
+  collapsed disclosure. Recipes/Comments/Users selectors sit inside the tool header and show live
+  collection counts with an active underline.
+- Recipe and conversation links keep the profile workspace in the URL and open
+  the existing recipe overlay. Closing restores the same admin search and page.
+  Successful writes refresh parent recipes, profiles, feature selection, and detail
+  caches so switching back to the personal collection shows the latest data.
+- Profile navigation uses a direct portrait sigil. Log out is a quiet text action at
+  the bottom-right of the owner's profile; Feedback & Support lives in the shared footer.
+- Profile pin selection is available only here, under Your profile in the sidebar.
+  It is separate from the community featured-recipe selection. Published profile
+  cards show the pin as the first ordinary-sized card with a small badge.
+- Recipe rows use thumbnail photography, concise metadata, and compact actions.
+  Comments and user identities use the shared portrait treatment. Featured recipe
+  controls and ownership transfer sit in a desktop sidebar and stack below results
+  on narrow screens; the user table retains keyboard-accessible horizontal scrolling.
+
+- The Recipes tab includes a Featured recipe panel. Admins search the collection
+  and choose Feature on any visible recipe, or clear the slot. Selection changes
+  share the existing pending-action guard, surface backend errors, and update after
+  success. Hidden or deleted recipes are omitted from the public feature.
+- `FeaturedRecipe` uses the fixed `emporium` record and Cognito `Admins` write
+  authorization, with authenticated/guest read. Deploy the updated data schema and
+  regenerate outputs before using the feature with a live backend.
 
 - Search recipes by title, description, owner, or ID; comments by text, author,
   recipe ID, or user ID; users by name, handle, email, or ID.
@@ -159,7 +190,7 @@ still be refined as the backend capabilities are validated.
 
 - Authentication is Amazon Cognito through AWS Amplify Gen 2.
 - The current data schema contains `Recipe`, `Ingredient`,
-  `RecipeIngredient`, `Favorite`, and `Comment` models.
+  `RecipeIngredient`, `Favorite`, `Comment`, and `FeaturedRecipe` models.
 - `Recipe` currently uses `ownerId` for owner authorization.
 - `Comment` currently uses `userId` for owner authorization.
 - The admin role, moderation metadata, audit-log model, and admin dashboard

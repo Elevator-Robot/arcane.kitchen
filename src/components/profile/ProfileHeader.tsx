@@ -1,8 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { Calendar, X } from 'lucide-react';
 import AccessibleDialog from '../AccessibleDialog';
 import type { User } from '../../types/profile';
 import PresetGrid from './PresetGrid';
+import ChefNote from './ChefNote';
 import {
   loadUserProfiles,
   saveUserProfiles,
@@ -30,6 +37,7 @@ type Props = {
   showAvatarModal?: boolean;
   onCloseAvatar?: () => void;
   onProfileUpdated?: (next: { handle?: string; bio?: string }) => void;
+  children?: ReactNode;
 };
 
 export default function ProfileHeader({
@@ -40,6 +48,7 @@ export default function ProfileHeader({
   showAvatarModal = false,
   onCloseAvatar,
   onProfileUpdated,
+  children,
 }: Props) {
   const [actionColor] = useState(randomMerlinColor);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
@@ -135,10 +144,11 @@ export default function ProfileHeader({
   }, [isEditingBio]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
-      <div className="flex flex-col items-stretch gap-6 md:flex-row md:items-start md:justify-between">
-        <div className="flex min-w-0 w-full flex-1 flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-0">
-          <div className="ak-artwork-surface relative isolate aspect-[3/2] w-full shrink-0 self-start sm:w-72 lg:w-80">
+    <>
+      <ChefNote profileId={String(user.id || user.handle)}>
+        <section className="ak-profile-sign-entry">
+          <h3 className="ak-eyebrow">Sign</h3>
+          <div className="ak-profile-sign ak-profile-art-frame ak-artwork-surface relative isolate">
             <img
               src={
                 BIRTHSIGN_ARTWORK[
@@ -157,109 +167,97 @@ export default function ProfileHeader({
                 aria-label="Change sign"
                 onClick={onEditBirthsign}
                 className="ak-artwork-trigger absolute inset-0"
-              >
-                <span className="ak-artwork-hint absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--theme-surface)]/90 px-3 py-1 text-xs text-[var(--theme-text)]">
-                  Change sign
-                </span>
-              </button>
+              />
             )}
           </div>
+        </section>
 
-          <div className="min-w-0 w-full text-left">
-            <section className="py-1 sm:pl-6 sm:border-l border-[var(--theme-border)]">
-              <div className="flex min-h-9 items-center justify-between gap-3">
-                <h2 className="font-heading text-xl text-[var(--theme-text)]">
-                  A note from the chef
-                </h2>
-              </div>
-              <div className="mt-3">
-                <div className="relative">
-                  <p
-                    aria-hidden={
-                      isEditingBio && isOwnProfile ? true : undefined
-                    }
-                    className={`ak-bio-text ${isEditingBio && isOwnProfile ? 'invisible' : ''}`}
+        <section className="ak-chef-bio min-w-0 text-left">
+          <h3 className="ak-eyebrow">About</h3>
+          <div className="mt-3">
+            <div className="relative">
+              <p
+                aria-hidden={isEditingBio && isOwnProfile ? true : undefined}
+                className={`ak-bio-text ${isEditingBio && isOwnProfile ? 'invisible' : ''}`}
+              >
+                {(isEditingBio && isOwnProfile ? draftBio : user.bio) ||
+                  (isOwnProfile
+                    ? 'Add a little lore about your kitchen.'
+                    : 'Letting the recipes tell the story.')}
+              </p>
+              {isOwnProfile && !isEditingBio && (
+                <button
+                  type="button"
+                  aria-label="edit bio"
+                  title="Click to edit your note"
+                  className="absolute inset-0 w-full cursor-text rounded-sm bg-transparent transition-colors hover:bg-[var(--theme-focus)]"
+                  onClick={() => {
+                    setDraftBio(user.bio || '');
+                    setIsEditingBio(true);
+                  }}
+                />
+              )}
+              {isEditingBio && isOwnProfile && (
+                <textarea
+                  ref={bioInputRef}
+                  value={draftBio}
+                  onChange={(e) => setDraftBio(e.target.value)}
+                  aria-label="bio"
+                  maxLength={PROFILE_BIO_LIMIT}
+                  placeholder="Add a little lore about your kitchen."
+                  className="ak-bio-text absolute inset-0 h-full w-full resize-none overflow-hidden border-0 bg-transparent outline-none"
+                />
+              )}
+            </div>
+            {isEditingBio && isOwnProfile && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-3">
+                <span className="text-xs tabular-nums text-[var(--theme-text-muted)]">
+                  {draftBio.length}/{PROFILE_BIO_LIMIT}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingBio(false);
+                      setDraftBio(user.bio || '');
+                    }}
+                    className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
                   >
-                    {(isEditingBio && isOwnProfile ? draftBio : user.bio) ||
-                      (isOwnProfile
-                        ? 'Add a little lore about your kitchen.'
-                        : 'Letting the recipes tell the story.')}
-                  </p>
-                  {isOwnProfile && !isEditingBio && (
-                    <button
-                      type="button"
-                      aria-label="edit bio"
-                      title="Click to edit your note"
-                      className="absolute inset-0 w-full cursor-text rounded-sm bg-transparent transition-colors hover:bg-[var(--theme-focus)]"
-                      onClick={() => {
-                        setDraftBio(user.bio || '');
-                        setIsEditingBio(true);
-                      }}
-                    />
-                  )}
-                  {isEditingBio && isOwnProfile && (
-                    <textarea
-                      ref={bioInputRef}
-                      value={draftBio}
-                      onChange={(e) => setDraftBio(e.target.value)}
-                      aria-label="bio"
-                      maxLength={PROFILE_BIO_LIMIT}
-                      placeholder="Add a little lore about your kitchen."
-                      className="ak-bio-text absolute inset-0 h-full w-full resize-none overflow-hidden border-0 bg-transparent outline-none"
-                    />
-                  )}
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const userId = String(user.id || 'current');
+                      const profiles = loadUserProfiles();
+                      const updated = upsertUserProfile(profiles, {
+                        userId,
+                        bio: draftBio,
+                      });
+                      saveUserProfiles(updated);
+                      setIsEditingBio(false);
+                      if (onProfileUpdated) onProfileUpdated({ bio: draftBio });
+                    }}
+                    style={{ backgroundColor: actionColor }}
+                    className="ak-button-primary rounded-xl px-4 py-2 text-sm"
+                  >
+                    Save
+                  </button>
                 </div>
-                {isEditingBio && isOwnProfile && (
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-3">
-                    <span className="text-xs tabular-nums text-[var(--theme-text-muted)]">
-                      {draftBio.length}/{PROFILE_BIO_LIMIT}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingBio(false);
-                          setDraftBio(user.bio || '');
-                        }}
-                        className="ak-button-secondary rounded-xl px-4 py-2 text-sm"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const userId = String(user.id || 'current');
-                          const profiles = loadUserProfiles();
-                          const updated = upsertUserProfile(profiles, {
-                            userId,
-                            bio: draftBio,
-                          });
-                          saveUserProfiles(updated);
-                          setIsEditingBio(false);
-                          if (onProfileUpdated)
-                            onProfileUpdated({ bio: draftBio });
-                        }}
-                        style={{ backgroundColor: actionColor }}
-                        className="ak-button-primary rounded-xl px-4 py-2 text-sm"
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--theme-text-muted)]">
-                {user.joinDate && (
-                  <div className="inline-flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
-                    <span>{formatJoinDate(user.joinDate)}</span>
-                  </div>
-                )}
-              </div>
-            </section>
+            )}
           </div>
-        </div>
-      </div>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--theme-text-muted)]">
+            {user.joinDate && (
+              <div className="inline-flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-[var(--theme-text-muted)]" />
+                <span>{formatJoinDate(user.joinDate)}</span>
+              </div>
+            )}
+          </div>
+        </section>
+        {children}
+      </ChefNote>
       {showAvatarModal && isOwnProfile && (
         <AccessibleDialog
           label="Who are you?"
@@ -351,7 +349,7 @@ export default function ProfileHeader({
           </form>
         </AccessibleDialog>
       )}
-    </div>
+    </>
   );
 }
 

@@ -5,7 +5,11 @@ import { AppRouteAware } from './App.tsx';
 import './index.css';
 import { Amplify } from 'aws-amplify';
 import '@aws-amplify/ui-react/styles.css';
+import './styles/guild.css';
+import './styles/admin.css';
 import { setCloudFrontDomain } from './amplifyConfig';
+import { isMockPreview } from './preview/config';
+import { initializePreviewClient } from './dataClient';
 import AppErrorBoundary, {
   AppErrorFallback,
 } from './components/AppErrorBoundary';
@@ -63,9 +67,10 @@ if ('serviceWorker' in navigator) {
 }
 
 const bootstrap = async () => {
-  const outputs = await loadAmplifyOutputs();
+  if (isMockPreview) await initializePreviewClient();
+  const outputs = isMockPreview ? null : await loadAmplifyOutputs();
 
-  let configurationFailed = !outputs;
+  let configurationFailed = !isMockPreview && !outputs;
   try {
     if (outputs) {
       Amplify.configure(outputs);

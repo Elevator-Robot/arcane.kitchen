@@ -1,9 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render } from '../../test/test-utils';
 import UserProfileView from '../UserProfileView';
 import { DEFAULT_KITCHEN_IDENTITY } from '../../utils/kitchenIdentity';
+import type { ReactNode } from 'react';
+
+vi.mock('../AdminDashboard', () => ({
+  default: ({ profilePinAction }: { profilePinAction?: ReactNode }) => (
+    <section aria-label="Backrooms">{profilePinAction}</section>
+  ),
+}));
 
 const user = {
   id: 'cook-1',
@@ -21,13 +28,13 @@ const recipes = [
 ];
 
 describe('kitchen sanctuary profiles', () => {
-  it('removes public tabs and keeps private data and controls private', () => {
+  beforeEach(() => window.history.replaceState({}, '', '/u/moon_cook'));
+  it('removes public tabs and keeps private data and controls private', async () => {
     render(
       <UserProfileView
         user={user}
         publishedRecipes={recipes}
         isOwnProfile={false}
-        draftRecipes={[{ id: 'secret', title: 'Secret draft' }]}
         savedRecipes={[{ id: 'private', title: 'Private favorite' }]}
         onRecipeOptions={vi.fn()}
         onSaveKitchenIdentity={vi.fn()}
@@ -45,7 +52,6 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       screen.queryByRole('button', { name: 'Edit Forest mushroom soup' })
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Secret draft')).not.toBeInTheDocument();
     expect(screen.queryByText('Private favorite')).not.toBeInTheDocument();
     for (const name of [
       'Change sign',
@@ -76,6 +82,9 @@ describe('kitchen sanctuary profiles', () => {
     expect(screen.queryByText('The Wanderer')).not.toBeInTheDocument();
     expect(screen.queryByText('The Garden')).not.toBeInTheDocument();
     expect(screen.queryByText('From this kitchen')).not.toBeInTheDocument();
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'A note from the chef' }));
     const familiarSection = screen
       .getByRole('heading', { name: 'Familiar' })
       .closest('section');
@@ -97,7 +106,6 @@ describe('kitchen sanctuary profiles', () => {
         user={user}
         publishedRecipes={recipes}
         savedRecipes={[{ id: 'saved', title: 'Saved supper' }]}
-        draftRecipes={[{ id: 'draft', title: 'Private draft' }]}
       />
     );
     const navigation = within(
@@ -115,7 +123,7 @@ describe('kitchen sanctuary profiles', () => {
     );
     expect(screen.getByText('Forest mushroom soup')).toBeInTheDocument();
     const shareButton = screen.getByRole('button', { name: 'Share profile' });
-    expect(shareButton.closest('.isolate')).toContainElement(
+    expect(shareButton.closest('[data-page-banner]')).toContainElement(
       screen.getByRole('heading', { name: 'moon_cook' })
     );
     await interaction.click(shareButton);
@@ -137,9 +145,13 @@ describe('kitchen sanctuary profiles', () => {
     render(
       <UserProfileView
         user={user}
+        isAdmin
         publishedRecipes={recipes}
         onSaveKitchenIdentity={save}
       />
+    );
+    await interaction.click(
+      screen.getByRole('button', { name: 'A note from the chef' })
     );
     await interaction.click(
       screen.getByRole('button', { name: 'Change sign' })
@@ -215,6 +227,10 @@ describe('kitchen sanctuary profiles', () => {
     expect(
       screen.queryByRole('button', { name: 'Edit side quest' })
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Pin recipe' })
+    ).not.toBeInTheDocument();
+    await interaction.click(screen.getByRole('button', { name: 'Backrooms' }));
     await interaction.click(screen.getByRole('button', { name: 'Pin recipe' }));
     dialog = within(screen.getByRole('dialog', { name: 'Pin a recipe' }));
     expect(screen.queryByText('Pantry of curiosities')).not.toBeInTheDocument();
@@ -251,6 +267,9 @@ describe('kitchen sanctuary profiles', () => {
         publishedRecipes={recipes}
         onSaveKitchenIdentity={save}
       />
+    );
+    await interaction.click(
+      screen.getByRole('button', { name: 'A note from the chef' })
     );
     await interaction.click(
       screen.getByRole('button', { name: 'Change familiar' })
@@ -302,10 +321,15 @@ describe('kitchen sanctuary profiles', () => {
     render(
       <UserProfileView
         user={{ ...user, kitchenIdentity: identity }}
+        isAdmin
         publishedRecipes={recipes}
         onSaveKitchenIdentity={save}
       />
     );
+    expect(
+      screen.queryByRole('button', { name: 'Change pinned recipe' })
+    ).not.toBeInTheDocument();
+    await interaction.click(screen.getByRole('button', { name: 'Backrooms' }));
     await interaction.click(
       screen.getByRole('button', { name: 'Change pinned recipe' })
     );
@@ -335,6 +359,9 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
 
+    await interaction.click(
+      screen.getByRole('button', { name: 'A note from the chef' })
+    );
     await interaction.click(screen.getByRole('button', { name: 'edit bio' }));
     const bio = screen.getByLabelText('bio');
     expect(bio).toHaveValue(longBio);
@@ -415,6 +442,9 @@ describe('kitchen sanctuary profiles', () => {
       />
     );
     await interaction.click(
+      screen.getByRole('button', { name: 'A note from the chef' })
+    );
+    await interaction.click(
       screen.getByRole('button', { name: 'Change sign' })
     );
     await interaction.click(screen.getByRole('button', { name: 'The Raven' }));
@@ -457,8 +487,9 @@ describe('kitchen sanctuary profiles', () => {
         onOpenRecipe={open}
       />
     );
+    expect(screen.getByText('Pinned recipe')).toBeInTheDocument();
     await interaction.click(
-      screen.getByRole('button', { name: /Signature creation/ })
+      screen.getByRole('button', { name: 'Forest mushroom soup' })
     );
     expect(open).toHaveBeenCalledWith('soup');
     rerender(
@@ -474,8 +505,58 @@ describe('kitchen sanctuary profiles', () => {
         isOwnProfile={false}
       />
     );
+    expect(screen.queryByText('Pinned recipe')).not.toBeInTheDocument();
+  });
+
+  it('starts with a compact note, remembers expansion per cook, and keeps portrait editing independent', async () => {
+    const interaction = userEvent.setup();
+    const view = render(
+      <UserProfileView
+        user={{ ...user, bio: 'A quiet kitchen.' }}
+        publishedRecipes={recipes}
+      />
+    );
+    const toggle = screen.getByRole('button', { name: 'A note from the chef' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(
-      screen.queryByText('Signature creation · pinned by the cook')
+      screen.queryByRole('heading', { name: 'Familiar' })
     ).not.toBeInTheDocument();
+    await interaction.click(
+      screen.getByRole('button', { name: 'update avatar' })
+    );
+    expect(
+      screen.getByRole('dialog', { name: 'Who are you?' })
+    ).toBeInTheDocument();
+    await interaction.click(
+      screen.getByRole('button', { name: 'Close avatar picker' })
+    );
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await interaction.click(toggle);
+    expect(
+      screen.getByRole('heading', { name: 'Familiar' })
+    ).toBeInTheDocument();
+    await interaction.click(screen.getByRole('button', { name: 'edit bio' }));
+    await interaction.clear(screen.getByLabelText('bio'));
+    await interaction.type(screen.getByLabelText('bio'), 'An unfinished note');
+    await interaction.click(toggle);
+    await interaction.click(toggle);
+    expect(screen.getByLabelText('bio')).toHaveValue('An unfinished note');
+    view.unmount();
+    const restored = render(
+      <UserProfileView user={user} publishedRecipes={recipes} />
+    );
+    expect(
+      screen.getByRole('button', { name: 'A note from the chef' })
+    ).toHaveAttribute('aria-expanded', 'true');
+    restored.rerender(
+      <UserProfileView
+        user={{ ...user, id: 'other-cook', handle: 'another_cook' }}
+        publishedRecipes={recipes}
+        isOwnProfile={false}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: 'A note from the chef' })
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 });

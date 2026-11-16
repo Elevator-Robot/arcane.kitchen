@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Amplify } from 'aws-amplify';
 import { Authenticator, Text } from '@aws-amplify/ui-react';
-import { generateClient } from 'aws-amplify/data';
-import type { Schema } from '../amplify/data/resource';
+import { client } from './dataClient';
+import { isMockPreview } from './preview/config';
+import PreviewControls from './preview/PreviewControls';
 import { useAuthenticator } from '@aws-amplify/ui-react-core';
 import {
   confirmSignUp,
@@ -13,12 +14,13 @@ import {
   signOut as amplifySignOut,
   signUp,
 } from 'aws-amplify/auth';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import AuthModal, { AuthIntro } from './components/AuthModal';
 import ErrorArtwork from './components/ErrorArtwork';
 import { sanctuaryThemeStyle } from './theme/sanctuaryTheme';
 import RecipeBuilder from './components/RecipeBuilder';
 import AdminDashboard from './components/AdminDashboard';
+import WorkspaceFooter from './components/WorkspaceFooter';
 import {
   AuthSignInOptions,
   EmailSignInFooter,
@@ -27,8 +29,11 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import StartupLoading from './components/StartupLoading';
 import {
   getProfileRoutePath,
+  getProfileUsernameFromPath,
+  getUsernameFromAuth,
   loadUserProfiles,
   reconcileUserProfileOnLogin,
+  sanitizeUsername,
 } from './utils/userProfiles';
 import { getUserFacingErrorMessage } from './utils/userFacingErrors';
 
@@ -45,8 +50,6 @@ const authFormFields = {
     },
   },
 };
-
-const client: any = generateClient<Schema>();
 
 type AuthState = {
   isAuthenticated: boolean;
@@ -362,62 +365,70 @@ function AdminDashboardRoute(
   props: Omit<React.ComponentProps<typeof AdminDashboard>, 'onBack'>
 ) {
   const navigate = useNavigate();
+  const location = useLocation();
+  if (props.isAuthenticated && props.isAdmin && props.profilePath) {
+    const params = new URLSearchParams(location.search);
+    params.set('workspace', 'backrooms');
+    return (
+      <Navigate
+        to={{
+          pathname: props.profilePath,
+          search: params.toString(),
+          hash: location.hash,
+        }}
+        replace
+      />
+    );
+  }
   return <AdminDashboard {...props} onBack={() => navigate('/discover')} />;
 }
 
 type AppProps = {
   pathname?: string;
+  search?: string;
 };
 
 export function AppRouteAware() {
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
   const normalized = pathname.replace(/\/+$/, '') || '/';
   const knownRoute =
     /^\/(?:discover|build|saved|drafts|admin)?$/.test(normalized) ||
     /^\/(?:u|profile|recipe)\/[^/]+$/.test(normalized);
   useEffect(() => {
-    const title =
-      normalized === '/build'
-        ? 'Create a recipe'
-        : normalized === '/saved'
-          ? 'Saved recipes'
-          : normalized === '/drafts'
-            ? 'Your drafts'
-            : normalized === '/admin'
-              ? 'Admin dashboard'
-              : /^\/(u|profile)\//.test(normalized)
-                ? 'Cook profile'
-                : knownRoute
-                  ? 'Emporium'
-                  : 'Page not found';
-    document.title = `${title} · Arcane Kitchen`;
-  }, [normalized, knownRoute]);
+    if (!knownRoute) document.title = 'Page not found · Arcane Kitchen';
+  }, [knownRoute]);
+  if (normalized === '/drafts') {
+    return <Navigate to={{ pathname: '/build', search, hash }} replace />;
+  }
   if (!knownRoute)
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-[var(--theme-bg)] p-6 text-center">
-        <div className="ak-panel max-w-lg p-8 sm:p-12">
-          <ErrorArtwork />
-          <p className="text-sm font-semibold text-[var(--theme-accent)]">
-            404 · A wrong turn in the kitchen
-          </p>
-          <h1 className="mt-3 text-3xl">This page isn't on the menu.</h1>
-          <p className="mt-4 text-[var(--theme-text-muted)]">
-            The address may have changed. Let's find something delicious
-            instead.
-          </p>
-          <Link
-            to="/discover"
-            className="ak-button-primary mt-6 inline-flex rounded-xl px-5 py-3 font-semibold"
-          >
-            Explore recipes
-          </Link>
+      <main className="flex min-h-dvh flex-col bg-[var(--theme-bg)] text-center">
+        <div className="ak-page-rail ak-workspace flex flex-1 items-center justify-center">
+          <div className="ak-panel w-full p-8 sm:p-12">
+            <ErrorArtwork />
+            <p className="text-sm font-semibold text-[var(--theme-accent)]">
+              404 · A wrong turn in the kitchen
+            </p>
+            <h1 className="mt-3 text-3xl">This page isn't on the menu.</h1>
+            <p className="mt-4 text-[var(--theme-text-muted)]">
+              The address may have changed. Let's find something delicious
+              instead.
+            </p>
+            <Link
+              to="/discover"
+              className="ak-button-primary mt-6 inline-flex rounded-xl px-5 py-3 font-semibold"
+            >
+              Explore recipes
+            </Link>
+          </div>
         </div>
+        <WorkspaceFooter />
       </main>
     );
-  return <App pathname={normalized} />;
+  return <App pathname={normalized} search={search} />;
 }
 
-function App({ pathname }: AppProps = {}) {
+function App({ pathname, search }: AppProps = {}) {
   const [authState, setAuthState] = useState<AuthState>(() => {
     const persisted = getPersistedAuthState();
     const currentUser = persisted?.isAuthenticated
@@ -456,15 +467,79 @@ function App({ pathname }: AppProps = {}) {
   const profileCache = Object.values(loadUserProfiles()).find((profile) =>
     profileIds.includes(profile.userId)
   );
+  const currentPathname =
+    pathname ??
+    (typeof window !== 'undefined' ? window.location.pathname : '/');
+  const currentSearch =
+    search ?? (typeof window !== 'undefined' ? window.location.search : '');
+  const ownerUsername =
+    profileCache?.username || getUsernameFromAuth(currentUser, userAttributes);
+  useEffect(() => {
+    const requestedProfile = getProfileUsernameFromPath(currentPathname);
+    const ownBackrooms =
+      isAuthenticated &&
+      isAdmin &&
+      requestedProfile !== null &&
+      sanitizeUsername(requestedProfile) === sanitizeUsername(ownerUsername) &&
+      new URLSearchParams(currentSearch).get('workspace') === 'backrooms';
+    const title =
+      currentPathname === '/build'
+        ? 'Create a recipe'
+        : currentPathname === '/saved'
+          ? 'Saved recipes'
+          : currentPathname === '/admin' || ownBackrooms
+            ? 'Backrooms'
+            : requestedProfile !== null
+              ? 'Cook profile'
+              : 'Emporium';
+    document.title = `${title} · Arcane Kitchen`;
+  }, [currentPathname, currentSearch, isAuthenticated, isAdmin, ownerUsername]);
   const [showAuth, setShowAuth] = useState(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
 
   const refreshAuthState = useCallback(async () => {
     setAuthNotice(null);
 
+    if (isMockPreview) {
+      const previewRole = window.sessionStorage.getItem(
+        'arcaneKitchen.previewRole'
+      );
+      const member = previewRole === 'member' || previewRole === 'admin';
+      const { getPreviewProfile } = await import('./preview/client');
+      const profile = getPreviewProfile();
+      const previewUser = member
+        ? { userId: profile.userId, username: profile.username }
+        : null;
+      const previewAttributes = member
+        ? {
+            sub: profile.userId,
+            nickname: profile.username,
+            email: 'rowan@example.test',
+            'custom:avatar': profile.avatar,
+            'custom:bio': profile.bio,
+          }
+        : null;
+      if (member)
+        await reconcileUserProfileOnLogin(
+          previewUser,
+          previewAttributes,
+          client
+        );
+      setAuthState({
+        isAuthenticated: member,
+        currentUser: previewUser,
+        userAttributes: previewAttributes,
+        isInitialized: true,
+        isAdmin: previewRole === 'admin',
+      });
+      return;
+    }
+
     if (!hasAmplifyAuthConfig()) {
       setAuthNotice(
-        'Authentication is not configured yet. Please try again later.'
+        isMockPreview
+          ? 'Mock preview — sample data. Sign-in is unavailable.'
+          : 'Authentication is not configured yet. Please try again later.'
       );
       setAuthState({
         isAuthenticated: false,
@@ -532,6 +607,11 @@ function App({ pathname }: AppProps = {}) {
   }, [isAuthenticated, showAuth]);
 
   const handleSignOut = async () => {
+    if (isMockPreview) {
+      window.sessionStorage.setItem('arcaneKitchen.previewRole', 'guest');
+      await refreshAuthState();
+      return;
+    }
     await amplifySignOut();
     setAuthState({
       isAuthenticated: false,
@@ -552,22 +632,14 @@ function App({ pathname }: AppProps = {}) {
     return <StartupLoading />;
   }
 
-  const currentPathname =
-    pathname ??
-    (typeof window !== 'undefined' ? window.location.pathname : '/');
-
   if (currentPathname === '/admin') {
     return (
       <AdminDashboardRoute
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
         profileTheme={profileCache?.kitchenIdentity?.theme}
-        onSignOut={isAuthenticated ? handleSignOut : undefined}
-        profilePath={getProfileRoutePath(
-          profileCache?.username ||
-            userAttributes?.nickname ||
-            currentUser?.username
-        )}
+        profileCalling={profileCache?.kitchenIdentity?.calling}
+        profilePath={getProfileRoutePath(ownerUsername)}
         profileLabel={
           profileCache?.username ||
           currentUser?.username ||
@@ -586,14 +658,42 @@ function App({ pathname }: AppProps = {}) {
       style={sanctuaryThemeStyle(
         isAuthenticated ? profileCache?.kitchenIdentity?.theme : undefined
       )}
-      className="ak-page-glow h-screen h-dvh overflow-x-hidden overflow-y-hidden text-[var(--theme-text)]"
+      className={`ak-page-glow h-screen h-dvh overflow-x-hidden overflow-y-hidden text-[var(--theme-text)] ${isMockPreview ? 'ak-mock-preview' : ''}`}
     >
+      {isMockPreview && (
+        <PreviewControls
+          member={isAuthenticated}
+          admin={isAdmin}
+          onAdminSwitch={() => {
+            window.sessionStorage.setItem(
+              'arcaneKitchen.previewRole',
+              isAdmin ? 'member' : 'admin'
+            );
+            void refreshAuthState();
+          }}
+          onSwitch={() => {
+            window.sessionStorage.setItem(
+              'arcaneKitchen.previewRole',
+              isAuthenticated ? 'guest' : 'member'
+            );
+            void refreshAuthState();
+          }}
+        />
+      )}
       <RecipeBuilder
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
         currentUser={currentUser}
         userAttributes={userAttributes}
-        onRequestAuth={() => setShowAuth(true)}
+        onRequestAuth={() => {
+          if (isMockPreview) {
+            window.sessionStorage.setItem(
+              'arcaneKitchen.previewRole',
+              'member'
+            );
+            void refreshAuthState();
+          } else setShowAuth(true);
+        }}
         onSignOut={isAuthenticated ? handleSignOut : undefined}
         onProfileSaved={() => void refreshAuthState()}
       />
