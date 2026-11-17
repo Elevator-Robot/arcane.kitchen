@@ -14,29 +14,19 @@ import {
   ChevronRight,
   Sparkles,
   ArrowLeft,
-  ArrowUpRight,
-  ArrowRightLeft,
-  BookOpen,
-  CheckCircle2,
-  MessageSquare,
-  Pencil,
-  RefreshCw,
-  Trash2,
-  Users,
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import AccessibleDialog from './AccessibleDialog';
-import { Link, useLocation } from 'react-router-dom';
 import {
   matchesAdminSearch,
   readAllAdminPages,
   requireAdminResult,
   userModerationStatus,
+  adminAuditCategory,
 } from '../utils/adminConsole';
 import { client } from '../dataClient';
-import { randomMerlinColor } from '../theme/merlinPalette';
 import WorkspaceHeader from './WorkspaceHeader';
 import WorkspaceFooter from './WorkspaceFooter';
-import CookAvatar from './ui/CookAvatar';
 import RecipePhoto from './ui/RecipePhoto';
 import SanctuaryHeading from './ui/SanctuaryHeading';
 import { sanctuaryThemeStyle } from '../theme/sanctuaryTheme';
@@ -46,6 +36,20 @@ import {
   readFeaturedSelection,
   saveFeaturedRecipe,
 } from '../utils/featuredRecipe';
+import AdminRail from './admin/AdminRail';
+import ActivityPanel from './admin/ActivityPanel';
+import RecipesPanel from './admin/RecipesPanel';
+import CommentsPanel from './admin/CommentsPanel';
+import ReportsPanel from './admin/ReportsPanel';
+import UsersPanel from './admin/UsersPanel';
+import type {
+  AdminRecipe as Recipe,
+  AdminComment as Comment,
+  AdminUserProfile as UserProfile,
+  AdminAuditEntry,
+  AdminTab as Tab,
+  ModerationAction,
+} from './admin/types';
 
 type Props = {
   isAuthenticated: boolean;
@@ -59,37 +63,6 @@ type Props = {
   profileAvatar?: string | null;
   profileTheme?: string;
   profileCalling?: string;
-};
-
-type Recipe = {
-  id: string;
-  name: string;
-  description?: string | null;
-  ownerId: string;
-  createdBy?: string | null;
-  isHidden?: boolean | null;
-  imageUrl?: string | null;
-};
-type Comment = {
-  id: string;
-  recipeId: string;
-  author: string;
-  content: string;
-  userId: string;
-  isHidden?: boolean | null;
-};
-type UserProfile = {
-  id: string;
-  userId: string;
-  username: string;
-  displayName: string;
-  email?: string | null;
-  status?: string | null;
-  enabled?: boolean | null;
-  isBanned?: boolean | null;
-  isDeleted?: boolean | null;
-  contentHidden?: boolean | null;
-  avatar?: string | null;
 };
 
 const errorText = (error: unknown) =>
@@ -112,10 +85,12 @@ export default function AdminDashboard({
   profileCalling,
 }: Props) {
   const location = useLocation();
+  const [featuredRecipeId, setFeaturedRecipeId] = useState<string | null>(null);
+  const [featureLoaded, setFeatureLoaded] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [tab, setTab] = useState<'recipes' | 'comments' | 'users'>('recipes');
+  const [tab, setTab] = useState<Tab>('recipes');
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [editingComment, setEditingComment] = useState<Comment | null>(null);
   const [recipeForm, setRecipeForm] = useState({ name: '', description: '' });
@@ -139,10 +114,127 @@ export default function AdminDashboard({
   const [pendingUserAction, setPendingUserAction] = useState<string | null>(
     null
   );
-  const [transferRecipeId, setTransferRecipeId] = useState('');
-  const [transferOwnerId, setTransferOwnerId] = useState('');
-  const [featuredRecipeId, setFeaturedRecipeId] = useState<string | null>(null);
-  const [featureLoaded, setFeatureLoaded] = useState(false);
+
+  const hideRecipe = async (recipe: Recipe) => {
+    const nextHidden = !recipe.isHidden;
+    await runAction(
+      `hideRecipe:${recipe.id}`,
+      nextHidden ? `Hid “${recipe.name}”.` : `Restored “${recipe.name}”.`,
+      async () => {
+        const result = await client.models.Recipe.update(
+          { id: recipe.id, isHidden: nextHidden },
+          { authMode: 'userPool' }
+        );
+        const updated = requireAdminResult<Recipe>(result);
+        setRecipes((current) =>
+          current.map((entry) =>
+            entry.id === updated.id
+              ? { ...entry, isHidden: updated.isHidden ?? nextHidden }
+              : entry
+          )
+        );
+      }
+    );
+  };
+  const hideComment = async (comment: Comment) => {
+    const nextHidden = !comment.isHidden;
+    await runAction(
+      `hideComment:${comment.id}`,
+      nextHidden
+        ? `Hid comment by ${comment.author}.`
+        : `Restored comment by ${comment.author}.`,
+      async () => {
+        const result = await client.models.Comment.update(
+          { id: comment.id, isHidden: nextHidden },
+          { authMode: 'userPool' }
+        );
+        const updated = requireAdminResult<Comment>(result);
+        setComments((current) =>
+          current.map((entry) =>
+            entry.id === updated.id
+              ? { ...entry, isHidden: updated.isHidden ?? nextHidden }
+              : entry
+          )
+        );
+      }
+    );
+  };
+  const AUDIT_PAGE_SIZE = 20;
+  const [auditEntries, setAuditEntries] = useState<AdminAuditEntry[]>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [auditNextToken, setAuditNextToken] = useState<string | null>(null);
+  const [auditLoadingMore, setAuditLoadingMore] = useState(false);
+  const [auditRequested, setAuditRequested] = useState(false);
+  const [auditUnavailable, setAuditUnavailable] = useState(false);
+  const auditRequest = useRef(0);
+  const auditMoreInFlight = useRef(false);
+
+  const readAuditPage = useCallback(
+    (nextToken?: string) =>
+      client.models.AdminAuditLog.list({
+        authMode: 'userPool',
+        limit: AUDIT_PAGE_SIZE,
+        nextToken,
+      }),
+    []
+  );
+
+  const loadAuditLog = useCallback(async () => {
+    if (!isAuthenticated || !isAdmin) return;
+    const requestId = ++auditRequest.current;
+    setAuditLoading(true);
+    try {
+      const hasAuditQuery =
+        typeof client.models?.AdminAuditLog?.list === 'function';
+      if (!hasAuditQuery) {
+        if (requestId === auditRequest.current) setAuditUnavailable(true);
+        return;
+      }
+      const result = await readAuditPage();
+      if (requestId !== auditRequest.current) return;
+      if (result.errors?.length)
+        throw new Error(
+          result.errors
+            .map((error: { message: string }) => error.message)
+            .join('; ')
+        );
+      setAuditUnavailable(false);
+      setAuditEntries(Array.isArray(result.data) ? result.data : []);
+      setAuditNextToken(result.nextToken || null);
+    } catch (loadError) {
+      if (requestId !== auditRequest.current) return;
+      console.error('Failed to load admin activity log:', loadError);
+      setError((current) => current ?? errorText(loadError));
+    } finally {
+      if (requestId === auditRequest.current) setAuditLoading(false);
+    }
+  }, [isAuthenticated, isAdmin, readAuditPage]);
+
+  const loadMoreAuditLog = useCallback(async () => {
+    if (!auditNextToken || auditMoreInFlight.current) return;
+    const requestId = ++auditRequest.current;
+    auditMoreInFlight.current = true;
+    setAuditLoadingMore(true);
+    try {
+      const result = await readAuditPage(auditNextToken);
+      if (requestId !== auditRequest.current) return;
+      if (result.errors?.length)
+        throw new Error(
+          result.errors
+            .map((error: { message: string }) => error.message)
+            .join('; ')
+        );
+      setAuditEntries((current) => [...current, ...(result.data ?? [])]);
+      setAuditNextToken(result.nextToken || null);
+    } catch (loadError) {
+      if (requestId !== auditRequest.current) return;
+      console.error('Failed to load more admin activity:', loadError);
+      setError((current) => current ?? errorText(loadError));
+    } finally {
+      auditMoreInFlight.current = false;
+      if (requestId === auditRequest.current) setAuditLoadingMore(false);
+    }
+  }, [auditNextToken, readAuditPage]);
 
   const loadContent = useCallback(async () => {
     if (!isAuthenticated || !isAdmin || actionInFlight.current) return;
@@ -162,7 +254,36 @@ export default function AdminDashboard({
             client.models.Comment.list({ authMode: 'userPool', nextToken })
           ).then((data) => ({ data })),
           hasAdminUserQuery
-            ? client.queries.listAdminUsers({ authMode: 'userPool' })
+            ? (async () => {
+                const [userRows, profileRows] = await Promise.all([
+                  client.queries.listAdminUsers({ authMode: 'userPool' }),
+                  readAllAdminPages<any>((nextToken) =>
+                    client.models.UserProfile.list({
+                      authMode: 'userPool',
+                      nextToken,
+                    })
+                  ),
+                ]);
+                const rowErrors = (userRows.errors ?? []).map(
+                  (queryError: any) => errorText(queryError)
+                );
+                if (rowErrors.length)
+                  throw new Error(rowErrors.filter(Boolean).join('; '));
+                const profileFlags = new Map(
+                  profileRows.map((profile: any) => [profile.userId, profile])
+                );
+                return {
+                  data: (userRows.data ?? []).map((user: any) => {
+                    const flags = profileFlags.get(user.userId);
+                    return {
+                      ...user,
+                      isBanned: flags?.isBanned ?? false,
+                      isDeleted: flags?.isDeleted ?? false,
+                      contentHidden: flags?.contentHidden ?? false,
+                    };
+                  }),
+                };
+              })()
             : Promise.resolve({ data: [] }),
           readFeaturedSelection(client, 'userPool'),
         ]);
@@ -404,32 +525,14 @@ export default function AdminDashboard({
     );
   };
 
-  const moderateUser = async (
+  const [pendingDeleteUser, setPendingDeleteUser] =
+    useState<UserProfile | null>(null);
+  const [deleteEmailInput, setDeleteEmailInput] = useState('');
+
+  const performModerateUser = async (
     user: UserProfile,
-    action:
-      | 'delete'
-      | 'ban'
-      | 'unban'
-      | 'hideContent'
-      | 'restoreContent'
-      | 'restore'
+    action: ModerationAction
   ) => {
-    const descriptions = {
-      delete: 'disable this user and hide their content',
-      ban: 'disable this user and hide their content',
-      unban: 're-enable this user without deleting their records',
-      hideContent:
-        "hide this user's recipes and comments without disabling access",
-      restoreContent:
-        "restore this user's recipe and comment visibility without changing account access",
-      restore: 're-enable this user and restore their content visibility',
-    };
-    if (
-      !(await confirmAction(
-        `ADMIN ACTION: ${descriptions[action]}?\n\nUser: @${user.username} (${user.userId})`
-      ))
-    )
-      return;
     await runAction(
       `${action}:${user.userId}`,
       `Updated moderation for ${user.username || user.displayName}.`,
@@ -505,17 +608,68 @@ export default function AdminDashboard({
     );
   };
 
-  const transferOwnership = async () => {
-    if (!transferRecipeId || !transferOwnerId) return;
-    const recipe = recipes.find((entry) => entry.id === transferRecipeId);
-    const destination = users.find((entry) => entry.userId === transferOwnerId);
-    if (!recipe || !destination) return;
+  const moderateUser = async (user: UserProfile, action: ModerationAction) => {
+    if (action === 'delete') {
+      setDeleteEmailInput('');
+      setPendingDeleteUser(user);
+      return;
+    }
+    const descriptions = {
+      ban: 'disable this user and hide their content',
+      unban: 're-enable this user without deleting their records',
+      hideContent:
+        "hide this user's recipes and comments without disabling access",
+      restoreContent:
+        "restore this user's recipe and comment visibility without changing account access",
+      restore: 're-enable this user and restore their content visibility',
+    };
+    if (
+      !(await confirmAction(
+        `ADMIN ACTION: ${descriptions[action]}?\n\nUser: @${user.username} (${user.userId})`
+      ))
+    )
+      return;
+    await performModerateUser(user, action);
+  };
+
+  const pendingDeleteOwnedCount = pendingDeleteUser
+    ? recipes.filter((recipe) => recipe.ownerId === pendingDeleteUser.userId)
+        .length
+    : 0;
+  const pendingDeleteExpected = (
+    pendingDeleteUser?.email ||
+    pendingDeleteUser?.username ||
+    ''
+  ).toLowerCase();
+  const closeDeleteDialog = () => {
+    setPendingDeleteUser(null);
+    setDeleteEmailInput('');
+  };
+  const confirmDeleteUser = async () => {
+    const user = pendingDeleteUser;
+    if (!user) return;
+    closeDeleteDialog();
+    await performModerateUser(user, 'delete');
+  };
+  const reassignBeforeDelete = () => {
+    const user = pendingDeleteUser;
+    if (!user) return;
+    closeDeleteDialog();
+    selectTab('recipes');
+    setSearch(user.username);
+  };
+
+  const transferOwnership = async (
+    recipe: Recipe,
+    destination: UserProfile
+  ) => {
     if (
       !(await confirmAction(
         `ADMIN ACTION: transfer “${recipe.name}” from ${recipe.ownerId} to @${destination.username} (${destination.userId})?`
       ))
     )
-      return;
+      return false;
+    let succeeded = false;
     await runAction(
       'transferOwnership',
       `Transferred “${recipe.name}” to ${destination.username}.`,
@@ -548,10 +702,10 @@ export default function AdminDashboard({
               : entry
           )
         );
-        setTransferRecipeId('');
-        setTransferOwnerId('');
+        succeeded = true;
       }
     );
+    return succeeded;
   };
 
   const ownerById = useMemo(
@@ -613,27 +767,58 @@ export default function AdminDashboard({
       ),
     [users, search, statusFilter]
   );
+  const filteredAudit = useMemo(
+    () =>
+      auditEntries.filter((entry) => {
+        const actor = ownerById.get(entry.actorUserId);
+        return (
+          (statusFilter === 'All' ||
+            adminAuditCategory(entry.action) === statusFilter) &&
+          matchesAdminSearch(
+            search,
+            entry.action,
+            entry.targetType,
+            entry.targetId,
+            actor?.username,
+            actor?.displayName
+          )
+        );
+      }),
+    [auditEntries, ownerById, search, statusFilter]
+  );
   const total =
     tab === 'recipes'
       ? recipes.length
       : tab === 'comments'
         ? comments.length
-        : users.length;
+        : tab === 'users'
+          ? users.length
+          : tab === 'reports'
+            ? 0
+            : auditEntries.length;
   const filteredCount =
     tab === 'recipes'
       ? filteredRecipes.length
       : tab === 'comments'
         ? filteredComments.length
-        : filteredUsers.length;
+        : tab === 'users'
+          ? filteredUsers.length
+          : tab === 'reports'
+            ? 0
+            : filteredAudit.length;
   const pageSize = 10;
   const pages = Math.max(1, Math.ceil(filteredCount / pageSize));
   const currentPage = Math.min(page, pages);
   const start = (currentPage - 1) * pageSize;
-  const selectTab = (next: typeof tab) => {
+  const selectTab = (next: Tab) => {
     setTab(next);
     setSearch('');
     setStatusFilter('All');
     setPage(1);
+    if (next === 'activity' && !auditRequested) {
+      setAuditRequested(true);
+      void loadAuditLog();
+    }
   };
   const clearFilters = () => {
     setSearch('');
@@ -656,72 +841,31 @@ export default function AdminDashboard({
     return (
       <Frame
         style={sanctuaryThemeStyle(isAuthenticated ? profileTheme : undefined)}
-        className="ak-page-glow flex min-h-dvh flex-col text-[var(--theme-text)]"
+        className="ak-page-glow flex min-h-screen items-center justify-center p-6 text-[var(--theme-text)]"
       >
-        <div className="ak-page-rail ak-workspace flex flex-1 items-center justify-center">
-          <section className="ak-panel w-full p-8 text-center">
-            <p className="ak-eyebrow text-[var(--theme-accent)]">
-              Restricted area
-            </p>
-            <h1 className="mt-3 text-3xl font-semibold">
-              Administrator access required
-            </h1>
-            <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
-              {!isAuthenticated
-                ? 'Sign in with an administrator account to continue.'
-                : 'This account is not a member of the Admins group.'}
-            </p>
-            <button
-              onClick={onBack}
-              className="ak-button-primary mt-6 rounded-xl px-5 py-3 text-sm font-semibold"
-            >
-              Return home
-            </button>
-          </section>
-        </div>
+        <section className="ak-panel w-full max-w-lg p-8 text-center">
+          <p className="ak-eyebrow text-[var(--theme-accent)]">
+            Restricted area
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold">
+            Administrator access required
+          </h1>
+          <p className="mt-3 text-sm text-[var(--theme-text-muted)]">
+            {!isAuthenticated
+              ? 'Sign in with an administrator account to continue.'
+              : 'This account is not a member of the Admins group.'}
+          </p>
+          <button
+            onClick={onBack}
+            className="ak-button-primary mt-6 rounded-xl px-5 py-3 text-sm font-semibold"
+          >
+            Return home
+          </button>
+        </section>
         {!embedded && <WorkspaceFooter />}
       </Frame>
     );
   }
-
-  const collectionNavigation = (
-    <nav className="ak-admin-collections" aria-label="Admin collections">
-      <CollectionButton
-        label="Recipes"
-        icon={<BookOpen size={18} aria-hidden="true" />}
-        value={recipes.length}
-        active={tab === 'recipes'}
-        onClick={() => selectTab('recipes')}
-        loading={
-          !loadedOnce ||
-          (failedCollections.includes('recipes') && !recipes.length)
-        }
-      />
-      <CollectionButton
-        label="Comments"
-        icon={<MessageSquare size={18} aria-hidden="true" />}
-        value={comments.length}
-        active={tab === 'comments'}
-        onClick={() => selectTab('comments')}
-        loading={
-          !loadedOnce ||
-          (failedCollections.includes('comments') && !comments.length)
-        }
-      />
-      <CollectionButton
-        label="Users"
-        icon={<Users size={18} aria-hidden="true" />}
-        value={users.length}
-        active={tab === 'users'}
-        onClick={() => selectTab('users')}
-        loading={
-          !loadedOnce ||
-          (failedCollections.includes('users') && !users.length) ||
-          userListUnavailable
-        }
-      />
-    </nav>
-  );
 
   return (
     <Frame
@@ -730,8 +874,8 @@ export default function AdminDashboard({
       aria-label="Backrooms"
       className={
         embedded
-          ? 'ak-admin-embedded'
-          : 'ak-admin-page ak-app-shell ak-page-glow flex h-screen h-dvh flex-col overflow-hidden text-[var(--theme-text)]'
+          ? 'ak-admin-embedded text-[var(--theme-text)]'
+          : 'ak-page-glow min-h-screen text-[var(--theme-text)]'
       }
     >
       {!embedded && (
@@ -751,338 +895,376 @@ export default function AdminDashboard({
         </>
       )}
 
-      <div
-        id="admin-workspace"
-        tabIndex={-1}
-        className={
-          embedded
-            ? 'ak-admin-embedded-content'
-            : 'ak-admin-scroll min-h-0 flex-1 overflow-y-auto'
-        }
-      >
-        <div
-          className={
-            embedded
-              ? 'ak-admin-workspace'
-              : 'ak-page-rail ak-admin-workspace ak-workspace'
-          }
-        >
+      <div id="admin-workspace" tabIndex={-1} className="px-4 py-6 sm:px-8">
+        <div className="mx-auto max-w-6xl">
           {!embedded && (
-            <div className="ak-admin-banner">
-              <SanctuaryHeading
-                title="Backrooms"
-                callingId={kitchenCalling(profileCalling || 'kitchen-witch').id}
-                actions={
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    className="ak-banner-action"
-                  >
-                    <ArrowLeft size={15} aria-hidden="true" /> Back to recipes
-                  </button>
-                }
-              />
-            </div>
-          )}
-          {!embedded && collectionNavigation}
-          {error && (
-            <div role="alert" className="ak-admin-notice ak-admin-notice-error">
-              {error}
-              {failedCollections.length > 0 && (
-                <p className="mt-2">
-                  Previously loaded records are kept where available. Use
-                  Refresh to try again.
-                </p>
-              )}
-            </div>
-          )}
-          <div
-            className={`ak-admin-layout ${tab === 'recipes' ? 'has-sidebar' : ''}`}
-          >
-            <section
-              id="admin-results"
-              className="ak-panel ak-admin-results"
-              aria-label={`${tab} collection`}
-            >
-              {success && (
-                <div
-                  role="status"
-                  className="ak-admin-notice ak-admin-notice-success"
-                >
-                  <CheckCircle2
-                    size={17}
-                    className="shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>{success}</span>
-                  <button
-                    type="button"
-                    onClick={() => setSuccess('')}
-                    aria-label="Dismiss confirmation"
-                    className="ak-button-ghost rounded-lg p-2"
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              )}
-              <div className="ak-admin-collection-heading">
-                <div className="ak-admin-collection-toolbar">
-                  {embedded && collectionNavigation}
-                  <h2 className={embedded ? 'sr-only' : 'text-2xl capitalize'}>
-                    {tab}
-                  </h2>
-                  <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                    {lastRefreshed
-                      ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                      : 'Live community records'}{' '}
-                  </p>
-                </div>
+            <SanctuaryHeading
+              title="Backrooms"
+              callingId={kitchenCalling(profileCalling || 'kitchen-witch').id}
+              actions={
                 <button
-                  onClick={() => void loadContent()}
-                  aria-label={loading ? 'Refreshing...' : 'Refresh'}
-                  disabled={loading || pendingUserAction !== null}
-                  className="ak-button-secondary ak-admin-refresh disabled:opacity-50"
+                  type="button"
+                  onClick={onBack}
+                  className="ak-banner-action"
                 >
-                  <RefreshCw
-                    size={14}
-                    className={loading ? 'animate-spin' : ''}
-                    aria-hidden="true"
-                  />
-                  <span className="ak-admin-refresh-label">
-                    {loading ? 'Refreshing...' : 'Refresh'}
-                  </span>
+                  <ArrowLeft size={15} aria-hidden="true" /> Back to recipes
                 </button>
-              </div>
-              <div className="ak-admin-search-row">
-                <label className="ak-input ak-admin-search">
-                  <Search
-                    className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)]"
-                    aria-hidden="true"
-                  />
-                  <span className="sr-only">Search {tab}</span>
-                  <input
-                    aria-label={`Search ${tab}`}
-                    value={search}
-                    onChange={(event) => {
-                      setSearch(event.target.value);
-                      setPage(1);
-                    }}
-                    placeholder={
-                      tab === 'users'
-                        ? 'Name, handle, email, or user ID'
-                        : tab === 'recipes'
-                          ? 'Recipe, author, or ID'
-                          : 'Comment, author, recipe ID, or user ID'
+              }
+            />
+          )}
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-start md:gap-6">
+            <AdminRail
+              active={tab}
+              counts={
+                loadedOnce && !failedCollections.length
+                  ? {
+                      recipes: recipes.length,
+                      comments: comments.length,
+                      users: users.length,
                     }
-                    className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
-                  />
-                  {search && (
+                  : {}
+              }
+              onSelect={selectTab}
+            />
+            <div className="min-w-0 flex-1">
+              {error && (
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800"
+                >
+                  {error}
+                  {failedCollections.length > 0 && (
+                    <p className="mt-2">
+                      Previously loaded records are kept where available. Use
+                      Refresh to try again.
+                    </p>
+                  )}
+                </div>
+              )}
+              <section className="ak-panel p-4 sm:p-6">
+                {success && (
+                  <div
+                    role="status"
+                    className="mb-5 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+                  >
+                    <span>{success}</span>
                     <button
                       type="button"
-                      aria-label="Clear search"
-                      onClick={() => {
-                        setSearch('');
-                        setPage(1);
-                      }}
+                      onClick={() => setSuccess('')}
+                      aria-label="Dismiss confirmation"
                       className="ak-button-ghost rounded-lg p-2"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
                     </button>
-                  )}
-                </label>
-                <label className="ak-admin-filter">
-                  <span>
-                    {tab === 'users' ? 'Account state' : 'Visibility'}
-                  </span>
-                  <select
-                    value={statusFilter}
-                    onChange={(event) => {
-                      setStatusFilter(event.target.value);
-                      setPage(1);
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-2xl">
+                      {tab === 'activity'
+                        ? 'Activity log'
+                        : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </h2>
+                    <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
+                      {tab === 'activity'
+                        ? 'Admin actions recorded in the audit log'
+                        : tab === 'reports'
+                          ? 'Concerns raised by your community'
+                          : lastRefreshed
+                            ? `Last refreshed ${lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Admin access`
+                            : 'Live community records · Admin access'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      void loadContent();
+                      if (auditRequested) void loadAuditLog();
                     }}
-                    className="ak-input"
+                    disabled={
+                      loading || auditLoading || pendingUserAction !== null
+                    }
+                    className="ak-button-secondary rounded-xl px-4 py-2 text-sm font-semibold disabled:opacity-50"
                   >
-                    {(tab === 'users'
-                      ? [
-                          'All',
-                          'Active',
-                          'Banned',
-                          'Disabled',
-                          'Content hidden',
-                          'Deleted',
-                        ]
-                      : ['All', 'Visible', 'Hidden']
-                    ).map((value) => (
-                      <option key={value}>{value}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {pendingUserAction && (
-                <p
-                  role="status"
-                  className="mt-4 text-sm text-[var(--theme-accent)]"
-                >
-                  Applying changes…
-                </p>
-              )}
-              {loading && (
-                <p
-                  role="status"
-                  className="mt-4 text-sm text-[var(--theme-text-muted)]"
-                >
-                  {loadedOnce
-                    ? 'Refreshing collections…'
-                    : 'Loading admin workspace…'}
-                </p>
-              )}
-              {loadedOnce && !contentUnavailable && (
-                <p className="ak-admin-result-count">
-                  {filteredCount} of {total} {tab}
-                  {(search || statusFilter !== 'All') && (
+                    {loading || auditLoading ? 'Refreshing...' : 'Refresh'}
+                  </button>
+                </div>
+                {tab !== 'reports' && (
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <label className="ak-input flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3">
+                      <Search
+                        className="h-4 w-4 shrink-0 text-[var(--theme-text-muted)]"
+                        aria-hidden="true"
+                      />
+                      <span className="sr-only">Search {tab}</span>
+                      <input
+                        aria-label={`Search ${tab}`}
+                        value={search}
+                        onChange={(event) => {
+                          setSearch(event.target.value);
+                          setPage(1);
+                        }}
+                        placeholder={
+                          tab === 'users'
+                            ? 'Name, handle, email, or user ID'
+                            : tab === 'recipes'
+                              ? 'Recipe, author, or ID'
+                              : tab === 'activity'
+                                ? 'Action, actor, or target ID'
+                                : 'Comment, author, recipe ID, or user ID'
+                        }
+                        className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none"
+                      />
+                      {search && (
+                        <button
+                          type="button"
+                          aria-label="Clear search"
+                          onClick={() => {
+                            setSearch('');
+                            setPage(1);
+                          }}
+                          className="ak-button-ghost rounded-lg p-2"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      )}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-[var(--theme-text-muted)]">
+                      <span>
+                        {tab === 'users'
+                          ? 'Account state'
+                          : tab === 'activity'
+                            ? 'Category'
+                            : 'Visibility'}
+                      </span>
+                      <select
+                        value={statusFilter}
+                        onChange={(event) => {
+                          setStatusFilter(event.target.value);
+                          setPage(1);
+                        }}
+                        className="ak-input min-h-11 rounded-xl px-3 py-2"
+                      >
+                        {(tab === 'users'
+                          ? [
+                              'All',
+                              'Active',
+                              'Banned',
+                              'Disabled',
+                              'Content hidden',
+                              'Deleted',
+                            ]
+                          : tab === 'activity'
+                            ? [
+                                'All',
+                                'Reassignments',
+                                'Moderation',
+                                'Deletions',
+                              ]
+                            : ['All', 'Visible', 'Hidden']
+                        ).map((value) => (
+                          <option key={value}>{value}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
+                {pendingUserAction && (
+                  <p
+                    role="status"
+                    className="mt-4 text-sm text-[var(--theme-accent)]"
+                  >
+                    Applying changes…
+                  </p>
+                )}
+                {tab !== 'reports' &&
+                  (loading || (tab === 'activity' && auditLoading)) && (
+                    <p
+                      role="status"
+                      className="mt-4 text-sm text-[var(--theme-text-muted)]"
+                    >
+                      {loadedOnce
+                        ? tab === 'activity' && !auditEntries.length
+                          ? 'Loading activity log…'
+                          : 'Refreshing collections…'
+                        : 'Loading admin workspace…'}
+                    </p>
+                  )}
+                {loadedOnce && tab !== 'reports' && !contentUnavailable && (
+                  <p className="mt-4 text-xs text-[var(--theme-text-muted)]">
+                    {filteredCount} of {total}{' '}
+                    {tab === 'activity' ? 'entries' : tab}
+                    {(search || statusFilter !== 'All') && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="ml-3 font-semibold text-[var(--theme-accent)] underline underline-offset-4"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </p>
+                )}
+                {contentUnavailable ? (
+                  <div className="ak-empty-state">
+                    <h3 className="text-xl">
+                      This collection couldn’t be loaded
+                    </h3>
+                    <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
+                      Refresh to try again.
+                    </p>
+                  </div>
+                ) : loadedOnce &&
+                  !filteredCount &&
+                  (search || statusFilter !== 'All') ? (
+                  <div className="ak-empty-state">
+                    <h3 className="text-xl">
+                      No matching {tab === 'activity' ? 'entries' : tab}
+                    </h3>
                     <button
                       type="button"
                       onClick={clearFilters}
-                      className="ml-3 font-semibold text-[var(--theme-accent)] underline underline-offset-4"
+                      className="ak-button-secondary mt-4 rounded-xl px-4 py-2 text-sm"
                     >
-                      Clear filters
-                    </button>
-                  )}
-                </p>
-              )}
-              {contentUnavailable ? (
-                <div className="ak-empty-state">
-                  <h3 className="text-xl">
-                    This collection couldn’t be loaded
-                  </h3>
-                  <p className="mt-2 text-sm text-[var(--theme-text-muted)]">
-                    Refresh to try again.
-                  </p>
-                </div>
-              ) : loadedOnce &&
-                !filteredCount &&
-                (search || statusFilter !== 'All') ? (
-                <div className="ak-empty-state">
-                  <h3 className="text-xl">No matching {tab}</h3>
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="ak-button-secondary mt-4 rounded-xl px-4 py-2 text-sm"
-                  >
-                    Show all {tab}
-                  </button>
-                </div>
-              ) : (
-                <fieldset
-                  disabled={pendingUserAction !== null || loading}
-                  className="min-w-0"
-                >
-                  {tab === 'recipes' && (
-                    <RecipeList
-                      recipes={filteredRecipes.slice(start, start + pageSize)}
-                      editingRecipe={editingRecipe}
-                      recipeForm={recipeForm}
-                      setEditingRecipe={setEditingRecipe}
-                      setRecipeForm={setRecipeForm}
-                      saveRecipe={saveRecipe}
-                      removeRecipe={removeRecipe}
-                      onFeature={featureRecipe}
-                      featuredRecipeId={featuredRecipeId}
-                      featureLoaded={featureLoaded}
-                      owners={ownerById}
-                      recipeHref={recipeHref}
-                      loading={loading || !loadedOnce}
-                    />
-                  )}
-                  {tab === 'comments' && (
-                    <CommentList
-                      comments={filteredComments.slice(start, start + pageSize)}
-                      editingComment={editingComment}
-                      commentForm={commentForm}
-                      setEditingComment={setEditingComment}
-                      setCommentForm={setCommentForm}
-                      saveComment={saveComment}
-                      removeComment={removeComment}
-                      owners={ownerById}
-                      recipeHref={recipeHref}
-                      loading={loading || !loadedOnce}
-                    />
-                  )}
-                  {tab === 'users' && (
-                    <UserTable
-                      users={filteredUsers.slice(start, start + pageSize)}
-                      loading={loading || !loadedOnce}
-                      unavailable={userListUnavailable}
-                      onModerateUser={moderateUser}
-                      pendingUserAction={pendingUserAction}
-                    />
-                  )}
-                </fieldset>
-              )}
-              {loadedOnce && filteredCount > 0 && (
-                <nav
-                  aria-label="Collection pages"
-                  className="ak-admin-pagination"
-                >
-                  <p className="text-[var(--theme-text-muted)]">
-                    Showing {start + 1}–
-                    {Math.min(start + pageSize, filteredCount)} of{' '}
-                    {filteredCount}
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      aria-label="Previous page"
-                      disabled={currentPage === 1}
-                      onClick={() => setPage(currentPage - 1)}
-                      className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
-                    <span>
-                      Page {currentPage} of {pages}
-                    </span>
-                    <button
-                      type="button"
-                      aria-label="Next page"
-                      disabled={currentPage >= pages}
-                      onClick={() => setPage(currentPage + 1)}
-                      className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
-                    >
-                      <ChevronRight className="h-4 w-4" />
+                      Show all {tab === 'activity' ? 'entries' : tab}
                     </button>
                   </div>
-                </nav>
-              )}
-            </section>
+                ) : (
+                  <fieldset
+                    disabled={
+                      pendingUserAction !== null ||
+                      loading ||
+                      (tab === 'activity' && auditLoading)
+                    }
+                    className="min-w-0"
+                  >
+                    {tab === 'recipes' && (
+                      <RecipesPanel
+                        recipes={filteredRecipes.slice(start, start + pageSize)}
+                        users={users}
+                        editingRecipe={editingRecipe}
+                        recipeForm={recipeForm}
+                        setEditingRecipe={setEditingRecipe}
+                        setRecipeForm={setRecipeForm}
+                        saveRecipe={saveRecipe}
+                        removeRecipe={removeRecipe}
+                        onHideRecipe={hideRecipe}
+                        onTransfer={transferOwnership}
+                        pendingUserAction={pendingUserAction}
+                        loading={loading || !loadedOnce}
+                        recipeHref={recipeHref}
+                        featuredRecipeId={featuredRecipeId}
+                        featureLoaded={featureLoaded}
+                        onFeature={(recipeId) => void featureRecipe(recipeId)}
+                      />
+                    )}
+                    {tab === 'comments' && (
+                      <CommentsPanel
+                        comments={filteredComments.slice(
+                          start,
+                          start + pageSize
+                        )}
+                        editingComment={editingComment}
+                        commentForm={commentForm}
+                        setEditingComment={setEditingComment}
+                        setCommentForm={setCommentForm}
+                        saveComment={saveComment}
+                        removeComment={removeComment}
+                        onHideComment={hideComment}
+                        loading={loading || !loadedOnce}
+                        recipeHref={recipeHref}
+                      />
+                    )}
+                    {tab === 'users' && (
+                      <UsersPanel
+                        users={filteredUsers.slice(start, start + pageSize)}
+                        loading={loading || !loadedOnce}
+                        unavailable={userListUnavailable}
+                        onModerateUser={moderateUser}
+                        pendingUserAction={pendingUserAction}
+                      />
+                    )}
+                    {tab === 'activity' && (
+                      <ActivityPanel
+                        entries={filteredAudit.slice(start, start + pageSize)}
+                        loading={auditLoading}
+                        unavailable={auditUnavailable}
+                        actorById={ownerById}
+                        hasMore={Boolean(auditNextToken)}
+                        loadingMore={auditLoadingMore}
+                        onLoadMore={() => void loadMoreAuditLog()}
+                      />
+                    )}
+                    {tab === 'reports' && <ReportsPanel />}
+                  </fieldset>
+                )}
+                {loadedOnce && filteredCount > 0 && (
+                  <nav
+                    aria-label="Collection pages"
+                    className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--theme-border)] pt-4 text-sm"
+                  >
+                    <p className="text-[var(--theme-text-muted)]">
+                      Showing {start + 1}–
+                      {Math.min(start + pageSize, filteredCount)} of{' '}
+                      {filteredCount}
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        aria-label="Previous page"
+                        disabled={currentPage === 1}
+                        onClick={() => setPage(currentPage - 1)}
+                        className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <span>
+                        Page {currentPage} of {pages}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Next page"
+                        disabled={currentPage >= pages}
+                        onClick={() => setPage(currentPage + 1)}
+                        className="ak-button-secondary rounded-lg p-2 disabled:opacity-40"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </nav>
+                )}
+              </section>
+            </div>
             {tab === 'recipes' && (
               <aside
-                className="ak-admin-sidebar"
+                className="w-full md:w-72 lg:w-80"
                 aria-label="Recipe administration"
               >
                 <section
-                  className="ak-panel ak-admin-feature"
+                  className="ak-panel p-4"
                   aria-label="Featured recipe settings"
                 >
-                  <div className="ak-admin-aside-heading">
-                    <Sparkles size={16} aria-hidden="true" />
-                    <h2>Featured recipe</h2>
+                  <div className="flex items-center gap-2">
+                    <Sparkles
+                      className="h-4 w-4 text-[var(--theme-accent)]"
+                      aria-hidden="true"
+                    />
+                    <h2 className="text-sm font-semibold">Featured recipe</h2>
                   </div>
                   {featureLoaded && featuredRecipe && (
-                    <Link
-                      to={recipeHref(featuredRecipe.id)}
-                      className="ak-admin-feature-photo"
+                    <a
+                      href={recipeHref(featuredRecipe.id)}
+                      className="mt-3 block overflow-hidden rounded-xl"
                       aria-label={`Open featured recipe: ${featuredRecipe.name}`}
                     >
                       <RecipePhoto
                         imageUrl={featuredRecipe.imageUrl}
                         alt=""
-                        className="h-full w-full object-cover"
+                        className="h-32 w-full object-cover"
                       />
-                    </Link>
+                    </a>
                   )}
-                  <div className="ak-admin-feature-body">
-                    <p className="ak-admin-feature-name">
+                  <div className="mt-3 space-y-2">
+                    <p className="text-sm">
                       {!featureLoaded
                         ? loading
                           ? 'Loading featured recipe…'
@@ -1092,7 +1274,7 @@ export default function AdminDashboard({
                             'The selected recipe is unavailable.'
                           : 'No recipe is currently featured.'}
                     </p>
-                    <p className="ak-admin-aside-help">
+                    <p className="text-xs text-[var(--theme-text-muted)]">
                       Choose Feature on a recipe to update this spot.
                     </p>
                     <button
@@ -1104,7 +1286,7 @@ export default function AdminDashboard({
                         loading ||
                         pendingUserAction !== null
                       }
-                      className="ak-button-secondary ak-admin-clear-feature disabled:opacity-50"
+                      className="ak-button-secondary w-full rounded-xl px-3 py-2 text-xs disabled:opacity-50"
                     >
                       Clear featured recipe
                     </button>
@@ -1112,84 +1294,95 @@ export default function AdminDashboard({
                 </section>
                 {profilePinAction && (
                   <fieldset
-                    className="ak-admin-profile-action"
+                    className="ak-panel mt-4 p-4"
                     disabled={loading || pendingUserAction !== null}
                   >
-                    <legend className="ak-eyebrow">Your profile</legend>
+                    <legend className="ak-eyebrow text-xs">Your profile</legend>
                     {profilePinAction}
                   </fieldset>
                 )}
-                <section className="ak-panel ak-admin-transfer">
-                  <fieldset
-                    className="min-w-0"
-                    disabled={pendingUserAction !== null || loading}
-                  >
-                    <div className="ak-admin-aside-heading">
-                      <ArrowRightLeft size={16} aria-hidden="true" />
-                      <h2>Ownership transfer</h2>
-                    </div>
-                    <p className="ak-admin-aside-help">
-                      Assign a recipe to another cook.
-                    </p>
-                    <div className="ak-admin-transfer-fields">
-                      <label>
-                        Recipe
-                        <select
-                          aria-label="Recipe to transfer"
-                          value={transferRecipeId}
-                          onChange={(event) =>
-                            setTransferRecipeId(event.target.value)
-                          }
-                          className="ak-input"
-                        >
-                          <option value="">Select a recipe</option>
-                          {recipes.map((recipe) => (
-                            <option key={recipe.id} value={recipe.id}>
-                              {recipe.name} · {recipe.ownerId}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        New owner
-                        <select
-                          aria-label="Destination user"
-                          value={transferOwnerId}
-                          onChange={(event) =>
-                            setTransferOwnerId(event.target.value)
-                          }
-                          className="ak-input"
-                        >
-                          <option value="">Select a destination user</option>
-                          {users.map((user) => (
-                            <option key={user.userId} value={user.userId}>
-                              {user.displayName} · {user.userId}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <button
-                        onClick={() => void transferOwnership()}
-                        disabled={
-                          !transferRecipeId ||
-                          !transferOwnerId ||
-                          pendingUserAction !== null
-                        }
-                        className="ak-button-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-50"
-                      >
-                        {pendingUserAction === 'transferOwnership'
-                          ? 'Transferring...'
-                          : 'Transfer ownership'}
-                      </button>
-                    </div>
-                  </fieldset>
-                </section>
               </aside>
             )}
           </div>
         </div>
       </div>
-      {!embedded && <WorkspaceFooter />}
+      {pendingDeleteUser && (
+        <AccessibleDialog
+          label="Confirm user deletion"
+          onClose={closeDeleteDialog}
+        >
+          <section className="ak-panel mx-auto my-12 max-w-lg p-6 sm:p-8">
+            <ShieldCheck
+              className="mb-4 h-8 w-8 text-red-700"
+              aria-hidden="true"
+            />
+            <p className="ak-eyebrow text-red-700">Danger zone</p>
+            <h2 className="mt-2 text-2xl">
+              Delete @{pendingDeleteUser.username}?
+            </h2>
+            <p className="mt-4 text-sm leading-6 text-[var(--theme-text-muted)]">
+              This disables the account and hides their content. It is
+              reversible — Restore brings the account and their visibility back.
+            </p>
+            <p className="mt-3 text-sm leading-6">
+              They own{' '}
+              <strong>
+                {pendingDeleteOwnedCount}{' '}
+                {pendingDeleteOwnedCount === 1 ? 'recipe' : 'recipes'}
+              </strong>{' '}
+              in this workspace.
+            </p>
+            {pendingDeleteOwnedCount > 0 && (
+              <p className="mt-2 text-sm leading-6 text-[var(--theme-text-muted)]">
+                Reassign first (recommended) so their recipes stay available to
+                the community after the account is disabled.
+              </p>
+            )}
+            <label className="mt-4 block text-sm">
+              <span className="block text-[var(--theme-text-muted)]">
+                Type <span className="font-mono">{pendingDeleteExpected}</span>{' '}
+                to confirm
+              </span>
+              <input
+                value={deleteEmailInput}
+                onChange={(event) => setDeleteEmailInput(event.target.value)}
+                aria-label="Type the account email to confirm deletion"
+                autoComplete="off"
+                className="ak-input mt-2 min-h-11 w-full rounded-xl px-3 py-2"
+              />
+            </label>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              {pendingDeleteOwnedCount > 0 && (
+                <button
+                  type="button"
+                  onClick={reassignBeforeDelete}
+                  className="ak-button-secondary mr-auto rounded-xl px-4 py-3 text-sm font-semibold"
+                >
+                  Reassign first (recommended)
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={closeDeleteDialog}
+                className="ak-button-secondary rounded-xl px-4 py-3 text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeleteUser()}
+                disabled={
+                  deleteEmailInput.trim().toLowerCase() !==
+                  pendingDeleteExpected
+                }
+                className="ak-button-danger rounded-xl px-4 py-3 text-sm font-semibold disabled:opacity-50"
+              >
+                Delete account
+              </button>
+            </div>
+          </section>
+        </AccessibleDialog>
+      )}
       {confirmation && (
         <AccessibleDialog
           label="Confirm admin action"
@@ -1226,465 +1419,7 @@ export default function AdminDashboard({
           </section>
         </AccessibleDialog>
       )}
+      {!embedded && <WorkspaceFooter />}
     </Frame>
-  );
-}
-
-function CollectionButton({
-  label,
-  icon,
-  value,
-  active,
-  onClick,
-  loading,
-}: {
-  label: string;
-  icon: ReactNode;
-  value: number;
-  active: boolean;
-  onClick: () => void;
-  loading?: boolean;
-}) {
-  const [activeColor, setActiveColor] = useState(randomMerlinColor);
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        setActiveColor(randomMerlinColor());
-        onClick();
-      }}
-      aria-pressed={active}
-      aria-controls="admin-results"
-      style={
-        active
-          ? { color: activeColor, borderBottomColor: activeColor }
-          : undefined
-      }
-      className={`ak-admin-tab ${active ? 'is-active' : ''}`}
-    >
-      {icon}
-      <span>{label}</span>
-      <span className="ak-admin-tab-count">{loading ? '—' : value}</span>
-    </button>
-  );
-}
-
-function RecipeList({
-  recipes,
-  editingRecipe,
-  recipeForm,
-  setEditingRecipe,
-  setRecipeForm,
-  saveRecipe,
-  removeRecipe,
-  onFeature,
-  featuredRecipeId,
-  featureLoaded,
-  owners,
-  recipeHref,
-  loading,
-}: any) {
-  return (
-    <div className="ak-admin-records">
-      {recipes.map((recipe: Recipe) => (
-        <article
-          key={recipe.id}
-          className="ak-admin-record ak-admin-recipe-record"
-        >
-          {editingRecipe?.id === recipe.id ? (
-            <div className="ak-admin-edit-form">
-              <label>
-                Recipe name
-                <input
-                  value={recipeForm.name}
-                  onChange={(event) =>
-                    setRecipeForm({ ...recipeForm, name: event.target.value })
-                  }
-                  aria-label="Recipe name"
-                  className="ak-input"
-                />
-              </label>
-              <label>
-                Description
-                <textarea
-                  value={recipeForm.description}
-                  onChange={(event) =>
-                    setRecipeForm({
-                      ...recipeForm,
-                      description: event.target.value,
-                    })
-                  }
-                  aria-label="Recipe description"
-                  className="ak-input min-h-24 resize-y"
-                />
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => void saveRecipe()}
-                  className="ak-button-primary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingRecipe(null)}
-                  className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="ak-admin-recipe-layout">
-              <Link
-                to={recipeHref(recipe.id)}
-                className="ak-admin-recipe-photo"
-                aria-label={`Open ${recipe.name}`}
-              >
-                <RecipePhoto
-                  imageUrl={recipe.imageUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </Link>
-              <div className="ak-admin-record-body">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="ak-admin-record-title">{recipe.name}</h3>
-                  <VisibilityBadge hidden={recipe.isHidden} />
-                </div>
-                <p className="ak-admin-record-description">
-                  {recipe.description || 'No description'}
-                </p>
-                <p className="ak-admin-record-owner">
-                  {recipe.createdBy && <span>by {recipe.createdBy}</span>}
-                  <span title={recipe.ownerId}>
-                    Owner:{' '}
-                    {owners?.get(recipe.ownerId)?.username || recipe.ownerId}
-                  </span>
-                </p>
-                <Link
-                  to={recipeHref(recipe.id)}
-                  className="ak-admin-record-link"
-                >
-                  View recipe <ArrowUpRight size={13} aria-hidden="true" />
-                </Link>
-              </div>
-              <div className="ak-admin-record-actions">
-                <button
-                  type="button"
-                  onClick={() => void onFeature(recipe.id)}
-                  disabled={
-                    !featureLoaded ||
-                    loading ||
-                    Boolean(recipe.isHidden) ||
-                    featuredRecipeId === recipe.id
-                  }
-                  aria-label={`Feature ${recipe.name}`}
-                  aria-pressed={featuredRecipeId === recipe.id}
-                  className="ak-button-secondary ak-admin-feature-action disabled:opacity-50"
-                >
-                  <Sparkles size={14} aria-hidden="true" />
-                  {featuredRecipeId === recipe.id ? 'Featured' : 'Feature'}
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingRecipe(recipe);
-                    setRecipeForm({
-                      name: recipe.name,
-                      description: recipe.description || '',
-                    });
-                  }}
-                  className="ak-button-secondary rounded-xl px-3 py-2 text-sm"
-                >
-                  <Pencil size={13} aria-hidden="true" /> Edit
-                </button>
-                <button
-                  onClick={() => void removeRecipe(recipe)}
-                  className="ak-button-danger-soft rounded-xl px-3 py-2 text-sm"
-                >
-                  <Trash2 size={13} aria-hidden="true" /> Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </article>
-      ))}
-      {!recipes.length && !loading && (
-        <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">
-          No recipes found.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function CommentList({
-  comments,
-  editingComment,
-  commentForm,
-  setEditingComment,
-  setCommentForm,
-  saveComment,
-  removeComment,
-  owners,
-  recipeHref,
-  loading,
-}: any) {
-  return (
-    <div className="ak-admin-records">
-      {comments.map((comment: Comment) => (
-        <article
-          key={comment.id}
-          className="ak-admin-record ak-admin-comment-record"
-        >
-          {editingComment?.id === comment.id ? (
-            <div className="ak-admin-edit-form">
-              <label>
-                Comment
-                <textarea
-                  value={commentForm}
-                  onChange={(event) => setCommentForm(event.target.value)}
-                  aria-label="Comment content"
-                  className="ak-input min-h-24 resize-y"
-                />
-              </label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => void saveComment()}
-                  className="ak-button-primary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditingComment(null)}
-                  className="ak-button-secondary rounded-xl px-4 py-2.5 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="ak-admin-comment-layout">
-              <div className="ak-admin-record-body">
-                <div className="ak-admin-comment-identity">
-                  <CookAvatar
-                    name={comment.author}
-                    avatar={owners?.get(comment.userId)?.avatar || undefined}
-                  />
-                  <p>{comment.author.replace(/^@/, '')}</p>
-                  <VisibilityBadge hidden={comment.isHidden} />
-                </div>
-                <p className="ak-admin-comment-text">{comment.content}</p>
-                <p className="ak-admin-record-owner">
-                  Recipe: {comment.recipeId} | User: {comment.userId}
-                </p>
-                <Link
-                  to={recipeHref(comment.recipeId)}
-                  className="ak-admin-record-link"
-                >
-                  View conversation{' '}
-                  <ArrowUpRight size={13} aria-hidden="true" />
-                </Link>
-              </div>
-              <div className="ak-admin-record-actions">
-                <button
-                  onClick={() => {
-                    setEditingComment(comment);
-                    setCommentForm(comment.content);
-                  }}
-                  className="ak-button-secondary rounded-xl px-3 py-2 text-sm"
-                >
-                  <Pencil size={13} aria-hidden="true" /> Edit
-                </button>
-                <button
-                  onClick={() => void removeComment(comment)}
-                  className="ak-button-danger-soft rounded-xl px-3 py-2 text-sm"
-                >
-                  <Trash2 size={13} aria-hidden="true" /> Delete
-                </button>
-              </div>
-            </div>
-          )}
-        </article>
-      ))}
-      {!comments.length && !loading && (
-        <p className="py-8 text-center text-sm text-[var(--theme-text-muted)]">
-          No comments found.
-        </p>
-      )}
-    </div>
-  );
-}
-
-function VisibilityBadge({ hidden }: { hidden?: boolean | null }) {
-  return (
-    <span
-      className={`ak-admin-status ${hidden ? 'is-restricted' : 'is-visible'}`}
-    >
-      {hidden ? 'Hidden' : 'Visible'}
-    </span>
-  );
-}
-
-function UserTable({
-  users,
-  loading,
-  unavailable,
-  onModerateUser,
-  pendingUserAction,
-}: {
-  users: UserProfile[];
-  loading: boolean;
-  unavailable: boolean;
-  onModerateUser: (
-    user: UserProfile,
-    action:
-      | 'delete'
-      | 'ban'
-      | 'unban'
-      | 'hideContent'
-      | 'restoreContent'
-      | 'restore'
-  ) => void;
-  pendingUserAction: string | null;
-}) {
-  if (unavailable) {
-    return (
-      <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
-        The deployed backend does not include the admin Cognito user-list
-        operation yet. Deploy the latest Amplify backend and reload this page.
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-5">
-      <p className="mb-2 text-xs text-[var(--theme-text-muted)] md:hidden">
-        Scroll the table sideways for account status and actions.
-      </p>
-      <div
-        tabIndex={0}
-        role="region"
-        aria-label="User management table"
-        className="ak-admin-table"
-      >
-        <table className="min-w-full text-left text-sm">
-          <thead className="sticky top-0 bg-[var(--theme-surface-alt)] text-xs uppercase text-[var(--theme-text-muted)]">
-            <tr>
-              <th scope="col" className="px-4 py-3">
-                User
-              </th>
-              <th scope="col" className="px-4 py-3">
-                User ID
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Cognito status
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Moderation
-              </th>
-              <th scope="col" className="px-4 py-3">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                className="border-t border-[var(--theme-border)]"
-              >
-                <td className="px-4 py-3">
-                  <div className="ak-admin-user-identity">
-                    <CookAvatar
-                      name={user.displayName || user.username}
-                      avatar={user.avatar || undefined}
-                    />
-                    <div>
-                      <div className="font-semibold">
-                        {user.displayName || user.username}
-                      </div>
-                      {user.displayName &&
-                        user.displayName !== user.username && (
-                          <div className="text-xs text-[var(--theme-accent)]">
-                            {user.username}
-                          </div>
-                        )}
-                      {user.email && (
-                        <div className="text-[var(--theme-text-muted)]">
-                          {user.email}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 font-mono text-xs text-[var(--theme-text-muted)]">
-                  {user.userId}
-                </td>
-                <td className="px-4 py-3">
-                  {user.status || 'UNKNOWN'}
-                  {user.enabled === false ? ' · Disabled' : ''}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`ak-admin-status ${userModerationStatus(user) === 'Active' ? 'is-visible' : 'is-restricted'}`}
-                  >
-                    {userModerationStatus(user)}
-                  </span>
-                  {user.contentHidden &&
-                    userModerationStatus(user) !== 'Content hidden' && (
-                      <p className="mt-1 text-xs text-[var(--theme-text-muted)]">
-                        Content hidden
-                      </p>
-                    )}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex min-w-52 flex-wrap gap-2">
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(user, user.isBanned ? 'unban' : 'ban')
-                      }
-                      className="ak-button-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.isBanned ? 'Unban' : 'Ban'}
-                    </button>
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(
-                          user,
-                          user.contentHidden ? 'restoreContent' : 'hideContent'
-                        )
-                      }
-                      className="ak-button-secondary rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.contentHidden ? 'Restore content' : 'Hide content'}
-                    </button>
-                    <button
-                      disabled={pendingUserAction !== null}
-                      onClick={() =>
-                        onModerateUser(
-                          user,
-                          user.isDeleted ? 'restore' : 'delete'
-                        )
-                      }
-                      className="ak-button-danger-soft rounded-xl px-3 py-2 text-xs disabled:opacity-50"
-                    >
-                      {user.isDeleted ? 'Restore user' : 'Delete user'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!users.length && !loading && (
-          <p className="p-8 text-center text-sm text-[var(--theme-text-muted)]">
-            No Cognito users found.
-          </p>
-        )}
-      </div>
-    </div>
   );
 }

@@ -1,0 +1,49 @@
+name: PR checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: Lint
+            command: npm run lint
+          - check: Unit tests
+            command: npm run test:run
+          - check: CLI tests
+            command: node --test scripts/resolve-ampx-entry.test.cjs scripts/migrate-aws-account.test.cjs
+          - check: Build
+            command: npm run build
+
+    steps:
+      - name: Check out the PR
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run ${{ matrix.check }}
+        run: ${{ matrix.command }}

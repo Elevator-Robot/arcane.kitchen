@@ -19,21 +19,25 @@ When the project changes, update this file in the same PR.
 ## Recipe Data Structure
 
 Recipes now include a `utensils` field (array of strings) for kitchen tools needed:
+
 - Displayed in recipe previews as a bulleted list
 - Included in recipe fingerprint for deduplication
 - Optional (empty if not provided)
 
 Recipe identity fields:
+
 - `Recipe.ownerId` is the authoritative owner and authorization key
 - `Recipe.createdBy` is denormalized display metadata and must match the owner's `@username`
 - Recipe creation, edits, username changes, and ownership transfers synchronize `createdBy`
 
 UserProfile login reconciliation:
+
 - On every successful login, the backend `UserProfile` row is checked first and wins over Cognito/local cache values
 - Cognito attributes seed a `UserProfile` only when the backend row is missing
 - Missing first-signup profiles receive one random preset avatar and keep it until changed
 
 Authentication submission:
+
 - Custom sign-in and account creation requests are deduplicated while in flight so one attempt cannot send multiple confirmation codes
 - Recipe ownership uses the Cognito subject (`sub`/`userId`), never the Cognito login username, when publishing or mutating recipes
 
@@ -223,7 +227,11 @@ Authentication submission:
 
 - Admin collections provide search, visibility/account-state filters, ten-row result pages, status badges, and links to recipes/conversations. Recipe/comment loading follows backend pagination; refresh failures retain existing records and distinguish unavailable collections from empty results.
 - Existing destructive actions use a keyboard-accessible confirmation dialog. All admin writes are deduplicated while pending, check GraphQL errors before changing UI state, and show success/error feedback. Refresh and mutation controls are disabled during conflicting operations.
+- The console uses an icon rail (tooltips on hover and focus, 44px targets, the active panel title repeated in the panel header) with restyled panels: monogram recipe cards with inline ownership transfer, a users table with a separated danger-zone column, comment cards with visibility toggles and a more-menu delete, an activity log with `Load more` pagination, and a Reports placeholder with Open/Resolved/Dismissed pills and empty states (no report model exists yet). Active/selected controls take one stable `randomMerlinColor()` per render.
+- Transfer destinations exclude the recipe's current owner and any banned or deleted account. The shell merges `UserProfile` moderation flags (`isBanned`/`isDeleted`/`contentHidden`) onto `listAdminUsers` rows for status display and filtering; backend read authorization is unchanged.
+- Deleting a user requires typing the account email, shows the owned-recipe count, and offers a recommended (not forced) reassign-first path that opens Recipes with the account's username as its search query. `FORCE_CHANGE_PASSWORD`/`RESET_REQUIRED` accounts show a "Password change pending" badge.
 - Planning and progress are tracked in `docs/admin-dashboard.md`.
+- `docs/screenshots/admin-dashboard/README.md` documents PR #115's desktop/mobile captures, fictional preview fixtures, interaction checks, and unresolved findings at the captured commit.
 - Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
 - Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.
 - Backrooms reads the live Cognito session group claim; group membership is not persisted in localStorage. Primary routes are Emporium `/discover`, Build `/build`, and the owner's profile with its private workspace query parameter.
@@ -235,6 +243,7 @@ Authentication submission:
 
 ## Agent checklist for every PR
 
+- `.github/workflows/pr-checks.yml` runs independent Lint, Unit tests, CLI tests, and Build checks on PR open/reopen/ready-for-review and every PR-branch push. CI uses Node.js 24, `npm ci`, an npm download cache, read-only repository access, and per-PR cancellation of superseded runs; it needs no AWS credentials or generated outputs.
 - Vitest runs `src/**/*.{test,spec}.{ts,tsx}`; run the Node CLI test separately with `node --test scripts/resolve-ampx-entry.test.cjs`.
 
 1. Check whether any change made AGNET.md inaccurate.
@@ -246,6 +255,7 @@ Authentication submission:
 
 - `scripts/migrate-aws-account.cjs` migrates production Cognito identities, application records, and recipe images from the Brain account to the dedicated Arcane.Kitchen account; configuration is in `scripts/aws-account-migration.config.cjs`.
 - Migration artifacts belong under ignored `.migration/`; they contain user data and must never be committed.
+- The migration SDK/config initialization is deferred until AWS services are requested. Pure helpers import without local AWS files; the CLI suite verifies this in a fresh process with missing config/credential paths.
 - AWS-mutating commands are dry-run-only unless given the exact `--apply --confirm-account 617394174030` guard.
 - The final source export must be created after writes are frozen with `--confirm-source-frozen`; rehearsal exports cannot be applied.
 - Three native-plus-Google duplicate pairs merge into 11 destination users. Profile conflicts and administrator grants require explicit approval in `identity-review.json`; four duplicate favorites are intentionally collapsed.

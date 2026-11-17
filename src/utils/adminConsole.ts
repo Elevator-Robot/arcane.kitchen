@@ -37,6 +37,12 @@ export function userModerationStatus(user: ModerationUser) {
   return 'Active';
 }
 
+export function adminAuditCategory(action: string) {
+  if (action === 'transferOwnership') return 'Reassignments';
+  if (action === 'delete') return 'Deletions';
+  return 'Moderation';
+}
+
 export function matchesAdminSearch(
   query: string,
   ...fields: (string | null | undefined)[]
