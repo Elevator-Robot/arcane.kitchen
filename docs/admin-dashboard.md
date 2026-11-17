@@ -9,6 +9,10 @@ Status: implemented console UI; backend enforcement and linked-record cleanup fo
 
 Current UI branch: `feat/admin-dashboard-redesign`
 
+The [PR #115 screenshot review](screenshots/admin-dashboard/README.md) covers
+desktop moderation, ownership transfer, deletion guards, activity pagination,
+the Reports placeholder, mobile layouts, and findings at the captured commit.
+
 This document is the source of truth for the admin-dashboard work. Update the
 progress and decisions sections as implementation proceeds.
 

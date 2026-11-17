@@ -229,8 +229,9 @@ Authentication submission:
 - Existing destructive actions use a keyboard-accessible confirmation dialog. All admin writes are deduplicated while pending, check GraphQL errors before changing UI state, and show success/error feedback. Refresh and mutation controls are disabled during conflicting operations.
 - The console uses an icon rail (tooltips on hover and focus, 44px targets, the active panel title repeated in the panel header) with restyled panels: monogram recipe cards with inline ownership transfer, a users table with a separated danger-zone column, comment cards with visibility toggles and a more-menu delete, an activity log with `Load more` pagination, and a Reports placeholder with Open/Resolved/Dismissed pills and empty states (no report model exists yet). Active/selected controls take one stable `randomMerlinColor()` per render.
 - Transfer destinations exclude the recipe's current owner and any banned or deleted account. The shell merges `UserProfile` moderation flags (`isBanned`/`isDeleted`/`contentHidden`) onto `listAdminUsers` rows for status display and filtering; backend read authorization is unchanged.
-- Deleting a user requires typing the account email, shows the owned-recipe count, and offers a recommended (not forced) reassign-first path that jumps to Recipes filtered to that owner. `FORCE_CHANGE_PASSWORD`/`RESET_REQUIRED` accounts show a "Password change pending" badge.
+- Deleting a user requires typing the account email, shows the owned-recipe count, and offers a recommended (not forced) reassign-first path that opens Recipes with the account's username as its search query. `FORCE_CHANGE_PASSWORD`/`RESET_REQUIRED` accounts show a "Password change pending" badge.
 - Planning and progress are tracked in `docs/admin-dashboard.md`.
+- `docs/screenshots/admin-dashboard/README.md` documents PR #115's desktop/mobile captures, fictional preview fixtures, interaction checks, and unresolved findings at the captured commit.
 - Admin membership uses the Cognito `Admins` group; the first administrator is assigned manually through Cognito/AWS administration.
 - Recipe and comment admin mutations are authorized by the `Admins` group in `amplify/data/resource.ts`; frontend checks must not be treated as authorization.
 - Backrooms reads the live Cognito session group claim; group membership is not persisted in localStorage. Primary routes are Emporium `/discover`, Build `/build`, and the owner's profile with its private workspace query parameter.
@@ -242,6 +243,7 @@ Authentication submission:
 
 ## Agent checklist for every PR
 
+- `.github/workflows/pr-checks.yml` runs independent Lint, Unit tests, CLI tests, and Build checks on PR open/reopen/ready-for-review and every PR-branch push. CI uses Node.js 24, `npm ci`, an npm download cache, read-only repository access, and per-PR cancellation of superseded runs; it needs no AWS credentials or generated outputs.
 - Vitest runs `src/**/*.{test,spec}.{ts,tsx}`; run the Node CLI test separately with `node --test scripts/resolve-ampx-entry.test.cjs`.
 
 1. Check whether any change made AGNET.md inaccurate.
