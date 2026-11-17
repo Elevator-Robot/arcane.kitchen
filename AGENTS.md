@@ -255,6 +255,7 @@ Authentication submission:
 
 - `scripts/migrate-aws-account.cjs` migrates production Cognito identities, application records, and recipe images from the Brain account to the dedicated Arcane.Kitchen account; configuration is in `scripts/aws-account-migration.config.cjs`.
 - Migration artifacts belong under ignored `.migration/`; they contain user data and must never be committed.
+- The migration SDK/config initialization is deferred until AWS services are requested. Pure helpers import without local AWS files; the CLI suite verifies this in a fresh process with missing config/credential paths.
 - AWS-mutating commands are dry-run-only unless given the exact `--apply --confirm-account 617394174030` guard.
 - The final source export must be created after writes are frozen with `--confirm-source-frozen`; rehearsal exports cannot be applied.
 - Three native-plus-Google duplicate pairs merge into 11 destination users. Profile conflicts and administrator grants require explicit approval in `identity-review.json`; four duplicate favorites are intentionally collapsed.

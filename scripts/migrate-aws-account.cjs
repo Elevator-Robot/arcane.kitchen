@@ -1,6 +1,3 @@
-process.env.AWS_SDK_LOAD_CONFIG ||= '1';
-
-const AWS = require('aws-sdk');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const https = require('node:https');
@@ -184,6 +181,9 @@ const userProvider = (user) => {
 };
 
 const awsServices = (environment) => {
+  // Pure planning helpers and their tests also run without a local AWS config.
+  process.env.AWS_SDK_LOAD_CONFIG ||= '1';
+  const AWS = require('aws-sdk');
   const credentials = new AWS.SsoCredentials({ profile: environment.profile });
   const common = { credentials, region: config.region };
   return {
