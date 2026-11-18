@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightLeft, Ellipsis, Eye, EyeOff, X } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  Ellipsis,
+  Eye,
+  EyeOff,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import VisibilityBadge from './VisibilityBadge';
 import {
   matchesAdminSearch,
@@ -30,6 +37,10 @@ export default function RecipesPanel({
   onTransfer,
   pendingUserAction,
   loading,
+  recipeHref,
+  featuredRecipeId,
+  featureLoaded,
+  onFeature,
 }: {
   recipes: AdminRecipe[];
   users: AdminUserProfile[];
@@ -46,6 +57,10 @@ export default function RecipesPanel({
   ) => Promise<boolean>;
   pendingUserAction: string | null;
   loading: boolean;
+  recipeHref: (recipeId: string) => string;
+  featuredRecipeId: string | null;
+  featureLoaded: boolean;
+  onFeature: (recipeId: string) => void;
 }) {
   const [transferFor, setTransferFor] = useState<string | null>(null);
   const [transferQuery, setTransferQuery] = useState('');
@@ -223,11 +238,30 @@ export default function RecipesPanel({
                         />
                       </button>
                       <Link
-                        to={`/discover?recipe=${encodeURIComponent(recipe.id)}`}
+                        to={recipeHref(recipe.id)}
                         className="inline-flex min-h-11 items-center text-xs font-semibold text-[var(--theme-accent)] underline underline-offset-4"
                       >
                         View recipe
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => onFeature(recipe.id)}
+                        disabled={
+                          !featureLoaded ||
+                          loading ||
+                          busy ||
+                          Boolean(recipe.isHidden) ||
+                          featuredRecipeId === recipe.id
+                        }
+                        aria-label={`Feature ${recipe.name}`}
+                        aria-pressed={featuredRecipeId === recipe.id}
+                        className="ak-button-secondary inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-2 text-sm disabled:opacity-50"
+                      >
+                        <Sparkles className="h-4 w-4" aria-hidden="true" />
+                        {featuredRecipeId === recipe.id
+                          ? 'Featured'
+                          : 'Feature'}
+                      </button>
                     </div>
                   </div>
                 </div>
