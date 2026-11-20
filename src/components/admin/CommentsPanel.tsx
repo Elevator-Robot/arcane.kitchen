@@ -26,6 +26,7 @@ export default function CommentsPanel({
   removeComment,
   onHideComment,
   loading,
+  recipeHref,
 }: {
   comments: AdminComment[];
   editingComment: AdminComment | null;
@@ -36,6 +37,7 @@ export default function CommentsPanel({
   removeComment: (comment: AdminComment) => Promise<void>;
   onHideComment: (comment: AdminComment) => Promise<void>;
   loading: boolean;
+  recipeHref: (recipeId: string) => string;
 }) {
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -122,7 +124,7 @@ export default function CommentsPanel({
                     On recipe {comment.recipeId.slice(0, 8)}…
                   </small>
                   <Link
-                    to={`/discover?recipe=${encodeURIComponent(comment.recipeId)}`}
+                    to={recipeHref(comment.recipeId)}
                     className="mt-2 inline-flex min-h-11 items-center text-xs font-semibold text-[var(--theme-accent)] underline underline-offset-4"
                   >
                     View conversation

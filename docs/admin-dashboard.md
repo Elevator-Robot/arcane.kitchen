@@ -7,7 +7,7 @@ screen. Public profiles never render Backrooms, even for an admin viewer.
 
 Status: implemented console UI; backend enforcement and linked-record cleanup follow-ups remain
 
-Current UI branch: `feat/admin-dashboard-redesign`
+Build-fix branch: `fix/admin-dashboard-build`, based on `main` after PR #115.
 
 The [PR #115 screenshot review](screenshots/admin-dashboard/README.md) covers
 desktop moderation, ownership transfer, deletion guards, activity pagination,
@@ -264,3 +264,11 @@ still be refined as the backend capabilities are validated.
   status pills, per-status empty states, and no search or filter controls. There
   is still no report model or queue in the backend, so the panel says flagging
   has not shipped yet.
+
+### 2026-11-17
+
+- Restored the extracted panels' typed route/feature props and the optional
+  `AdminRecipe.imageUrl` field used by the featured thumbnail.
+- Recipe and conversation links use the shell's workspace-preserving URL helper.
+- Restored Feature/Featured on recipe rows, including loading, pending-write,
+  hidden-recipe, and current-selection guards.

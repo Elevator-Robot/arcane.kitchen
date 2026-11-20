@@ -2,6 +2,7 @@ export type AdminRecipe = {
   id: string;
   name: string;
   description?: string | null;
+  imageUrl?: string | null;
   ownerId: string;
   createdBy?: string | null;
   isHidden?: boolean | null;
